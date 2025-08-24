@@ -1,0 +1,58 @@
+{
+  "target_websites": [
+    "https://www.kmart.com.au",
+    "https://www.kmart.co.nz"
+  ],
+  "max_retries": 3,
+  "delay_between_requests": 2,
+  "timeout": 30,
+  "categories_to_extract": [
+    "home",
+    "clothing",
+    "toys",
+    "electronics",
+    "beauty",
+    "sports",
+    "garden",
+    "automotive",
+    "baby",
+    "outdoor",
+    "furniture",
+    "kitchen",
+    "bedroom",
+    "bathroom"
+  ],
+  "output_directory": "temp",
+  "validate_links": false,
+  "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+  "additional_selectors": [
+    "nav a[href*='category']",
+    "a[href*='/category/']",
+    ".category-link",
+    ".nav-category",
+    "a[href*='/c/']",
+    ".menu a",
+    ".navigation a",
+    ".main-nav a",
+    ".header-nav a",
+    "[data-category]"
+  ],
+  "exclude_patterns": [
+    "javascript:",
+    "mailto:",
+    "tel:",
+    "#",
+    "login",
+    "register",
+    "cart",
+    "checkout",
+    "account"
+  ],
+  "max_links_per_site": 100,
+  "max_crawl_depth": 3,
+  "deep_crawling": {
+    "enabled": true,
+    "max_depth": 3,
+    "follow_pagination": false
+  }
+}

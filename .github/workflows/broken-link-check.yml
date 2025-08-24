@@ -2,7 +2,7 @@ name: Broken Link Check
 
 on:
   schedule:
-    - cron: '0 14 * * *'  # 12AM AEST (UTC+10) = 2PM UTC
+    - cron: '0 16 * * *'  # 3AM AEST (UTC+10) = 4PM UTC
   workflow_dispatch:
 
 permissions:

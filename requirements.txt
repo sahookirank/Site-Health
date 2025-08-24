@@ -7,3 +7,8 @@ requests
 beautifulsoup4
 pandas
 openpyxl
+plotly
+networkx
+numpy
+lxml
+html5lib
