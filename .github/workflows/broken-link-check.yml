@@ -16,6 +16,8 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      TARGET_BRANCH: main  # Branch containing the crawler/report code to execute
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3

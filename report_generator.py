@@ -2,8 +2,6 @@ import pandas as pd
 import argparse
 import html
 import os
-import json
-import requests
 import sqlite3
 from datetime import date, timedelta, datetime
 
@@ -12,36 +10,7 @@ from datetime import date, timedelta, datetime
 # for broader applications, using a templating engine (like Jinja2) would be a safer practice 
 # to prevent potential XSS if data sources were less controlled.
 
-def send_to_new_relic(df, event_type='LinkCheckResult'):
-    """Sends DataFrame data to New Relic as custom events."""
-    license_key = os.getenv('NEW_RELIC_LICENSE_KEY')
-    account_id = os.getenv('NEW_RELIC_ACCOUNT_ID')
 
-    if not license_key or not account_id:
-        print("⚠️ New Relic credentials not found. Skipping sending data to New Relic.")
-        print("   Please set NEW_RELIC_LICENSE_KEY and NEW_RELIC_ACCOUNT_ID environment variables.")
-        return
-
-    url = f'https://insights-collector.newrelic.com/v1/accounts/{account_id}/events'
-    headers = {
-        'Content-Type': 'application/json',
-        'Api-Key': license_key
-    }
-
-    events = []
-    for _, row in df.iterrows():
-        event = row.to_dict()
-        event['eventType'] = event_type
-        events.append(event)
-
-    # Send events in batches of 1000
-    for i in range(0, len(events), 1000):
-        batch = events[i:i+1000]
-        response = requests.post(url, data=json.dumps(batch), headers=headers)
-        if response.status_code in [200, 202]:
-            print(f"✅ Successfully sent batch {i//1000 + 1} to New Relic.")
-        else:
-            print(f"❌ Failed to send batch to New Relic. Status: {response.status_code}, Response: {response.text}")
 
 def generate_html_table_from_df(df, table_id):
     """Generates an HTML table string from a pandas DataFrame for use with DataTables."""
@@ -298,7 +267,7 @@ def _compute_changes(conn: sqlite3.Connection):
         'week': {'added': w_added, 'removed': w_removed}
     }
 
-def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='combined_report.html', send_nr=False, db_path: str = 'broken_links.db'):
+def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='combined_report.html', db_path: str = 'broken_links.db'):
     """Generates a combined HTML report with tabs for AU and NZ link check results."""
     try:
         au_df = pd.read_csv(au_csv_path)
@@ -309,12 +278,7 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
     except Exception as e:
         print(f"Error reading AU CSV {au_csv_path}: {e}")
         au_df = pd.DataFrame(columns=['URL', 'Status', 'Path', 'Visible'])
-    if send_nr:
-        broken_links_au_df = au_df[au_df['Status'] >= 400].copy()
-        if not broken_links_au_df.empty:
-            send_to_new_relic(broken_links_au_df, 'AuSiteBrokenLinks')
-        else:
-            print("✅ No broken AU links to send to New Relic.")
+
 
     try:
         nz_df = pd.read_csv(nz_csv_path)
@@ -325,12 +289,7 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
     except Exception as e:
         print(f"Error reading NZ CSV {nz_csv_path}: {e}")
         nz_df = pd.DataFrame(columns=['URL', 'Status', 'Path', 'Visible'])
-    if send_nr:
-        broken_links_nz_df = nz_df[nz_df['Status'] >= 400].copy()
-        if not broken_links_nz_df.empty:
-            send_to_new_relic(broken_links_nz_df, 'NzSiteBrokenLinks')
-        else:
-            print("✅ No broken NZ links to send to New Relic.")
+
 
     # Add region column before combining
     au_df['Region'] = 'AU'
@@ -610,7 +569,6 @@ if __name__ == '__main__':
     parser.add_argument('--au-csv', default='au_link_check_results.csv', help='Path to the AU link check results CSV file.')
     parser.add_argument('--nz-csv', default='nz_link_check_results.csv', help='Path to the NZ link check results CSV file.')
     parser.add_argument('--output-html', default='combined_report.html', help='Path to save the combined HTML report.')
-    parser.add_argument('--send-to-new-relic', action='store_true', help='Send results to New Relic.')
     args = parser.parse_args()
 
-    generate_combined_html_report(args.au_csv, args.nz_csv, args.output_html, args.send_to_new_relic)
+    generate_combined_html_report(args.au_csv, args.nz_csv, args.output_html)
