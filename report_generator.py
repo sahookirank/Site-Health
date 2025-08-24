@@ -10,8 +10,6 @@ from datetime import date, timedelta, datetime
 # for broader applications, using a templating engine (like Jinja2) would be a safer practice 
 # to prevent potential XSS if data sources were less controlled.
 
-
-
 def generate_html_table_from_df(df, table_id):
     """Generates an HTML table string from a pandas DataFrame for use with DataTables."""
     if df.empty:
@@ -279,7 +277,6 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
         print(f"Error reading AU CSV {au_csv_path}: {e}")
         au_df = pd.DataFrame(columns=['URL', 'Status', 'Path', 'Visible'])
 
-
     try:
         nz_df = pd.read_csv(nz_csv_path)
         nz_df['Status'] = pd.to_numeric(nz_df['Status'], errors='coerce').fillna(0).astype(int)
@@ -289,7 +286,6 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
     except Exception as e:
         print(f"Error reading NZ CSV {nz_csv_path}: {e}")
         nz_df = pd.DataFrame(columns=['URL', 'Status', 'Path', 'Visible'])
-
 
     # Add region column before combining
     au_df['Region'] = 'AU'
