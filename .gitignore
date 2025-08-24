@@ -1,0 +1,21 @@
+# Ignore local SQLite database
+broken_links.db
+
+# Python bytecode/cache
+__pycache__/
+*.pyc
+
+# Test scripts
+test_runner.py
+
+# Generated reports and artifacts (main branch)
+index.html
+combined_report.html
+*_link_check_results.csv
+changes_*.csv
+link_check_log.txt
+
+# Optional: ignore other local artifacts (uncomment if desired)
+# *.sqlite
+# *.db
+# gh-pages/

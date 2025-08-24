@@ -1,0 +1,9 @@
+# For improved security and reproducibility, consider pinning package versions.
+# You can generate a pinned list by activating your virtual environment,
+# ensuring the correct versions are installed, and then running:
+# pip freeze > requirements.txt
+
+requests
+beautifulsoup4
+pandas
+openpyxl
