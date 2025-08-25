@@ -1,0 +1,87 @@
+{
+  "Home": {
+    "count": 6,
+    "subcategories": [
+      "Living Room",
+      "Bedroom"
+    ],
+    "urls": [
+      "https://www.kmart.com.au/category/home",
+      "https://www.kmart.com.au/category/home",
+      "https://www.kmart.com.au/category/home/living-room",
+      "https://www.kmart.com.au/category/home/living-room",
+      "https://www.kmart.com.au/category/home/bedroom",
+      "https://www.kmart.com.au/category/home/bedroom"
+    ]
+  },
+  "Clothing": {
+    "count": 6,
+    "subcategories": [
+      "Mens",
+      "Womens"
+    ],
+    "urls": [
+      "https://www.kmart.com.au/category/clothing",
+      "https://www.kmart.com.au/category/clothing",
+      "https://www.kmart.com.au/category/clothing/mens",
+      "https://www.kmart.com.au/category/clothing/mens",
+      "https://www.kmart.com.au/category/clothing/womens",
+      "https://www.kmart.com.au/category/clothing/womens"
+    ]
+  },
+  "Toys": {
+    "count": 4,
+    "subcategories": [
+      "Outdoor"
+    ],
+    "urls": [
+      "https://www.kmart.com.au/category/toys",
+      "https://www.kmart.com.au/category/toys",
+      "https://www.kmart.com.au/category/toys/outdoor",
+      "https://www.kmart.com.au/category/toys/outdoor"
+    ]
+  },
+  "Outdoor": {
+    "count": 1,
+    "subcategories": [],
+    "urls": [
+      "https://www.kmart.com.au/category/toys/outdoor"
+    ]
+  },
+  "Electronics": {
+    "count": 4,
+    "subcategories": [
+      "Phones"
+    ],
+    "urls": [
+      "https://www.kmart.com.au/category/electronics",
+      "https://www.kmart.com.au/category/electronics",
+      "https://www.kmart.com.au/category/electronics/phones",
+      "https://www.kmart.com.au/category/electronics/phones"
+    ]
+  },
+  "Beauty": {
+    "count": 4,
+    "subcategories": [
+      "Skincare"
+    ],
+    "urls": [
+      "https://www.kmart.com.au/category/beauty",
+      "https://www.kmart.com.au/category/beauty",
+      "https://www.kmart.com.au/category/beauty/skincare",
+      "https://www.kmart.com.au/category/beauty/skincare"
+    ]
+  },
+  "Sports": {
+    "count": 4,
+    "subcategories": [
+      "Fitness"
+    ],
+    "urls": [
+      "https://www.kmart.com.au/category/sports",
+      "https://www.kmart.com.au/category/sports",
+      "https://www.kmart.com.au/category/sports/fitness",
+      "https://www.kmart.com.au/category/sports/fitness"
+    ]
+  }
+}

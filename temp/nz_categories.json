@@ -1,0 +1,85 @@
+{
+  "Home": {
+    "count": 6,
+    "subcategories": [
+      "Bathroom",
+      "Kitchen"
+    ],
+    "urls": [
+      "https://www.kmart.co.nz/category/home",
+      "https://www.kmart.co.nz/category/home",
+      "https://www.kmart.co.nz/category/home/kitchen",
+      "https://www.kmart.co.nz/category/home/kitchen",
+      "https://www.kmart.co.nz/category/home/bathroom",
+      "https://www.kmart.co.nz/category/home/bathroom"
+    ]
+  },
+  "Clothing": {
+    "count": 6,
+    "subcategories": [
+      "Accessories",
+      "Kids"
+    ],
+    "urls": [
+      "https://www.kmart.co.nz/category/clothing",
+      "https://www.kmart.co.nz/category/clothing",
+      "https://www.kmart.co.nz/category/clothing/kids",
+      "https://www.kmart.co.nz/category/clothing/kids",
+      "https://www.kmart.co.nz/category/clothing/accessories",
+      "https://www.kmart.co.nz/category/clothing/accessories"
+    ]
+  },
+  "Kids": {
+    "count": 1,
+    "subcategories": [],
+    "urls": [
+      "https://www.kmart.co.nz/category/clothing/kids"
+    ]
+  },
+  "Toys": {
+    "count": 4,
+    "subcategories": [
+      "Educational"
+    ],
+    "urls": [
+      "https://www.kmart.co.nz/category/toys",
+      "https://www.kmart.co.nz/category/toys",
+      "https://www.kmart.co.nz/category/toys/educational",
+      "https://www.kmart.co.nz/category/toys/educational"
+    ]
+  },
+  "Electronics": {
+    "count": 4,
+    "subcategories": [
+      "Gaming"
+    ],
+    "urls": [
+      "https://www.kmart.co.nz/category/electronics",
+      "https://www.kmart.co.nz/category/electronics",
+      "https://www.kmart.co.nz/category/electronics/gaming",
+      "https://www.kmart.co.nz/category/electronics/gaming"
+    ]
+  },
+  "Garden": {
+    "count": 4,
+    "subcategories": [
+      "Outdoor Furniture"
+    ],
+    "urls": [
+      "https://www.kmart.co.nz/category/garden",
+      "https://www.kmart.co.nz/category/garden",
+      "https://www.kmart.co.nz/category/garden/outdoor-furniture",
+      "https://www.kmart.co.nz/category/garden/outdoor-furniture"
+    ]
+  },
+  "Automotive": {
+    "count": 2,
+    "subcategories": [
+      "Accessories"
+    ],
+    "urls": [
+      "https://www.kmart.co.nz/category/automotive",
+      "https://www.kmart.co.nz/category/automotive/accessories"
+    ]
+  }
+}

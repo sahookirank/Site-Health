@@ -769,7 +769,7 @@ def _ensure_retention(conn: sqlite3.Connection, keep_days: int = 60):
     conn.commit()
 
 def _store_broken_links_today(conn: sqlite3.Connection, df: pd.DataFrame):
-    # df expected columns include Region, URL, Status, Path, Visible, Timestamp
+    # df expected columns include Region, URL, Status, Response_Time, Error_Message, Timestamp
     today_str = date.today().strftime('%Y_%m_%d')
     table = f"broken_links_{today_str}"
     cur = conn.cursor()
@@ -778,15 +778,17 @@ def _store_broken_links_today(conn: sqlite3.Connection, df: pd.DataFrame):
             Region TEXT,
             URL TEXT,
             Status INTEGER,
-            Path TEXT,
-            Visible TEXT,
+            Response_Time REAL,
+            Error_Message TEXT,
             Timestamp TEXT
         )
     """)
+    # Clear existing records for today to prevent duplicates
+    cur.execute(f"DELETE FROM {table}")
     # Insert rows
-    records = df[df['Status'] >= 400][['Region','URL','Status','Path','Visible','Timestamp']].to_records(index=False)
+    records = df[df['Status'] >= 400][['Region','URL','Status','Response_Time','Error_Message','Timestamp']].to_records(index=False)
     cur.executemany(
-        f"INSERT INTO {table} (Region, URL, Status, Path, Visible, Timestamp) VALUES (?,?,?,?,?,?)",
+        f"INSERT INTO {table} (Region, URL, Status, Response_Time, Error_Message, Timestamp) VALUES (?,?,?,?,?,?)",
         list(records)
     )
     conn.commit()
@@ -807,14 +809,37 @@ def _compute_changes(conn: sqlite3.Connection):
     today_set = _load_broken_set(conn, today_d)
     yday_set = _load_broken_set(conn, yday_d)
     week_set = _load_broken_set(conn, week_d)
+    
+    # Check if we have data to compare
+    has_yesterday_data = len(yday_set) > 0
+    has_week_data = len(week_set) > 0
+    
     # Added = in today but not in past; Removed = in past but not in today
-    y_added = sorted(list(today_set - yday_set))
-    y_removed = sorted(list(yday_set - today_set))
-    w_added = sorted(list(today_set - week_set))
-    w_removed = sorted(list(week_set - today_set))
+    if has_yesterday_data:
+        y_added = sorted(list(today_set - yday_set))
+        y_removed = sorted(list(yday_set - today_set))
+    else:
+        y_added = []
+        y_removed = []
+    
+    if has_week_data:
+        w_added = sorted(list(today_set - week_set))
+        w_removed = sorted(list(week_set - today_set))
+    else:
+        w_added = []
+        w_removed = []
+    
     return {
-        'yesterday': {'added': y_added, 'removed': y_removed},
-        'week': {'added': w_added, 'removed': w_removed}
+        'yesterday': {
+            'added': y_added, 
+            'removed': y_removed,
+            'has_data': has_yesterday_data
+        },
+        'week': {
+            'added': w_added, 
+            'removed': w_removed,
+            'has_data': has_week_data
+        }
     }
 
 def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='combined_report.html', db_path: str = 'broken_links.db'):
@@ -826,10 +851,10 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
         extract_category_hierarchy(au_df, 'AU')
     except FileNotFoundError:
         print(f"Warning: AU results file not found at {au_csv_path}. AU tab will be empty.")
-        au_df = pd.DataFrame(columns=['URL', 'Status', 'Path', 'Visible'])
+        au_df = pd.DataFrame(columns=['URL', 'Status', 'Response_Time', 'Error_Message'])
     except Exception as e:
         print(f"Error reading AU CSV {au_csv_path}: {e}")
-        au_df = pd.DataFrame(columns=['URL', 'Status', 'Path', 'Visible'])
+        au_df = pd.DataFrame(columns=['URL', 'Status', 'Response_Time', 'Error_Message'])
 
     try:
         nz_df = pd.read_csv(nz_csv_path)
@@ -838,10 +863,10 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
         extract_category_hierarchy(nz_df, 'NZ')
     except FileNotFoundError:
         print(f"Warning: NZ results file not found at {nz_csv_path}. NZ tab will be empty.")
-        nz_df = pd.DataFrame(columns=['URL', 'Status', 'Path', 'Visible'])
+        nz_df = pd.DataFrame(columns=['URL', 'Status', 'Response_Time', 'Error_Message'])
     except Exception as e:
         print(f"Error reading NZ CSV {nz_csv_path}: {e}")
-        nz_df = pd.DataFrame(columns=['URL', 'Status', 'Path', 'Visible'])
+        nz_df = pd.DataFrame(columns=['URL', 'Status', 'Response_Time', 'Error_Message'])
 
     # Add region column before combining
     au_df['Region'] = 'AU'
@@ -876,7 +901,7 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
         # Merge for storage to avoid two passes
         merged_err_df = pd.concat([au_error_df, nz_error_df], ignore_index=True)
         # Ensure required columns exist
-        for col in ['Timestamp','Region','URL','Status','Path','Visible']:
+        for col in ['Timestamp','Region','URL','Status','Response_Time','Error_Message']:
             if col not in merged_err_df.columns:
                 merged_err_df[col] = ''
         _store_broken_links_today(conn, merged_err_df)
@@ -919,14 +944,9 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
             </table>
         """
 
-    changes_html = f"""
-        <div id="Changes" class="tab-content">
-            <div class="collapsible-section">
-                <div class="collapsible-header" onclick="toggleSection('yesterday-section')">
-                    <span>Changes since Yesterday</span>
-                    <span class="toggle-icon" id="yesterday-toggle">▼</span>
-                </div>
-                <div class="collapsible-content" id="yesterday-section">
+    # Generate content for yesterday's changes
+    if changes['yesterday']['has_data']:
+        yesterday_content = f"""
                     <div class="changes-summary">
                         <div class="change-count added">➕ Added: {len(changes['yesterday']['added'])}</div>
                         <div class="change-count removed">➖ Removed: {len(changes['yesterday']['removed'])}</div>
@@ -936,15 +956,19 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                     {render_changes_section('Added Yesterday', changes['yesterday']['added'])}
                     <h3>Removed</h3>
                     {render_changes_section('Removed Yesterday', changes['yesterday']['removed'])}
-                </div>
-            </div>
-
-            <div class="collapsible-section">
-                <div class="collapsible-header" onclick="toggleSection('week-section')">
-                    <span>Changes vs 7 Days Ago</span>
-                    <span class="toggle-icon" id="week-toggle">▼</span>
-                </div>
-                <div class="collapsible-content" id="week-section">
+        """
+    else:
+        yesterday_content = """
+                    <div class="changes-summary">
+                        <div style="padding: 20px; text-align: center; color: #6c757d; font-style: italic;">
+                            📊 No data present to compare with yesterday's broken links.
+                        </div>
+                    </div>
+        """
+    
+    # Generate content for week's changes
+    if changes['week']['has_data']:
+        week_content = f"""
                     <div class="changes-summary">
                         <div class="change-count added">➕ Added: {len(changes['week']['added'])}</div>
                         <div class="change-count removed">➖ Removed: {len(changes['week']['removed'])}</div>
@@ -954,6 +978,35 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                     {render_changes_section('Added Week', changes['week']['added'])}
                     <h3>Removed</h3>
                     {render_changes_section('Removed Week', changes['week']['removed'])}
+        """
+    else:
+        week_content = """
+                    <div class="changes-summary">
+                        <div style="padding: 20px; text-align: center; color: #6c757d; font-style: italic;">
+                            📊 No data present to compare with 7 days ago broken links.
+                        </div>
+                    </div>
+        """
+
+    changes_html = f"""
+        <div id="Changes" class="tab-content">
+            <div class="collapsible-section">
+                <div class="collapsible-header" onclick="toggleSection('yesterday-section')">
+                    <span>Changes since Yesterday</span>
+                    <span class="toggle-icon" id="yesterday-toggle">▼</span>
+                </div>
+                <div class="collapsible-content" id="yesterday-section">
+{yesterday_content}
+                </div>
+            </div>
+
+            <div class="collapsible-section">
+                <div class="collapsible-header" onclick="toggleSection('week-section')">
+                    <span>Changes vs 7 Days Ago</span>
+                    <span class="toggle-icon" id="week-toggle">▼</span>
+                </div>
+                <div class="collapsible-content" id="week-section">
+{week_content}
                 </div>
             </div>
         </div>
@@ -1040,7 +1093,7 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                         fixedHeader: true,
                         initComplete: function () {{
                             var api = this.api();
-                            // Check for the correct number of filterable columns (Timestamp, URL, Status, Path, Visible)
+                            // Check for the correct number of filterable columns (Timestamp, URL, Status, Response_Time, Error_Message)
                             var filterHeaderCells = $(tableId + ' thead tr.filters th');
                             if (filterHeaderCells.length !== 5) {{
                                 console.error('Expected 5 filterable columns for ' + tableId + ', found ' + filterHeaderCells.length + '. Skipping filter setup.');
