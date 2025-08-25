@@ -232,8 +232,41 @@ STYLE_DEFINITIONS = """
                 background: #fff;
             }
             .collapsible-content.active {
-                max-height: 2000px;
+                max-height: none;
                 padding: 20px;
+            }
+            /* New styles for changes tables */
+            .changes-table-added tbody tr {
+                background-color: #f0fdf4 !important;
+                border-left: 4px solid #22c55e;
+            }
+            .changes-table-added tbody tr:hover {
+                background-color: #dcfce7 !important;
+            }
+            .changes-table-removed tbody tr {
+                background-color: #fef2f2 !important;
+                border-left: 4px solid #ef4444;
+            }
+            .changes-table-removed tbody tr:hover {
+                background-color: #fecaca !important;
+            }
+            .change-type-badge {
+                display: inline-block;
+                padding: 4px 8px;
+                border-radius: 12px;
+                font-size: 12px;
+                font-weight: 600;
+                text-transform: uppercase;
+            }
+            .change-type-badge.added {
+                background-color: #dcfce7;
+                color: #166534;
+                border: 1px solid #86efac;
+            }
+            .change-type-badge.removed {
+                background-color: #fef2f2;
+                color: #991b1b;
+                border: 1px solid #fca5a5;
             }
             .toggle-icon {
                 font-size: 18px;
@@ -803,12 +836,53 @@ def _load_broken_set(conn: sqlite3.Connection, target_date: date) -> set[tuple[s
     return set(cur.fetchall())
 
 def _compute_changes(conn: sqlite3.Connection):
-    today_d = date.today()
-    yday_d = today_d - timedelta(days=1)
-    week_d = today_d - timedelta(days=7)
+    # Dynamically detect available dates from database tables
+    cursor = conn.cursor()
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'broken_links_%'")
+    tables = [row[0] for row in cursor.fetchall()]
+    
+    # Extract dates from table names and sort them
+    available_dates = []
+    for table in tables:
+        if table.startswith('broken_links_'):
+            date_str = table.replace('broken_links_', '')
+            try:
+                # Parse date format: YYYY_MM_DD
+                year, month, day = map(int, date_str.split('_'))
+                available_dates.append(date(year, month, day))
+            except ValueError:
+                continue
+    
+    available_dates.sort(reverse=True)  # Most recent first
+    
+    if len(available_dates) == 0:
+        # No data available
+        return {
+            'yesterday': {'added': [], 'removed': [], 'has_data': False},
+            'week': {'added': [], 'removed': [], 'has_data': False}
+        }
+    
+    # Use the most recent date as "today"
+    today_d = available_dates[0]
+    
+    # Find the closest previous date for "yesterday" comparison
+    yday_d = None
+    for d in available_dates[1:]:
+        if d < today_d:
+            yday_d = d
+            break
+    
+    # Find a date approximately 7 days before today for "week" comparison
+    week_d = None
+    target_week_date = today_d - timedelta(days=7)
+    for d in available_dates:
+        if d <= target_week_date:
+            week_d = d
+            break
+    
     today_set = _load_broken_set(conn, today_d)
-    yday_set = _load_broken_set(conn, yday_d)
-    week_set = _load_broken_set(conn, week_d)
+    yday_set = _load_broken_set(conn, yday_d) if yday_d else set()
+    week_set = _load_broken_set(conn, week_d) if week_d else set()
     
     # Check if we have data to compare
     has_yesterday_data = len(yday_set) > 0
@@ -932,14 +1006,27 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
     nz_table_html = generate_html_table_from_df(nz_error_df.drop(columns=['Region'], errors='ignore'), 'nzLinkTable')
 
     # Build Changes tab HTML
-    def render_changes_section(title: str, items: list[tuple[str,str]]):
+    def render_changes_section(title: str, items: list[tuple[str,str]], change_type: str):
         # items: list of (Region, URL)
         if not items:
             return "<p>No changes.</p>"
-        rows = ''.join([f"<tr><td>{html.escape(reg)}</td><td><a href='{html.escape(url)}' target='_blank'>{html.escape(url)}</a></td></tr>" for reg, url in items])
+        
+        # Create unique table ID based on title and change type
+        table_id = f"changes-{change_type.lower()}-{title.lower().replace(' ', '-')}"
+        table_class = f"changes-table-{change_type.lower()} display"
+        
+        # Add change type badge to each row
+        badge_class = "added" if change_type.lower() == "added" else "removed"
+        badge_text = "➕ ADDED" if change_type.lower() == "added" else "➖ REMOVED"
+        
+        rows = ''.join([
+            f"<tr><td><span class='change-type-badge {badge_class}'>{badge_text}</span></td><td>{html.escape(reg)}</td><td><a href='{html.escape(url)}' target='_blank'>{html.escape(url)}</a></td></tr>" 
+            for reg, url in items
+        ])
+        
         return f"""
-            <table class='display' style='width:100%'>
-                <thead><tr><th>Region</th><th>URL</th></tr></thead>
+            <table id='{table_id}' class='{table_class}' style='width:100%'>
+                <thead><tr><th>Type</th><th>Region</th><th>URL</th></tr></thead>
                 <tbody>{rows}</tbody>
             </table>
         """
@@ -952,10 +1039,24 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                         <div class="change-count removed">➖ Removed: {len(changes['yesterday']['removed'])}</div>
                         <a class=\"download-tab-button\" download href=\"changes_all.csv\">Download All Changes (CSV)</a>
                     </div>
-                    <h3>Added</h3>
-                    {render_changes_section('Added Yesterday', changes['yesterday']['added'])}
-                    <h3>Removed</h3>
-                    {render_changes_section('Removed Yesterday', changes['yesterday']['removed'])}
+                    <div class="collapsible-section">
+                        <div class="collapsible-header" onclick="toggleSection('yesterday-added-section')">
+                            <span>Added Links ({len(changes['yesterday']['added'])})</span>
+                            <span class="toggle-icon" id="yesterday-added-toggle">▼</span>
+                        </div>
+                        <div class="collapsible-content" id="yesterday-added-section">
+                            {render_changes_section('Yesterday Added', changes['yesterday']['added'], 'added')}
+                        </div>
+                    </div>
+                    <div class="collapsible-section">
+                        <div class="collapsible-header" onclick="toggleSection('yesterday-removed-section')">
+                            <span>Removed Links ({len(changes['yesterday']['removed'])})</span>
+                            <span class="toggle-icon" id="yesterday-removed-toggle">▼</span>
+                        </div>
+                        <div class="collapsible-content" id="yesterday-removed-section">
+                            {render_changes_section('Yesterday Removed', changes['yesterday']['removed'], 'removed')}
+                        </div>
+                    </div>
         """
     else:
         yesterday_content = """
@@ -974,10 +1075,26 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                         <div class="change-count removed">➖ Removed: {len(changes['week']['removed'])}</div>
                         <a class=\"download-tab-button\" download href=\"changes_all.csv\">Download All Changes (CSV)</a>
                     </div>
-                    <h3>Added</h3>
-                    {render_changes_section('Added Week', changes['week']['added'])}
-                    <h3>Removed</h3>
-                    {render_changes_section('Removed Week', changes['week']['removed'])}
+                    
+                    <div class="collapsible-section">
+                        <div class="collapsible-header" onclick="toggleSection('week-added-section')">
+                            <span>➕ Added Links ({len(changes['week']['added'])})</span>
+                            <span class="toggle-icon" id="week-added-toggle">▼</span>
+                        </div>
+                        <div class="collapsible-content" id="week-added-section">
+                            {render_changes_section('Added Week', changes['week']['added'], 'added')}
+                        </div>
+                    </div>
+                    
+                    <div class="collapsible-section">
+                        <div class="collapsible-header" onclick="toggleSection('week-removed-section')">
+                            <span>➖ Removed Links ({len(changes['week']['removed'])})</span>
+                            <span class="toggle-icon" id="week-removed-toggle">▼</span>
+                        </div>
+                        <div class="collapsible-content" id="week-removed-section">
+                            {render_changes_section('Removed Week', changes['week']['removed'], 'removed')}
+                        </div>
+                    </div>
         """
     else:
         week_content = """
@@ -1133,6 +1250,27 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                                 $(row).addClass('ok');
                             }}
                         }}
+                    }});
+                }});
+                
+                // Initialize DataTables for changes tables
+                var changesTables = [
+                    '#yesterday-added-table', '#yesterday-removed-table',
+                    '#week-added-table', '#week-removed-table'
+                ];
+                
+                changesTables.forEach(function(tableId) {{
+                    if (!$(tableId).length) return; // If table doesn't exist, skip
+                    
+                    $(tableId).DataTable({{
+                        pageLength: 50,
+                        orderCellsTop: true,
+                        fixedHeader: true,
+                        dom: 'Bfrtip',
+                        buttons: [
+                            'copy', 'csv', 'excel', 'pdf', 'print'
+                        ],
+                        order: [[2, 'asc']] // Sort by URL column
                     }});
                 }});
             }});
