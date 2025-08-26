@@ -969,17 +969,30 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
     nz_error_df = nz_df[nz_df['Status'] >= 400].copy()
 
     # Persist today's broken links to SQLite and enforce retention
+    changes = {'yesterday': {'added': [], 'removed': []}, 'week': {'added': [], 'removed': []}}
     try:
         conn = _connect_db(db_path)
         _ensure_retention(conn, keep_days=60)
         # Merge for storage to avoid two passes
         merged_err_df = pd.concat([au_error_df, nz_error_df], ignore_index=True)
+        print(f"Debug: Merged error dataframe has {len(merged_err_df)} rows")
+        
         # Ensure required columns exist
         for col in ['Timestamp','Region','URL','Status','Response_Time','Error_Message']:
             if col not in merged_err_df.columns:
                 merged_err_df[col] = ''
+        
+        # Add current timestamp if missing
+        if 'Timestamp' not in merged_err_df.columns or merged_err_df['Timestamp'].isna().all():
+            merged_err_df['Timestamp'] = datetime.now().isoformat()
+        
         _store_broken_links_today(conn, merged_err_df)
+        print(f"Debug: Stored {len(merged_err_df)} broken links to database")
+        
         changes = _compute_changes(conn)
+        print(f"Debug: Changes computed - Yesterday: {len(changes['yesterday']['added'])} added, {len(changes['yesterday']['removed'])} removed")
+        print(f"Debug: Changes computed - Week: {len(changes['week']['added'])} added, {len(changes['week']['removed'])} removed")
+        
         # Build a single combined CSV: Region, URL, Change, Window
         combined_rows = []
         for reg, url in changes['yesterday']['added']:
@@ -990,10 +1003,19 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
             combined_rows.append({"Region": reg, "URL": url, "Change": "Added", "Window": "Last 7 Days"})
         for reg, url in changes['week']['removed']:
             combined_rows.append({"Region": reg, "URL": url, "Change": "Removed", "Window": "Last 7 Days"})
+        
         try:
             pd.DataFrame(combined_rows, columns=["Region","URL","Change","Window"]).to_csv('changes_all.csv', index=False)
+            print(f"Debug: Wrote {len(combined_rows)} changes to changes_all.csv")
         except Exception as e:
             print(f"Failed to write combined changes CSV: {e}")
+            
+    except Exception as e:
+        print(f"Error in database operations: {e}")
+        import traceback
+        traceback.print_exc()
+        # Initialize empty changes if database operations fail
+        changes = {'yesterday': {'added': [], 'removed': []}, 'week': {'added': [], 'removed': []}}
     finally:
         try:
             conn.close()
