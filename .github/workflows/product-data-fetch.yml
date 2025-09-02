@@ -84,22 +84,44 @@ jobs:
                     "accept": "application/json",
                     "accept-language": "en-GB,en-US;q=0.9,en;q=0.8",
                     "content-type": "application/json",
-                    "authorization": f"Bearer {self.auth_token}" if self.auth_token else "",
+                    "origin": "https://mc.australia-southeast1.gcp.commercetools.com",
+                    "priority": "u=1, i",
+                    "sec-ch-ua": '"Not;A=Brand";v="99", "Google Chrome";v="139", "Chromium";v="139"',
+                    "sec-ch-ua-mobile": "?0",
+                    "sec-ch-ua-platform": "\"macOS\"",
+                    "sec-fetch-dest": "empty",
+                    "sec-fetch-mode": "cors",
+                    "sec-fetch-site": "same-site",
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",
                     "x-application-id": "__internal:products",
+                    "x-correlation-id": "mc/kmart-production/941dc8ba-fd2b-4be3-a375-2d5ef173394d/a55d13f1-5b22-4168-9adb-6dedf00fd383",
                     "x-project-key": self.project_key,
-                    "x-user-agent": "@commercetools/sdk-client GitHub-Actions-Workflow"
+                    "x-user-agent": "apollo-client Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 products/application-shell/24.5.0 (+ https://git.io/fjuyC; +support@commercetools.com)",
+                    "authorization": f"Bearer {self.auth_token}" if self.auth_token else "",
+                    "cache-control": "no-cache"
                 }
                 
                 self.graphql_headers = {
                     "accept": "application/json",
                     "accept-language": "en-GB,en-US;q=0.9,en;q=0.8",
                     "content-type": "application/json",
-                    "authorization": f"Bearer {self.auth_token}" if self.auth_token else "",
+                    "origin": "https://mc.australia-southeast1.gcp.commercetools.com",
+                    "priority": "u=1, i",
+                    "sec-ch-ua": '"Not;A=Brand";v="99", "Google Chrome";v="139", "Chromium";v="139"',
+                    "sec-ch-ua-mobile": "?0",
+                    "sec-ch-ua-platform": "\"macOS\"",
+                    "sec-fetch-dest": "empty",
+                    "sec-fetch-mode": "cors",
+                    "sec-fetch-site": "same-site",
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",
                     "x-application-id": "__internal:products",
+                    "x-correlation-id": "mc/kmart-production/941dc8ba-fd2b-4be3-a375-2d5ef173394d/a55d13f1-5b22-4168-9adb-6dedf00fd383",
                     "x-graphql-operation-name": "GeneralInfoTabQuery",
                     "x-graphql-target": "ctp",
                     "x-project-key": self.project_key,
-                    "x-user-agent": "apollo-client GitHub-Actions-Workflow"
+                    "x-user-agent": "apollo-client Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 products/application-shell/24.5.0 (+ https://git.io/fjuyC; +support@commercetools.com)",
+                    "authorization": f"Bearer {self.auth_token}" if self.auth_token else "",
+                    "cache-control": "no-cache"
                 }
         
             def get_products_from_database(self, region_filter: str = "ALL", max_products: int = 100) -> List[Dict]:
