@@ -168,13 +168,56 @@ jobs:
             def search_product_by_sku(self, sku: str) -> Optional[str]:
                 """Search for product ID by SKU using the search API."""
                 payload = {
+                    "limit": 20,
+                    "offset": 0,
                     "query": {
-                        "fullText": {
-                            "field": "variants.sku",
-                            "value": sku
-                        }
+                        "or": [
+                            {
+                                "fullText": {
+                                    "field": "name",
+                                    "language": "en-AU",
+                                    "value": sku
+                                }
+                            },
+                            {
+                                "fullText": {
+                                    "field": "description",
+                                    "language": "en-AU",
+                                    "value": sku
+                                }
+                            },
+                            {
+                                "fullText": {
+                                    "field": "slug",
+                                    "language": "en-AU",
+                                    "value": sku
+                                }
+                            },
+                            {
+                                "prefix": {
+                                    "field": "key",
+                                    "language": "en-AU",
+                                    "value": sku,
+                                    "caseInsensitive": True
+                                }
+                            },
+                            {
+                                "prefix": {
+                                    "field": "variants.sku",
+                                    "value": sku,
+                                    "caseInsensitive": True
+                                }
+                            },
+                            {
+                                "prefix": {
+                                    "field": "variants.key",
+                                    "value": sku,
+                                    "caseInsensitive": True
+                                }
+                            }
+                        ]
                     },
-                    "limit": 1
+                    "enableTiebreaker": False
                 }
                 
                 try:
@@ -187,10 +230,13 @@ jobs:
                     
                     if response.status_code == 200:
                         data = response.json()
-                        if data.get('results') and len(data['results']) > 0:
-                            return data['results'][0].get('id')
+                        if data.get('hits') and len(data['hits']) > 0:
+                            return data['hits'][0].get('id')
+                        else:
+                            logger.warning(f"No search results found for SKU {sku}")
                     else:
                         logger.warning(f"Search API returned status {response.status_code} for SKU {sku}")
+                        logger.warning(f"Response: {response.text[:500]}")
                     
                 except Exception as e:
                     logger.error(f"Error searching for SKU {sku}: {e}")
