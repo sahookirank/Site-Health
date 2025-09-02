@@ -499,6 +499,23 @@ jobs:
                                     name = locale_data.get('value', 'Unknown')
                                     break
                         
+                        # Extract attributes from master variant
+                        attributes = {}
+                        master_variant = product_data.get('masterData', {}).get('staged', {}).get('masterVariant', {})
+                        if master_variant.get('attributesRaw'):
+                            for attr in master_variant['attributesRaw']:
+                                attr_name = attr.get('name', '')
+                                attr_value = attr.get('value', '')
+                                attributes[attr_name] = attr_value
+                        
+                        # Also extract product-level attributes
+                        staged_data = product_data.get('masterData', {}).get('staged', {})
+                        if staged_data.get('attributesRaw'):
+                            for attr in staged_data['attributesRaw']:
+                                attr_name = attr.get('name', '')
+                                attr_value = attr.get('value', '')
+                                attributes[attr_name] = attr_value
+                        
                         # Create detailed information
                         detail_info = {
                             "name": name,
@@ -507,8 +524,9 @@ jobs:
                             "version": product_data.get('version', 0),
                             "created_at": product_data.get('createdAt', ''),
                             "last_modified": product_data.get('lastModifiedAt', ''),
-                            "master_variant_sku": product_data.get('masterData', {}).get('staged', {}).get('masterVariant', {}).get('sku', ''),
-                            "attributes_count": len(product_data.get('masterData', {}).get('staged', {}).get('masterVariant', {}).get('attributesRaw', []))
+                            "master_variant_sku": master_variant.get('sku', ''),
+                            "attributes_count": len(attributes),
+                            "attributes": attributes
                         }
                         
                         results.append({
