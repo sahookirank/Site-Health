@@ -1,0 +1,1168 @@
+{
+    "data": {
+        "product": {
+            "id": "e098bc92-713a-4bb0-a678-30b1ac1651a4",
+            "productType": {
+                "id": "a504e265-2a55-45d8-8d19-317989a033e1",
+                "name": "KosmosProduct",
+                "attributeDefinitions": {
+                    "results": [
+                        {
+                            "attributeConstraint": "None",
+                            "isSearchable": true,
+                            "labelAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "Size",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "inputHint": "SingleLine",
+                            "inputTipAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "isRequired": false,
+                            "name": "Size",
+                            "type": {
+                                "name": "text",
+                                "__typename": "TextAttributeDefinitionType"
+                            },
+                            "__typename": "AttributeDefinition"
+                        },
+                        {
+                            "attributeConstraint": "None",
+                            "isSearchable": true,
+                            "labelAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "SecondaryColour",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "inputHint": "SingleLine",
+                            "inputTipAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "isRequired": false,
+                            "name": "SecondaryColour",
+                            "type": {
+                                "name": "text",
+                                "__typename": "TextAttributeDefinitionType"
+                            },
+                            "__typename": "AttributeDefinition"
+                        },
+                        {
+                            "attributeConstraint": "SameForAll",
+                            "isSearchable": false,
+                            "labelAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "Weight",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "inputHint": "SingleLine",
+                            "inputTipAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "isRequired": true,
+                            "name": "Weight",
+                            "type": {
+                                "name": "number",
+                                "__typename": "NumberAttributeDefinitionType"
+                            },
+                            "__typename": "AttributeDefinition"
+                        },
+                        {
+                            "attributeConstraint": "None",
+                            "isSearchable": false,
+                            "labelAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "SavePrice",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "inputHint": "SingleLine",
+                            "inputTipAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "isRequired": false,
+                            "name": "SavePrice",
+                            "type": {
+                                "name": "text",
+                                "__typename": "TextAttributeDefinitionType"
+                            },
+                            "__typename": "AttributeDefinition"
+                        },
+                        {
+                            "attributeConstraint": "None",
+                            "isSearchable": false,
+                            "labelAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "PrimaryImage",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "inputHint": "SingleLine",
+                            "inputTipAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "isRequired": false,
+                            "name": "PrimaryImage",
+                            "type": {
+                                "name": "text",
+                                "__typename": "TextAttributeDefinitionType"
+                            },
+                            "__typename": "AttributeDefinition"
+                        },
+                        {
+                            "attributeConstraint": "SameForAll",
+                            "isSearchable": false,
+                            "labelAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "IsExcludedFromFreeShipping",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "inputHint": "SingleLine",
+                            "inputTipAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "isRequired": false,
+                            "name": "IsExcludedFromFreeShipping",
+                            "type": {
+                                "name": "boolean",
+                                "__typename": "BooleanAttributeDefinitionType"
+                            },
+                            "__typename": "AttributeDefinition"
+                        },
+                        {
+                            "attributeConstraint": "SameForAll",
+                            "isSearchable": false,
+                            "labelAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "ProductType",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "inputHint": "SingleLine",
+                            "inputTipAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "isRequired": false,
+                            "name": "ProductType",
+                            "type": {
+                                "name": "enum",
+                                "values": {
+                                    "results": [
+                                        {
+                                            "key": "GM",
+                                            "label": "GM",
+                                            "__typename": "PlainEnumValue"
+                                        },
+                                        {
+                                            "key": "AP",
+                                            "label": "AP",
+                                            "__typename": "PlainEnumValue"
+                                        }
+                                    ],
+                                    "__typename": "PlainEnumValueResult"
+                                },
+                                "__typename": "EnumAttributeDefinitionType"
+                            },
+                            "__typename": "AttributeDefinition"
+                        },
+                        {
+                            "attributeConstraint": "SameForAll",
+                            "isSearchable": false,
+                            "labelAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "FulfilmentChannel",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "inputHint": "SingleLine",
+                            "inputTipAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "isRequired": false,
+                            "name": "FulfilmentChannel",
+                            "type": {
+                                "name": "enum",
+                                "values": {
+                                    "results": [
+                                        {
+                                            "key": "0",
+                                            "label": "COMING SOON",
+                                            "__typename": "PlainEnumValue"
+                                        },
+                                        {
+                                            "key": "1",
+                                            "label": "ONLINE (BOTH HD AND C&C)",
+                                            "__typename": "PlainEnumValue"
+                                        },
+                                        {
+                                            "key": "2",
+                                            "label": "IN-STORE ONLY",
+                                            "__typename": "PlainEnumValue"
+                                        },
+                                        {
+                                            "key": "3",
+                                            "label": "NORMAL PRODUCT (BOTH ONLINE & IN-STORE)",
+                                            "__typename": "PlainEnumValue"
+                                        },
+                                        {
+                                            "key": "4",
+                                            "label": "CLICK & COLLECT ONLY",
+                                            "__typename": "PlainEnumValue"
+                                        },
+                                        {
+                                            "key": "5",
+                                            "label": "ONLINE EXCLUSIVE (HD ONLY)",
+                                            "__typename": "PlainEnumValue"
+                                        }
+                                    ],
+                                    "__typename": "PlainEnumValueResult"
+                                },
+                                "__typename": "EnumAttributeDefinitionType"
+                            },
+                            "__typename": "AttributeDefinition"
+                        },
+                        {
+                            "attributeConstraint": "SameForAll",
+                            "isSearchable": false,
+                            "labelAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "NationalInventory",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "inputHint": "SingleLine",
+                            "inputTipAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "isRequired": false,
+                            "name": "NationalInventory",
+                            "type": {
+                                "name": "boolean",
+                                "__typename": "BooleanAttributeDefinitionType"
+                            },
+                            "__typename": "AttributeDefinition"
+                        },
+                        {
+                            "attributeConstraint": "SameForAll",
+                            "isSearchable": false,
+                            "labelAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "IsBulky",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "inputHint": "SingleLine",
+                            "inputTipAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "isRequired": false,
+                            "name": "IsBulky",
+                            "type": {
+                                "name": "boolean",
+                                "__typename": "BooleanAttributeDefinitionType"
+                            },
+                            "__typename": "AttributeDefinition"
+                        },
+                        {
+                            "attributeConstraint": "SameForAll",
+                            "isSearchable": false,
+                            "labelAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "ParentProductKey",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "inputHint": "SingleLine",
+                            "inputTipAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "isRequired": false,
+                            "name": "ParentProductKey",
+                            "type": {
+                                "name": "text",
+                                "__typename": "TextAttributeDefinitionType"
+                            },
+                            "__typename": "AttributeDefinition"
+                        },
+                        {
+                            "attributeConstraint": "None",
+                            "isSearchable": false,
+                            "labelAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "ItemLimit",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "inputHint": "SingleLine",
+                            "inputTipAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "isRequired": false,
+                            "name": "ItemLimit",
+                            "type": {
+                                "name": "text",
+                                "__typename": "TextAttributeDefinitionType"
+                            },
+                            "__typename": "AttributeDefinition"
+                        },
+                        {
+                            "attributeConstraint": "None",
+                            "isSearchable": true,
+                            "labelAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "APN",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "inputHint": "SingleLine",
+                            "inputTipAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "isRequired": false,
+                            "name": "APN",
+                            "type": {
+                                "name": "text",
+                                "__typename": "TextAttributeDefinitionType"
+                            },
+                            "__typename": "AttributeDefinition"
+                        },
+                        {
+                            "attributeConstraint": "SameForAll",
+                            "isSearchable": false,
+                            "labelAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "Brand",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "inputHint": "SingleLine",
+                            "inputTipAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "isRequired": false,
+                            "name": "Brand",
+                            "type": {
+                                "name": "text",
+                                "__typename": "TextAttributeDefinitionType"
+                            },
+                            "__typename": "AttributeDefinition"
+                        },
+                        {
+                            "attributeConstraint": "SameForAll",
+                            "isSearchable": false,
+                            "labelAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "NationalInventoryNZ",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "inputHint": "SingleLine",
+                            "inputTipAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "isRequired": false,
+                            "name": "NationalInventoryNZ",
+                            "type": {
+                                "name": "boolean",
+                                "__typename": "BooleanAttributeDefinitionType"
+                            },
+                            "__typename": "AttributeDefinition"
+                        },
+                        {
+                            "attributeConstraint": "SameForAll",
+                            "isSearchable": false,
+                            "labelAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "PrimaryCategoryNZ",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "inputHint": "SingleLine",
+                            "inputTipAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "isRequired": false,
+                            "name": "PrimaryCategoryNZ",
+                            "type": {
+                                "name": "text",
+                                "__typename": "TextAttributeDefinitionType"
+                            },
+                            "__typename": "AttributeDefinition"
+                        },
+                        {
+                            "attributeConstraint": "SameForAll",
+                            "isSearchable": false,
+                            "labelAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "FulfilmentChannelNZ",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "inputHint": "SingleLine",
+                            "inputTipAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "isRequired": false,
+                            "name": "FulfilmentChannelNZ",
+                            "type": {
+                                "name": "enum",
+                                "values": {
+                                    "results": [
+                                        {
+                                            "key": "0",
+                                            "label": "COMING SOON",
+                                            "__typename": "PlainEnumValue"
+                                        },
+                                        {
+                                            "key": "1",
+                                            "label": "ONLINE (BOTH HD AND C&C)",
+                                            "__typename": "PlainEnumValue"
+                                        },
+                                        {
+                                            "key": "2",
+                                            "label": "IN-STORE ONLY",
+                                            "__typename": "PlainEnumValue"
+                                        },
+                                        {
+                                            "key": "3",
+                                            "label": "NORMAL PRODUCT (BOTH ONLINE & IN-STORE)",
+                                            "__typename": "PlainEnumValue"
+                                        },
+                                        {
+                                            "key": "4",
+                                            "label": "CLICK & COLLECT ONLY",
+                                            "__typename": "PlainEnumValue"
+                                        },
+                                        {
+                                            "key": "5",
+                                            "label": "ONLINE EXCLUSIVE (HD ONLY)",
+                                            "__typename": "PlainEnumValue"
+                                        }
+                                    ],
+                                    "__typename": "PlainEnumValueResult"
+                                },
+                                "__typename": "EnumAttributeDefinitionType"
+                            },
+                            "__typename": "AttributeDefinition"
+                        },
+                        {
+                            "attributeConstraint": "SameForAll",
+                            "isSearchable": false,
+                            "labelAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "PrimaryCategory",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "inputHint": "SingleLine",
+                            "inputTipAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "isRequired": false,
+                            "name": "PrimaryCategory",
+                            "type": {
+                                "name": "text",
+                                "__typename": "TextAttributeDefinitionType"
+                            },
+                            "__typename": "AttributeDefinition"
+                        },
+                        {
+                            "attributeConstraint": "None",
+                            "isSearchable": false,
+                            "labelAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "StartDate",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "inputHint": "SingleLine",
+                            "inputTipAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "isRequired": false,
+                            "name": "StartDate",
+                            "type": {
+                                "name": "text",
+                                "__typename": "TextAttributeDefinitionType"
+                            },
+                            "__typename": "AttributeDefinition"
+                        },
+                        {
+                            "attributeConstraint": "None",
+                            "isSearchable": false,
+                            "labelAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "EndDate",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "inputHint": "SingleLine",
+                            "inputTipAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "isRequired": false,
+                            "name": "EndDate",
+                            "type": {
+                                "name": "text",
+                                "__typename": "TextAttributeDefinitionType"
+                            },
+                            "__typename": "AttributeDefinition"
+                        },
+                        {
+                            "attributeConstraint": "None",
+                            "isSearchable": false,
+                            "labelAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "StartDateNZ",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "inputHint": "SingleLine",
+                            "inputTipAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "isRequired": false,
+                            "name": "StartDateNZ",
+                            "type": {
+                                "name": "text",
+                                "__typename": "TextAttributeDefinitionType"
+                            },
+                            "__typename": "AttributeDefinition"
+                        },
+                        {
+                            "attributeConstraint": "None",
+                            "isSearchable": false,
+                            "labelAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "EndDateNZ",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "inputHint": "SingleLine",
+                            "inputTipAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "isRequired": false,
+                            "name": "EndDateNZ",
+                            "type": {
+                                "name": "text",
+                                "__typename": "TextAttributeDefinitionType"
+                            },
+                            "__typename": "AttributeDefinition"
+                        },
+                        {
+                            "attributeConstraint": "SameForAll",
+                            "isSearchable": false,
+                            "labelAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "MerchDepartment",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "inputHint": "SingleLine",
+                            "inputTipAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "isRequired": false,
+                            "name": "MerchDepartment",
+                            "type": {
+                                "name": "text",
+                                "__typename": "TextAttributeDefinitionType"
+                            },
+                            "__typename": "AttributeDefinition"
+                        },
+                        {
+                            "attributeConstraint": "SameForAll",
+                            "isSearchable": false,
+                            "labelAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "TaxRate",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "inputHint": "SingleLine",
+                            "inputTipAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "isRequired": false,
+                            "name": "TaxRate",
+                            "type": {
+                                "name": "text",
+                                "__typename": "TextAttributeDefinitionType"
+                            },
+                            "__typename": "AttributeDefinition"
+                        },
+                        {
+                            "attributeConstraint": "SameForAll",
+                            "isSearchable": false,
+                            "labelAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "TaxRateNZ",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "inputHint": "SingleLine",
+                            "inputTipAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "isRequired": false,
+                            "name": "TaxRateNZ",
+                            "type": {
+                                "name": "text",
+                                "__typename": "TextAttributeDefinitionType"
+                            },
+                            "__typename": "AttributeDefinition"
+                        },
+                        {
+                            "attributeConstraint": "None",
+                            "isSearchable": false,
+                            "labelAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "Colour",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "inputHint": "SingleLine",
+                            "inputTipAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "isRequired": false,
+                            "name": "Colour",
+                            "type": {
+                                "name": "text",
+                                "__typename": "TextAttributeDefinitionType"
+                            },
+                            "__typename": "AttributeDefinition"
+                        },
+                        {
+                            "attributeConstraint": "SameForAll",
+                            "isSearchable": false,
+                            "labelAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "Product Dimensions",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "inputHint": "SingleLine",
+                            "inputTipAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "isRequired": false,
+                            "name": "ProductDimensionsWithWeight",
+                            "type": {
+                                "name": "text",
+                                "__typename": "TextAttributeDefinitionType"
+                            },
+                            "__typename": "AttributeDefinition"
+                        },
+                        {
+                            "attributeConstraint": "SameForAll",
+                            "isSearchable": false,
+                            "labelAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "DeadWeight",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "inputHint": "SingleLine",
+                            "inputTipAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "isRequired": false,
+                            "name": "DeadWeight",
+                            "type": {
+                                "name": "text",
+                                "__typename": "TextAttributeDefinitionType"
+                            },
+                            "__typename": "AttributeDefinition"
+                        },
+                        {
+                            "attributeConstraint": "SameForAll",
+                            "isSearchable": false,
+                            "labelAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "IsExcludedFromFreeShippingMetro",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "inputHint": "SingleLine",
+                            "inputTipAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "isRequired": false,
+                            "name": "IsExcludedFromFreeShippingMetro",
+                            "type": {
+                                "name": "boolean",
+                                "__typename": "BooleanAttributeDefinitionType"
+                            },
+                            "__typename": "AttributeDefinition"
+                        },
+                        {
+                            "attributeConstraint": "SameForAll",
+                            "isSearchable": false,
+                            "labelAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "FlatRateBigBulkyMetro",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "inputHint": "SingleLine",
+                            "inputTipAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "isRequired": false,
+                            "name": "FlatRateBigBulkyMetro",
+                            "type": {
+                                "name": "boolean",
+                                "__typename": "BooleanAttributeDefinitionType"
+                            },
+                            "__typename": "AttributeDefinition"
+                        },
+                        {
+                            "attributeConstraint": "SameForAll",
+                            "isSearchable": false,
+                            "labelAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "IsPreOrderActive",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "inputHint": "SingleLine",
+                            "inputTipAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "isRequired": false,
+                            "name": "IsPreOrderActive",
+                            "type": {
+                                "name": "boolean",
+                                "__typename": "BooleanAttributeDefinitionType"
+                            },
+                            "__typename": "AttributeDefinition"
+                        },
+                        {
+                            "attributeConstraint": "SameForAll",
+                            "isSearchable": false,
+                            "labelAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "PreOrderReleaseDate",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "inputHint": "SingleLine",
+                            "inputTipAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "isRequired": false,
+                            "name": "PreOrderReleaseDate",
+                            "type": {
+                                "name": "text",
+                                "__typename": "TextAttributeDefinitionType"
+                            },
+                            "__typename": "AttributeDefinition"
+                        },
+                        {
+                            "attributeConstraint": "None",
+                            "isSearchable": false,
+                            "labelAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "Bynder Primary Image",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "inputHint": "SingleLine",
+                            "inputTipAllLocales": [
+                                {
+                                    "locale": "en-AU",
+                                    "value": "",
+                                    "__typename": "LocalizedString"
+                                }
+                            ],
+                            "isRequired": false,
+                            "name": "BynderPrimaryImage",
+                            "type": {
+                                "name": "text",
+                                "__typename": "TextAttributeDefinitionType"
+                            },
+                            "__typename": "AttributeDefinition"
+                        }
+                    ],
+                    "__typename": "AttributeDefinitionResult"
+                },
+                "__typename": "ProductTypeDefinition"
+            },
+            "__typename": "Product",
+            "createdAt": "2024-12-23T21:01:29.492Z",
+            "lastModifiedAt": "2025-08-31T10:22:42.885Z",
+            "version": 46,
+            "key": "P_43494385",
+            "priceMode": null,
+            "taxCategory": {
+                "id": "fb0935cd-d8a1-436e-b7ae-84b6250ff869",
+                "name": "standard",
+                "key": "standard",
+                "__typename": "TaxCategory"
+            },
+            "masterData": {
+                "staged": {
+                    "nameAllLocales": [
+                        {
+                            "locale": "en-AU",
+                            "value": "DIY Mini Crochet Kit - Rabbit",
+                            "__typename": "LocalizedString"
+                        },
+                        {
+                            "locale": "en-NZ",
+                            "value": "DIY Mini Crochet Kit - Rabbit",
+                            "__typename": "LocalizedString"
+                        }
+                    ],
+                    "descriptionAllLocales": [
+                        {
+                            "locale": "en-AU",
+                            "value": "<p>Craft your own cuddly companion with this DIY Mini Crochet Kit featuring an adorable rabbit design! Perfect for crafters of all skill levels, this kit includes everything you need to create a charming handmade rabbit. A fun and rewarding project to enjoy or gift!<br><br><strong>Product Details</strong></p><ul><li>Includes&nbsp;4 x coloured yarns, 1 x crochet hook, 1 x plastic needle, 1 x ring stitch marker, 1 x 15g fibrefill and 1 x instruction sheet</li><li><strong>Dimensions/Size:&nbsp;</strong>22cm (H) x 15.5cm (W) x 7cm (D)</li><li><strong>Material:</strong><ul><li>Yarn and fibrefill:&nbsp;Polyester and cotton</li><li>Crochet: Plastic and metal</li><li>Needle and ring stitch marker: Plastic</li><li>Instruction sheet: Paper</li></ul></li></ul><p><strong>Features</strong></p><ul><li>Rabbit&nbsp;design</li><li>Makes one crochet&nbsp;rabbit</li><li>For DIY (do it yourself) craft</li><li>Easy peasy yarn!</li><li>Mini size</li></ul><p><strong>Additional Information</strong></p><ul><li><a title=\"Guide\" href=\"http://www.kmart.com.au/wcsstore/Kmart/pdfs/43494385_Manual.pdf\" target=\"_blank\">Instruction Manual</a></li></ul><p><strong>Warning:&nbsp;</strong>Choking hazard. Small parts. Follow usage instructions carefully.</p>",
+                            "__typename": "LocalizedString"
+                        },
+                        {
+                            "locale": "en-NZ",
+                            "value": "<p>Craft your own cuddly companion with this DIY Mini Crochet Kit featuring an adorable rabbit design! Perfect for crafters of all skill levels, this kit includes everything you need to create a charming handmade rabbit. A fun and rewarding project to enjoy or gift!<br><br><strong>Product Details</strong></p><ul><li>Includes&nbsp;4 x coloured yarns, 1 x crochet hook, 1 x plastic needle, 1 x ring stitch marker, 1 x 15g fibrefill and 1 x instruction sheet</li><li><strong>Dimensions/Size:&nbsp;</strong>22cm (H) x 15.5cm (W) x 7cm (D)</li><li><strong>Material:</strong><ul><li>Yarn and fibrefill:&nbsp;Polyester and cotton</li><li>Crochet: Plastic and metal</li><li>Needle and ring stitch marker: Plastic</li><li>Instruction sheet: Paper</li></ul></li></ul><p><strong>Features</strong></p><ul><li>Rabbit&nbsp;design</li><li>Makes one crochet&nbsp;rabbit</li><li>For DIY (do it yourself) craft</li><li>Easy peasy yarn!</li><li>Mini size</li></ul><p><strong>Additional Information</strong></p><ul><li><a title=\"Guide\" href=\"http://www.kmart.com.au/wcsstore/Kmart/pdfs/43494385_Manual.pdf\" target=\"_blank\">Instruction Manual</a></li></ul><p><strong>Warning:&nbsp;</strong>Choking hazard. Small parts. Follow usage instructions carefully.</p>",
+                            "__typename": "LocalizedString"
+                        }
+                    ],
+                    "categories": [],
+                    "masterVariant": {
+                        "attributesRaw": [
+                            {
+                                "name": "FulfilmentChannelNZ",
+                                "value": {
+                                    "key": "3",
+                                    "label": "NORMAL PRODUCT (BOTH ONLINE & IN-STORE)"
+                                },
+                                "__typename": "RawProductAttribute"
+                            },
+                            {
+                                "name": "Size",
+                                "value": "One Size",
+                                "__typename": "RawProductAttribute"
+                            },
+                            {
+                                "name": "ProductType",
+                                "value": {
+                                    "key": "GM",
+                                    "label": "GM"
+                                },
+                                "__typename": "RawProductAttribute"
+                            },
+                            {
+                                "name": "DeadWeight",
+                                "value": "0.1280",
+                                "__typename": "RawProductAttribute"
+                            },
+                            {
+                                "name": "EndDateNZ",
+                                "value": "2025-07-30",
+                                "__typename": "RawProductAttribute"
+                            },
+                            {
+                                "name": "BynderPrimaryImage",
+                                "value": "bdd2a5d6-a9dd-4d04-8767-8eb823f882fe/43494385-1",
+                                "__typename": "RawProductAttribute"
+                            },
+                            {
+                                "name": "FulfilmentChannel",
+                                "value": {
+                                    "key": "3",
+                                    "label": "NORMAL PRODUCT (BOTH ONLINE & IN-STORE)"
+                                },
+                                "__typename": "RawProductAttribute"
+                            },
+                            {
+                                "name": "EndDate",
+                                "value": "2025-08-30",
+                                "__typename": "RawProductAttribute"
+                            },
+                            {
+                                "name": "IsExcludedFromFreeShippingMetro",
+                                "value": false,
+                                "__typename": "RawProductAttribute"
+                            },
+                            {
+                                "name": "MerchDepartment",
+                                "value": "050",
+                                "__typename": "RawProductAttribute"
+                            },
+                            {
+                                "name": "IsExcludedFromFreeShipping",
+                                "value": false,
+                                "__typename": "RawProductAttribute"
+                            },
+                            {
+                                "name": "NationalInventoryNZ",
+                                "value": false,
+                                "__typename": "RawProductAttribute"
+                            },
+                            {
+                                "name": "PrimaryCategory",
+                                "value": "Sewing and Haberdashery",
+                                "__typename": "RawProductAttribute"
+                            },
+                            {
+                                "name": "TaxRate",
+                                "value": "10.00",
+                                "__typename": "RawProductAttribute"
+                            },
+                            {
+                                "name": "FlatRateBigBulkyMetro",
+                                "value": false,
+                                "__typename": "RawProductAttribute"
+                            },
+                            {
+                                "name": "PreOrderReleaseDate",
+                                "value": "",
+                                "__typename": "RawProductAttribute"
+                            },
+                            {
+                                "name": "Colour",
+                                "value": "Miscellaneous",
+                                "__typename": "RawProductAttribute"
+                            },
+                            {
+                                "name": "PrimaryImage",
+                                "value": "63e9e624-8ef9-40fc-80e1-f7ab635169e1.jpg",
+                                "__typename": "RawProductAttribute"
+                            },
+                            {
+                                "name": "Weight",
+                                "value": 0.616,
+                                "__typename": "RawProductAttribute"
+                            },
+                            {
+                                "name": "NationalInventory",
+                                "value": false,
+                                "__typename": "RawProductAttribute"
+                            },
+                            {
+                                "name": "PrimaryCategoryNZ",
+                                "value": "NZ_Sewing and Haberdashery",
+                                "__typename": "RawProductAttribute"
+                            },
+                            {
+                                "name": "ParentProductKey",
+                                "value": "P_43494385",
+                                "__typename": "RawProductAttribute"
+                            },
+                            {
+                                "name": "StartDate",
+                                "value": "2025-01-17",
+                                "__typename": "RawProductAttribute"
+                            },
+                            {
+                                "name": "IsPreOrderActive",
+                                "value": false,
+                                "__typename": "RawProductAttribute"
+                            },
+                            {
+                                "name": "SecondaryColour",
+                                "value": "Miscell.",
+                                "__typename": "RawProductAttribute"
+                            },
+                            {
+                                "name": "TaxRateNZ",
+                                "value": "15.00",
+                                "__typename": "RawProductAttribute"
+                            },
+                            {
+                                "name": "Brand",
+                                "value": "",
+                                "__typename": "RawProductAttribute"
+                            },
+                            {
+                                "name": "ProductDimensionsWithWeight",
+                                "value": "{\"length\":{\"value\":0.07,\"uom\":\"MTR\"},\"width\":{\"value\":0.16,\"uom\":\"MTR\"},\"weight\":{\"value\":0.616,\"uom\":\"KGM\"},\"height\":{\"value\":0.22,\"uom\":\"MTR\"}}",
+                                "__typename": "RawProductAttribute"
+                            },
+                            {
+                                "name": "StartDateNZ",
+                                "value": "2025-01-18",
+                                "__typename": "RawProductAttribute"
+                            },
+                            {
+                                "name": "APN",
+                                "value": "9341110804128",
+                                "__typename": "RawProductAttribute"
+                            }
+                        ],
+                        "__typename": "ProductVariant"
+                    },
+                    "attributesRaw": [],
+                    "__typename": "ProductData"
+                },
+                "__typename": "ProductCatalogData"
+            }
+        }
+    }
+}

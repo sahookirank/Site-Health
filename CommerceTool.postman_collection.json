@@ -1,0 +1,634 @@
+{
+	"info": {
+		"_postman_id": "225a4e8e-6ed3-402e-afc0-dec015cad8d7",
+		"name": "CommerceTool",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "28021555"
+	},
+	"item": [
+		{
+			"name": "Product-Atrributes",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "accept",
+						"value": "application/json"
+					},
+					{
+						"key": "accept-language",
+						"value": "en-GB,en-US;q=0.9,en;q=0.8"
+					},
+					{
+						"key": "content-type",
+						"value": "application/json"
+					},
+					{
+						"key": "origin",
+						"value": "https://mc.australia-southeast1.gcp.commercetools.com"
+					},
+					{
+						"key": "priority",
+						"value": "u=1, i"
+					},
+					{
+						"key": "sec-ch-ua",
+						"value": "\"Not;A=Brand\";v=\"99\", \"Google Chrome\";v=\"139\", \"Chromium\";v=\"139\""
+					},
+					{
+						"key": "sec-ch-ua-mobile",
+						"value": "?0"
+					},
+					{
+						"key": "sec-ch-ua-platform",
+						"value": "\"macOS\""
+					},
+					{
+						"key": "sec-fetch-dest",
+						"value": "empty"
+					},
+					{
+						"key": "sec-fetch-mode",
+						"value": "cors"
+					},
+					{
+						"key": "sec-fetch-site",
+						"value": "same-site"
+					},
+					{
+						"key": "user-agent",
+						"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"
+					},
+					{
+						"key": "x-application-id",
+						"value": "__internal:products"
+					},
+					{
+						"key": "x-correlation-id",
+						"value": "mc/kmart-production/941dc8ba-fd2b-4be3-a375-2d5ef173394d/a55d13f1-5b22-4168-9adb-6dedf00fd383"
+					},
+					{
+						"key": "x-graphql-operation-name",
+						"value": "GeneralInfoTabQuery"
+					},
+					{
+						"key": "x-graphql-target",
+						"value": "ctp"
+					},
+					{
+						"key": "x-project-key",
+						"value": "kmart-production"
+					},
+					{
+						"key": "x-user-agent",
+						"value": "apollo-client Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 products/application-shell/24.5.0 (+https://git.io/fjuyC; +support@commercetools.com)"
+					},
+					{
+						"key": "Cookie",
+						"value": "mcAccessToken=eyJhbGciOiJSUzI1NiIsImtpZCI6IkNPMEZXcktIVGNMSTBndDluTE5ZSlF2bENvLURHbWFMVmx0RTR1Q2FOb1EifQ.eyJleHAiOjE3NTkzNzIwMDUsInN1YiI6Ijk0MWRjOGJhLWZkMmItNGJlMy1hMzc1LTJkNWVmMTczMzk0ZCIsImlzcyI6Imh0dHBzOi8vbWMtYXBpLmF1c3RyYWxpYS1zb3V0aGVhc3QxLmdjcC5jb21tZXJjZXRvb2xzLmNvbSIsImF1ZCI6Imh0dHBzOi8vbWMuYXVzdHJhbGlhLXNvdXRoZWFzdDEuZ2NwLmNvbW1lcmNldG9vbHMuY29tIiwidG9rZW4iOiJleUpoYkdjaU9pSlNVMEV0VDBGRlVDMHlOVFlpTENKbGJtTWlPaUpCTWpVMlIwTk5JbjAuTllKYXRGbkc5ZkpMaU9Ra09faFZlcldvRF9WSjViQ0tvZWNYT3U4MHF6c0RJaXFTTVdndE5tVk1DNU5EVUlfRVZjbWpkV25zcmRrNGZWT1dTREx4S05obFhESzR2T2NTSXpJaHBrRUo4SHg1U0xSeUtBck1CZmNsRHJjTEh4VUo4Mk1hQjJpSWptN0dJaGJyUnpXMmZ6aHNBUFhmVWZqamU2TklTNUdGLUZ4aml2SDJldXV6Q280QUVJbzdydzh3bFdNa3c2TXZLTE5nS0JpbEk1Ynl0bE1UcXZ5SXJQWE1ZbHR5RXlBZXJQR1hTU2RCMUpOZVNSRUZUMGVod3B5TDE3RllpQ3ZacVpTRjB5eFFmWmhNQ3hWbU0xMzRsb1NuR25LY0NlWloyTWxHSGVfdkdPTUlWNXhFUjdXMHhFNEoxOXZEbURaQ3FHLUQxaExlRGtRRUp3LmJWOEFTaUZDcm1fdHJWdzcuT2NMY2thQ1ludDRBeUszVXkzcDlPTmtRNktYMDN3Z0dyWFhYX2JOMmlaYy4xVUdNeXdkSEJYT2VoanY1dFBpb01RIiwidG9rZW5Db250ZXh0IjoiZXlKaGJHY2lPaUpTVTBFdFQwRkZVQzB5TlRZaUxDSmxibU1pT2lKQk1qVTJSME5OSW4wLmJBVzVVeDJHdHdJZVVUTWR0YVh0TGhRY3JVM1UzZHpFaXRSUDZxRldkcUltdEZVV0Q0eXUyZTJ3SXo2MEJTTXg5MG1GdVBBbXVwbW1WYTBfQ2xzSm9CMkFwRW44V2p4QzVIN2lCc29DR3VjWF9fTDBBMm1Gdm1fQjAzdGhLbk5tYTJKN0hiU1FaUjFHa3lXWnhuOXNlRkZYdkJDSVNwZTNQSUhVTFVCVzhGa0RGeTNtLVR2UDJCd2hOZmxQS3U4VGdJNFhNQl9NbTdnak9TRHZ0eUtSdG9pejlRdkV1OUdsWUhXalBDVkJ2TkNGUjNicjhoUEpBNl91NE1uRjRNUXQtVWJzUFhQZXNKTE1IV2NhVWFNQjRNS3BfeENPVzgxbU9oajJIZG9ZTkRpQjhra0VwRFZTWHYyWU5SeVE4a1ZVX1pWOHphVjNaVFhVYWIxSFJzdTlsQS5DTS00akpHMlo4c0xGMThZLl8xbDhHcXpnLWdxdm9GVFlJSU5OYU5BZE1UTmFwT2JoZkZ6X3V4RmxFVUlPMUpqVDVaV2JYRDI2bVVaMDJrdHZxS2NGVTN3dHFJc3FNdzNuclk4UWpnd0xrc1JxY05WMF9od0g5S21vaDl0X2R1eVBLaGoteHM4MW5nLlJUajN4Mnl2LVFSUFQyeWVuQkFDYlEiLCJzc29Db250ZXh0IjoiZXlKaGJHY2lPaUpTVTBFdFQwRkZVQzB5TlRZaUxDSmxibU1pT2lKQk1qVTJSME5OSW4wLlhxTHR2WDJxdWZCVlZ0c2xRVXRodld0VlFKZVlDS3R5S1pHMGZJZl9KUGhzRDVUaXYyZEU2Q3ZCcmlNSm5DcnhCNXh3d1dWSGZXWEtnTmo1V1RFdlNUa2RNcjRYdWt2N0pBR09Hcjk0WmVVT2w1ZVdQd1B6RHFzYjJKdEJnejEtX3U3eHpldE5ITjQ2RDRIYmEtR1hRZGhyY1g3WWdEeE54SnZTY2xkNzl5NDNTUlI2Yi1rZzJqQTg5aGJfcTE5RURuNmtCc0lvVERHOHRMdDJfaUFpLUlKNVFkc1JwOS15bm5SU0VrRGxTams2b1loVnR3WXlUeThUcjdMbmtDaGh0OEtEZEpHMWVoX1pSVk92S1pYdTV0a3JjOTFCdC1qb21COHlNYUdaYWRPUF94VkszLTlDeUJaMWltU0hKUXQ5VG40cXBnU1JGR3BOWmY3UnhBaGhGUS4zWXVlYW5PcXJfVVlFSUJELmNnVVdHMDk1dWhEbTJjSFFCVE1SYlRhbnZHbm40cXg3bHJXX01KZ2c5b2ctY1Z3UjRmN2dNYUp5WmZHZWhfazZNMXFLQ1VpclUtQ0lmT19WYTZwUXRzazZWbFBjQlRya2paREMxd2o1TUVuTzRqa2YxaGRiaWtYd29hOFAzQllMbmQybWRsV3NYYXdYX0xWUUJ4dWJrZlZ3eXBHbXJ5TER2YXZDWXMwRkVIOEpiNFVnYUpzSU5XV2hGVVNkMzk1UWhnWFBpMzg3WEZ1aEQzbDJSSzVzVnJjc3dtLU5Vb3N3QTg2M1JFUTF5U29vQmk1N1ZMN2hXbmNqOEJNbE9jY2VZTWw1ZGNrZEg2WEVqU25yTldCdVNKWTdqbUlWLUk3RkV6OXZOVFVCdF9RNVhiRGxxTWF4Tzcwd1Q3TGhRak1DbE9BdVRUT2NLRmRpYTRCQjFFM2dvcXdGc1U0LW4wNFJ3eEowckFpVGtvLUtlbDEwOTN3VnlmWTJaQjR5MlVGWHV4ZkxCSXRxNTR4VkpmX2hJbVRqZWp6RW5mc29qZFhyeXJoUmIzYUk1MEFjT1NSczNIRlZQUXVOSWdLRTlJN3R4MC16SkRqTmFVMktHcGN3SVRZanNtYk5aUFNEd1Flb2NQSERJNFN2d2UwU2RPMk9kOHZjX3VFalJQdk5MQWI2c1lnUGRDaVlmTVo3ekdxX0Y1cmFPa1hTMThZcURXcmMxa001b2VqMW4wbDFqWk9Oa2pwQTA5eW9QMU5LbmxRZ08xNXpBTkZ6cThEbzhHXzllQjJOcVlpekFxVS41WHFIdFo0d1Fobmd5ejVQTWVHS0xBIiwiaHR0cHM6Ly9tYy1hcGkuYXVzdHJhbGlhLXNvdXRoZWFzdDEuZ2NwLmNvbW1lcmNldG9vbHMuY29tL2NsYWltcy9sb2dpbl9zdHJhdGVneSI6InNzbyJ9.WVDOVXczF9u0rXUousWYsmrH0exLiBwJPETa8sNqO0hgItI-h6XkxUNrfCesffoL8Fc6QZ9F2nkpCPblWdVumHHaEoOh7cCq5kzjtDdyu6odkzRTIyFCXOoXLB4PKSbuNRqMsTwIxdQyR8ngrvkKnQ9TGywJkd8AqG2UVMxE3hpGLn92QguWDMxNMBbhAsAQPj-vuASqvsOBOGqCzjVpXMom5pKmRnK9tYD9q7cdKIoDC4-QWBA_Zt8WesO9Q-tj8Zva7DZMzLIFrwzWsjFtP7aIxPSVfFjKRR2UAdiN27_4SYMG6i1M3dnChiXID5bVeD6bnmXbTa-vuEK9NpoyJg"
+					}
+				],
+				"body": {
+					"mode": "graphql",
+					"graphql": {
+						"query": "query GeneralInfoTabQuery($productId: String, $isProductAttributeEnabled: Boolean!, $enableLocaleLabelOptimization: Boolean!, $locale: Locale!) {\n  product(id: $productId) {\n    id\n    ...ProductTypeFragment\n    createdAt\n    lastModifiedAt\n    version\n    key\n    priceMode\n    taxCategory {\n      id\n      name\n      key\n      __typename\n    }\n    masterData {\n      staged {\n        nameAllLocales {\n          locale\n          value\n          __typename\n        }\n        descriptionAllLocales {\n          locale\n          value\n          __typename\n        }\n        categories {\n          ...CurrentCategoryFragment\n          ancestors {\n            ...CurrentCategoryFragment\n            __typename\n          }\n          __typename\n        }\n        masterVariant {\n          attributesRaw {\n            name\n            value\n            __typename\n          }\n          __typename\n        }\n        attributesRaw {\n          name\n          value\n          __typename\n        }\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n\nfragment ProductTypeFragment on Product {\n  productType {\n    id\n    name\n    attributeDefinitions {\n      results {\n        attributeConstraint\n        level @include(if: $isProductAttributeEnabled)\n        isSearchable\n        labelByLocale: label(locale: $locale) @include(if: $enableLocaleLabelOptimization)\n        labelAllLocales @skip(if: $enableLocaleLabelOptimization) {\n          locale\n          value\n          __typename\n        }\n        inputHint\n        inputTipAllLocales {\n          locale\n          value\n          __typename\n        }\n        isRequired\n        name\n        type {\n          name\n          ... on SetAttributeDefinitionType {\n            elementType {\n              name\n              ... on NestedAttributeDefinitionType {\n                typeRef {\n                  id\n                  __typename\n                }\n                __typename\n              }\n              ... on EnumAttributeDefinitionType {\n                values {\n                  results {\n                    key\n                    label\n                    __typename\n                  }\n                  __typename\n                }\n                __typename\n              }\n              ... on LocalizableEnumAttributeDefinitionType {\n                values {\n                  results {\n                    key\n                    labelByLocale: label(locale: $locale) @include(if: $enableLocaleLabelOptimization)\n                    labelAllLocales @skip(if: $enableLocaleLabelOptimization) {\n                      locale\n                      value\n                      __typename\n                    }\n                    __typename\n                  }\n                  __typename\n                }\n                __typename\n              }\n              ... on ReferenceAttributeDefinitionType {\n                referenceTypeId\n                __typename\n              }\n              __typename\n            }\n            __typename\n          }\n          ... on ReferenceAttributeDefinitionType {\n            referenceTypeId\n            __typename\n          }\n          ... on NestedAttributeDefinitionType {\n            typeRef {\n              id\n              __typename\n            }\n            __typename\n          }\n          ... on EnumAttributeDefinitionType {\n            values {\n              results {\n                key\n                label\n                __typename\n              }\n              __typename\n            }\n            __typename\n          }\n          ... on LocalizableEnumAttributeDefinitionType {\n            values {\n              results {\n                key\n                labelByLocale: label(locale: $locale) @include(if: $enableLocaleLabelOptimization)\n                labelAllLocales @skip(if: $enableLocaleLabelOptimization) {\n                  locale\n                  value\n                  __typename\n                }\n                __typename\n              }\n              __typename\n            }\n            __typename\n          }\n          __typename\n        }\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n  __typename\n}\n\nfragment CurrentCategoryFragment on Category {\n  id\n  nameAllLocales {\n    locale\n    value\n    __typename\n  }\n  __typename\n}",
+						"variables": "{\n  \"productId\": \"e098bc92-713a-4bb0-a678-30b1ac1651a4\",\n  \"isProductAttributeEnabled\": true,\n  \"locale\": \"en-AU\",\n  \"enableLocaleLabelOptimization\": false\n}"
+					}
+				},
+				"url": {
+					"raw": "https://mc-api.australia-southeast1.gcp.commercetools.com/graphql",
+					"protocol": "https",
+					"host": [
+						"mc-api",
+						"australia-southeast1",
+						"gcp",
+						"commercetools",
+						"com"
+					],
+					"path": [
+						"graphql"
+					]
+				},
+				"description": "Generated from cURL: curl 'https://mc-api.australia-southeast1.gcp.commercetools.com/graphql' \\\n  -H 'accept: application/json' \\\n  -H 'accept-language: en-GB,en-US;q=0.9,en;q=0.8' \\\n  -H 'content-type: application/json' \\\n  -b 'mcAccessToken=eyJhbGciOiJSUzI1NiIsImtpZCI6IkNPMEZXcktIVGNMSTBndDluTE5ZSlF2bENvLURHbWFMVmx0RTR1Q2FOb1EifQ.eyJleHAiOjE3NTkzNzIwMDUsInN1YiI6Ijk0MWRjOGJhLWZkMmItNGJlMy1hMzc1LTJkNWVmMTczMzk0ZCIsImlzcyI6Imh0dHBzOi8vbWMtYXBpLmF1c3RyYWxpYS1zb3V0aGVhc3QxLmdjcC5jb21tZXJjZXRvb2xzLmNvbSIsImF1ZCI6Imh0dHBzOi8vbWMuYXVzdHJhbGlhLXNvdXRoZWFzdDEuZ2NwLmNvbW1lcmNldG9vbHMuY29tIiwidG9rZW4iOiJleUpoYkdjaU9pSlNVMEV0VDBGRlVDMHlOVFlpTENKbGJtTWlPaUpCTWpVMlIwTk5JbjAuTllKYXRGbkc5ZkpMaU9Ra09faFZlcldvRF9WSjViQ0tvZWNYT3U4MHF6c0RJaXFTTVdndE5tVk1DNU5EVUlfRVZjbWpkV25zcmRrNGZWT1dTREx4S05obFhESzR2T2NTSXpJaHBrRUo4SHg1U0xSeUtBck1CZmNsRHJjTEh4VUo4Mk1hQjJpSWptN0dJaGJyUnpXMmZ6aHNBUFhmVWZqamU2TklTNUdGLUZ4aml2SDJldXV6Q280QUVJbzdydzh3bFdNa3c2TXZLTE5nS0JpbEk1Ynl0bE1UcXZ5SXJQWE1ZbHR5RXlBZXJQR1hTU2RCMUpOZVNSRUZUMGVod3B5TDE3RllpQ3ZacVpTRjB5eFFmWmhNQ3hWbU0xMzRsb1NuR25LY0NlWloyTWxHSGVfdkdPTUlWNXhFUjdXMHhFNEoxOXZEbURaQ3FHLUQxaExlRGtRRUp3LmJWOEFTaUZDcm1fdHJWdzcuT2NMY2thQ1ludDRBeUszVXkzcDlPTmtRNktYMDN3Z0dyWFhYX2JOMmlaYy4xVUdNeXdkSEJYT2VoanY1dFBpb01RIiwidG9rZW5Db250ZXh0IjoiZXlKaGJHY2lPaUpTVTBFdFQwRkZVQzB5TlRZaUxDSmxibU1pT2lKQk1qVTJSME5OSW4wLmJBVzVVeDJHdHdJZVVUTWR0YVh0TGhRY3JVM1UzZHpFaXRSUDZxRldkcUltdEZVV0Q0eXUyZTJ3SXo2MEJTTXg5MG1GdVBBbXVwbW1WYTBfQ2xzSm9CMkFwRW44V2p4QzVIN2lCc29DR3VjWF9fTDBBMm1Gdm1fQjAzdGhLbk5tYTJKN0hiU1FaUjFHa3lXWnhuOXNlRkZYdkJDSVNwZTNQSUhVTFVCVzhGa0RGeTNtLVR2UDJCd2hOZmxQS3U4VGdJNFhNQl9NbTdnak9TRHZ0eUtSdG9pejlRdkV1OUdsWUhXalBDVkJ2TkNGUjNicjhoUEpBNl91NE1uRjRNUXQtVWJzUFhQZXNKTE1IV2NhVWFNQjRNS3BfeENPVzgxbU9oajJIZG9ZTkRpQjhra0VwRFZTWHYyWU5SeVE4a1ZVX1pWOHphVjNaVFhVYWIxSFJzdTlsQS5DTS00akpHMlo4c0xGMThZLl8xbDhHcXpnLWdxdm9GVFlJSU5OYU5BZE1UTmFwT2JoZkZ6X3V4RmxFVUlPMUpqVDVaV2JYRDI2bVVaMDJrdHZxS2NGVTN3dHFJc3FNdzNuclk4UWpnd0xrc1JxY05WMF9od0g5S21vaDl0X2R1eVBLaGoteHM4MW5nLlJUajN4Mnl2LVFSUFQyeWVuQkFDYlEiLCJzc29Db250ZXh0IjoiZXlKaGJHY2lPaUpTVTBFdFQwRkZVQzB5TlRZaUxDSmxibU1pT2lKQk1qVTJSME5OSW4wLlhxTHR2WDJxdWZCVlZ0c2xRVXRodld0VlFKZVlDS3R5S1pHMGZJZl9KUGhzRDVUaXYyZEU2Q3ZCcmlNSm5DcnhCNXh3d1dWSGZXWEtnTmo1V1RFdlNUa2RNcjRYdWt2N0pBR09Hcjk0WmVVT2w1ZVdQd1B6RHFzYjJKdEJnejEtX3U3eHpldE5ITjQ2RDRIYmEtR1hRZGhyY1g3WWdEeE54SnZTY2xkNzl5NDNTUlI2Yi1rZzJqQTg5aGJfcTE5RURuNmtCc0lvVERHOHRMdDJfaUFpLUlKNVFkc1JwOS15bm5SU0VrRGxTams2b1loVnR3WXlUeThUcjdMbmtDaGh0OEtEZEpHMWVoX1pSVk92S1pYdTV0a3JjOTFCdC1qb21COHlNYUdaYWRPUF94VkszLTlDeUJaMWltU0hKUXQ5VG40cXBnU1JGR3BOWmY3UnhBaGhGUS4zWXVlYW5PcXJfVVlFSUJELmNnVVdHMDk1dWhEbTJjSFFCVE1SYlRhbnZHbm40cXg3bHJXX01KZ2c5b2ctY1Z3UjRmN2dNYUp5WmZHZWhfazZNMXFLQ1VpclUtQ0lmT19WYTZwUXRzazZWbFBjQlRya2paREMxd2o1TUVuTzRqa2YxaGRiaWtYd29hOFAzQllMbmQybWRsV3NYYXdYX0xWUUJ4dWJrZlZ3eXBHbXJ5TER2YXZDWXMwRkVIOEpiNFVnYUpzSU5XV2hGVVNkMzk1UWhnWFBpMzg3WEZ1aEQzbDJSSzVzVnJjc3dtLU5Vb3N3QTg2M1JFUTF5U29vQmk1N1ZMN2hXbmNqOEJNbE9jY2VZTWw1ZGNrZEg2WEVqU25yTldCdVNKWTdqbUlWLUk3RkV6OXZOVFVCdF9RNVhiRGxxTWF4Tzcwd1Q3TGhRak1DbE9BdVRUT2NLRmRpYTRCQjFFM2dvcXdGc1U0LW4wNFJ3eEowckFpVGtvLUtlbDEwOTN3VnlmWTJaQjR5MlVGWHV4ZkxCSXRxNTR4VkpmX2hJbVRqZWp6RW5mc29qZFhyeXJoUmIzYUk1MEFjT1NSczNIRlZQUXVOSWdLRTlJN3R4MC16SkRqTmFVMktHcGN3SVRZanNtYk5aUFNEd1Flb2NQSERJNFN2d2UwU2RPMk9kOHZjX3VFalJQdk5MQWI2c1lnUGRDaVlmTVo3ekdxX0Y1cmFPa1hTMThZcURXcmMxa001b2VqMW4wbDFqWk9Oa2pwQTA5eW9QMU5LbmxRZ08xNXpBTkZ6cThEbzhHXzllQjJOcVlpekFxVS41WHFIdFo0d1Fobmd5ejVQTWVHS0xBIiwiaHR0cHM6Ly9tYy1hcGkuYXVzdHJhbGlhLXNvdXRoZWFzdDEuZ2NwLmNvbW1lcmNldG9vbHMuY29tL2NsYWltcy9sb2dpbl9zdHJhdGVneSI6InNzbyJ9.WVDOVXczF9u0rXUousWYsmrH0exLiBwJPETa8sNqO0hgItI-h6XkxUNrfCesffoL8Fc6QZ9F2nkpCPblWdVumHHaEoOh7cCq5kzjtDdyu6odkzRTIyFCXOoXLB4PKSbuNRqMsTwIxdQyR8ngrvkKnQ9TGywJkd8AqG2UVMxE3hpGLn92QguWDMxNMBbhAsAQPj-vuASqvsOBOGqCzjVpXMom5pKmRnK9tYD9q7cdKIoDC4-QWBA_Zt8WesO9Q-tj8Zva7DZMzLIFrwzWsjFtP7aIxPSVfFjKRR2UAdiN27_4SYMG6i1M3dnChiXID5bVeD6bnmXbTa-vuEK9NpoyJg' \\\n  -H 'origin: https://mc.australia-southeast1.gcp.commercetools.com' \\\n  -H 'priority: u=1, i' \\\n  -H 'sec-ch-ua: \"Not;A=Brand\";v=\"99\", \"Google Chrome\";v=\"139\", \"Chromium\";v=\"139\"' \\\n  -H 'sec-ch-ua-mobile: ?0' \\\n  -H 'sec-ch-ua-platform: \"macOS\"' \\\n  -H 'sec-fetch-dest: empty' \\\n  -H 'sec-fetch-mode: cors' \\\n  -H 'sec-fetch-site: same-site' \\\n  -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36' \\\n  -H 'x-application-id: __internal:products' \\\n  -H 'x-correlation-id: mc/kmart-production/941dc8ba-fd2b-4be3-a375-2d5ef173394d/a55d13f1-5b22-4168-9adb-6dedf00fd383' \\\n  -H 'x-graphql-operation-name: GeneralInfoTabQuery' \\\n  -H 'x-graphql-target: ctp' \\\n  -H 'x-project-key: kmart-production' \\\n  -H 'x-user-agent: apollo-client Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 products/application-shell/24.5.0 (+https://git.io/fjuyC; +support@commercetools.com)' \\\n  --data-raw $'{\"operationName\":\"GeneralInfoTabQuery\",\"variables\":{\"productId\":\"e098bc92-713a-4bb0-a678-30b1ac1651a4\",\"isProductAttributeEnabled\":true,\"locale\":\"en-AU\",\"enableLocaleLabelOptimization\":false},\"query\":\"query GeneralInfoTabQuery($productId: String, $isProductAttributeEnabled: Boolean\\u0021, $enableLocaleLabelOptimization: Boolean\\u0021, $locale: Locale\\u0021) {\\\\n  product(id: $productId) {\\\\n    id\\\\n    ...ProductTypeFragment\\\\n    createdAt\\\\n    lastModifiedAt\\\\n    version\\\\n    key\\\\n    priceMode\\\\n    taxCategory {\\\\n      id\\\\n      name\\\\n      key\\\\n      __typename\\\\n    }\\\\n    masterData {\\\\n      staged {\\\\n        nameAllLocales {\\\\n          locale\\\\n          value\\\\n          __typename\\\\n        }\\\\n        descriptionAllLocales {\\\\n          locale\\\\n          value\\\\n          __typename\\\\n        }\\\\n        categories {\\\\n          ...CurrentCategoryFragment\\\\n          ancestors {\\\\n            ...CurrentCategoryFragment\\\\n            __typename\\\\n          }\\\\n          __typename\\\\n        }\\\\n        masterVariant {\\\\n          attributesRaw {\\\\n            name\\\\n            value\\\\n            __typename\\\\n          }\\\\n          __typename\\\\n        }\\\\n        attributesRaw {\\\\n          name\\\\n          value\\\\n          __typename\\\\n        }\\\\n        __typename\\\\n      }\\\\n      __typename\\\\n    }\\\\n    __typename\\\\n  }\\\\n}\\\\n\\\\nfragment ProductTypeFragment on Product {\\\\n  productType {\\\\n    id\\\\n    name\\\\n    attributeDefinitions {\\\\n      results {\\\\n        attributeConstraint\\\\n        level @include(if: $isProductAttributeEnabled)\\\\n        isSearchable\\\\n        labelByLocale: label(locale: $locale) @include(if: $enableLocaleLabelOptimization)\\\\n        labelAllLocales @skip(if: $enableLocaleLabelOptimization) {\\\\n          locale\\\\n          value\\\\n          __typename\\\\n        }\\\\n        inputHint\\\\n        inputTipAllLocales {\\\\n          locale\\\\n          value\\\\n          __typename\\\\n        }\\\\n        isRequired\\\\n        name\\\\n        type {\\\\n          name\\\\n          ... on SetAttributeDefinitionType {\\\\n            elementType {\\\\n              name\\\\n              ... on NestedAttributeDefinitionType {\\\\n                typeRef {\\\\n                  id\\\\n                  __typename\\\\n                }\\\\n                __typename\\\\n              }\\\\n              ... on EnumAttributeDefinitionType {\\\\n                values {\\\\n                  results {\\\\n                    key\\\\n                    label\\\\n                    __typename\\\\n                  }\\\\n                  __typename\\\\n                }\\\\n                __typename\\\\n              }\\\\n              ... on LocalizableEnumAttributeDefinitionType {\\\\n                values {\\\\n                  results {\\\\n                    key\\\\n                    labelByLocale: label(locale: $locale) @include(if: $enableLocaleLabelOptimization)\\\\n                    labelAllLocales @skip(if: $enableLocaleLabelOptimization) {\\\\n                      locale\\\\n                      value\\\\n                      __typename\\\\n                    }\\\\n                    __typename\\\\n                  }\\\\n                  __typename\\\\n                }\\\\n                __typename\\\\n              }\\\\n              ... on ReferenceAttributeDefinitionType {\\\\n                referenceTypeId\\\\n                __typename\\\\n              }\\\\n              __typename\\\\n            }\\\\n            __typename\\\\n          }\\\\n          ... on ReferenceAttributeDefinitionType {\\\\n            referenceTypeId\\\\n            __typename\\\\n          }\\\\n          ... on NestedAttributeDefinitionType {\\\\n            typeRef {\\\\n              id\\\\n              __typename\\\\n            }\\\\n            __typename\\\\n          }\\\\n          ... on EnumAttributeDefinitionType {\\\\n            values {\\\\n              results {\\\\n                key\\\\n                label\\\\n                __typename\\\\n              }\\\\n              __typename\\\\n            }\\\\n            __typename\\\\n          }\\\\n          ... on LocalizableEnumAttributeDefinitionType {\\\\n            values {\\\\n              results {\\\\n                key\\\\n                labelByLocale: label(locale: $locale) @include(if: $enableLocaleLabelOptimization)\\\\n                labelAllLocales @skip(if: $enableLocaleLabelOptimization) {\\\\n                  locale\\\\n                  value\\\\n                  __typename\\\\n                }\\\\n                __typename\\\\n              }\\\\n              __typename\\\\n            }\\\\n            __typename\\\\n          }\\\\n          __typename\\\\n        }\\\\n        __typename\\\\n      }\\\\n      __typename\\\\n    }\\\\n    __typename\\\\n  }\\\\n  __typename\\\\n}\\\\n\\\\nfragment CurrentCategoryFragment on Category {\\\\n  id\\\\n  nameAllLocales {\\\\n    locale\\\\n    value\\\\n    __typename\\\\n  }\\\\n  __typename\\\\n}\"}'"
+			},
+			"response": []
+		},
+		{
+			"name": "https://api.kmart.com.au/gateway/graphql",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "accept",
+						"value": "*/*"
+					},
+					{
+						"key": "accept-language",
+						"value": "en-GB,en-US;q=0.9,en;q=0.8"
+					},
+					{
+						"key": "authorization",
+						"value": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ikl1V3loc2lWN3pEalhENXEyWEhmZyJ9.eyJodHRwczovL2ttYXJ0LmNvbS5hdS8iOnsiY3RfdXVpZCI6ImFiNDg1N2VmLTNkYWQtNGNkZC05ZjAwLWU5ZjE5OGYxMjg5OSIsIm9uZXBhc3NfdXVpZCI6ImFiZjYzODQzLTgxMGQtNGE0ZC1iNzEzLWQxOTEzZjY4OWVjMyIsInN0cmF0ZWd5IjoiQ29tbWVyY2V0b29scy1EQiJ9LCJ1c2VyX2lkIjoiYXV0aDB8NjQ3ZDU0NzVkOTQ5NmRkZmZkZGM4MjgwIiwiaXNzIjoiaHR0cHM6Ly9hdXRoLmttYXJ0LmNvbS5hdS8iLCJzdWIiOiJhdXRoMHw2NDdkNTQ3NWQ5NDk2ZGRmZmRkYzgyODAiLCJhdWQiOlsiaHR0cHM6Ly9hcGkua21hcnQuY29tLmF1L2dhdGV3YXkvZ3JhcGhxbCIsImh0dHBzOi8va21hcnRhdS1vbmxpbmUuYXUuYXV0aDAuY29tL3VzZXJpbmZvIl0sImlhdCI6MTc1Njc3ODk0MywiZXhwIjoxNzU2Nzc5ODQzLCJzY29wZSI6Im9wZW5pZCBwcm9maWxlIGVtYWlsIG9mZmxpbmVfYWNjZXNzIiwiYXpwIjoid2YwRHo3bEt1aEtOMzE5c2k3dlJFMERpUHlFeUU1SHkifQ.DJBfoOMh6vFKZfCMFC0rhKcOCZirlh9CURFEAsUnxjS2uB53Oj_FZ1WIQrlrc_8iM1iTU2My3jpKf_kjdiBzljaJW5BGW8x0-z4r5JraTRHSsgONMN_XQSaLv37KFRoeLzzcu28EVBzvNeVWB440KXgGmSJfGR3JfO2rVQ8EGCb73PcHWUiqym7LNWF1TvF_ZXaYCBsRi2TIYHmFlYK5gIqwpPjueFaTkj1inp_xFduyZcuQeBZ5JJISgMoeRhgr0Zlw9vlEhIAraLsuwyECw2IaORXiqglGRppGsPn1iXbApiy7_oP4fSV3iXxIcEfYkAhT-6qqHQTnSromNkpKEg"
+					},
+					{
+						"key": "content-type",
+						"value": "application/json"
+					},
+					{
+						"key": "newrelic",
+						"value": "eyJ2IjpbMCwxXSwiZCI6eyJ0eSI6IkJyb3dzZXIiLCJhYyI6IjEwNjUxNTEiLCJhcCI6IjE4MzQ3Nzc5ODEiLCJpZCI6Ijg1YmQyNTk5NzYzNjhjN2MiLCJ0ciI6IjUwOGUxMmJlYTI4NDEyMzI4N2QwMjVjNjYxNGNhYjE1IiwidGkiOjE3NTY3Nzg5NjE4ODgsInRrIjoiMTY0NzQ1MSJ9fQ=="
+					},
+					{
+						"key": "origin",
+						"value": "https://www.kmart.com.au"
+					},
+					{
+						"key": "priority",
+						"value": "u=1, i"
+					},
+					{
+						"key": "referer",
+						"value": "https://www.kmart.com.au/"
+					},
+					{
+						"key": "sec-ch-ua",
+						"value": "\"Not;A=Brand\";v=\"99\", \"Google Chrome\";v=\"139\", \"Chromium\";v=\"139\""
+					},
+					{
+						"key": "sec-ch-ua-mobile",
+						"value": "?0"
+					},
+					{
+						"key": "sec-ch-ua-platform",
+						"value": "\"macOS\""
+					},
+					{
+						"key": "sec-fetch-dest",
+						"value": "empty"
+					},
+					{
+						"key": "sec-fetch-mode",
+						"value": "cors"
+					},
+					{
+						"key": "sec-fetch-site",
+						"value": "same-site"
+					},
+					{
+						"key": "traceparent",
+						"value": "00-508e12bea284123287d025c6614cab15-85bd259976368c7c-01"
+					},
+					{
+						"key": "tracestate",
+						"value": "1647451@nr=0-1-1065151-1834777981-85bd259976368c7c----1756778961888"
+					},
+					{
+						"key": "user-agent",
+						"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"
+					},
+					{
+						"key": "Cookie",
+						"value": "tfc-l=%7B%22k%22%3A%7B%22v%22%3A%22cks2v9cknci9ohes13hkj1404u%22%2C%22e%22%3A1818377925%7D%7D; visid_incap_2663987=Lq9eqs3sRvGu/9JHwZlil8GgrmgAAAAAQUIPAAAAAAAcnKWHAiupRunkkUbyj+g5; _gcl_au=1.1.1852800734.1756274882; utag_main_vapi_domain=kmart.com.au; visid_incap_382817=wuTPWWQ6QsGnQY8+7YCPbcGmrmgAAAAAQUIPAAAAAADF71mEVktQOiC60IcV2fE5; cgt=6; visid_incap_2524447=0VgcMCDlTDm7bFWp2Ii6/s80r2gAAAAAQUIPAAAAAACG+MjwOeSra5EqHnGpu7vD; _pin_unauth=dWlkPU9URTFNV0UzWW1ZdE1HUTRPUzAwWWpjMkxXRTFPVFl0TmpaaE5qbG1NRFZoTnpRNQ; _tt_enable_cookie=1; _ttp=01K3P6CM5Y6G18EZCV1DFKSZD3_.tt.2; _fbp=fb.2.1756312785731.162049412447674056; _scid=F73cIVPJVj1wdGUkNHA-niFCmK8I21N0_2hMpQ; _ScCbts=%5B%22601%3Bchrome.2%3A2%3A5%22%2C%22603%3Bchrome.2%3A2%3A5%22%5D; _sctr=1%7C1756303200000; optimizelySession=0; visid_incap_2632254=C3LQPJLuQi2aLQRTUst2iSGgr2gAAAAAQUIPAAAAAADdW3fNdIe+l5jIN4phHr1X; client_visitor_id=0198ea23f7d2001dd738721731db0507500e206d009dc; _gid=GA1.3.2077233320.1756701982; visid_incap_2663902=ltTf9LaIRcSi7DmAaj+FTR4ltWgAAAAAQUIPAAAAAAD399KdwQOpotk7/dsDtUNH; __adv_opt_ko_=true; nlbi_2524447=3aR0TV3mMHTAFpOIjNNIKAAAAABOa3qKZjVGJJ5kb2GAHlJb; tealium_visitor_id=0198ea23f7d2001dd738721731db0507500e206d009dc; nlbi_382817=c08raYlpWCDCYk8fw6DYdgAAAADozgnariRedqqjXX9ySrUY; nlbi_382817_2615371=+vTTKCPFkzTrsJQzw6DYdgAAAADVoPTMeeQAjc1/GWQBsiG4; _clck=1svfeh9%5E2%5Efyz%5E0%5E2065; incap_ses_777_382817=K+gXMIz4RzpoaQImd3XICnxKtmgAAAAAji3+7B5q4ALsZE6GukPYXA==; incap_ses_781_2632254=xj9UC1AIMWGZE8G0aqvWCo9OtmgAAAAAZFRsWinn5uHDz76lht35eA==; nlbi_2632254_2614284=uHKHSUzkY2nPV4UzpJKu7wAAAAA0rggNRMnchZZk4L9Bqyuh; utag_main__sn=13; utag_main_ses_id=1756778127898%3Bexp-session; utag_main_db_mvkoh1nn=true%3Bexp-session; utag_main_tag_session_30=1%3Bexp-session; utag_main__ss=0%3Bexp-session; utag_main_dc_visit=12; utag_main_dc_region=ap-southeast-2%3Bexp-session; nlbi_2632254_2573261=Q9MhTLqIhGiYVK1+pJKu7wAAAADLeCzKWL4eqjWnTXyF9vz9; nlbi_2632254=O4NIOicVykIE5oAZpJKu7wAAAABG2mhKbSnCVzzXD82KS7MT; nlbi_2632254_2564416=8GC+VYwp6he4gK4xpJKu7wAAAACNvhg0C0WVZ5J8gYXf5+XI; nlbi_2663902=kwMOXLcwR0pbcVivQfDYBQAAAAA1Bz3O314Mbiasko6WOcKP; incap_ses_781_2663902=z92bX7qtxVbYM8G0aqvWCp9OtmgAAAAAkh1iwBhwWOoXw18oU3VTAw==; nlbi_2663902_2147483392=A/enJ0dGEAkC+HTUQfDYBQAAAABooZxSu/31AB8lA2qEw4EC; incap_ses_781_382817=lhOXV5rxWHeTOce0aqvWCkFRtmgAAAAAQJ2V+kx9wa0J64fJodSs3w==; _ga=GA1.1.311133609.1756274882; incap_ses_781_2524447=vAAtcYd/Yw81PMe0aqvWCkNRtmgAAAAAQNrurmhkuanLzpGFxEgySQ==; _abck=4353708A18A702A39DDD23A8ABFAFD14~-1~YAAQDeg/Fx1x4eyYAQAA3VMuCA5ovKBJpU4w9+Z5Iuwk1nQ9blog5htwgwWM/1grRUeEtwtgtGjnusCFcY4m81jK5tWu3g1FsEWk0Tp2HVcSUvs2AG45LGPvYzjGrx8nzb/DC/GubLU0XgpE/IZ5tWqpqqHRCYZm6SwIc2nYjOMuOVplgLcQMeo1rYc7NeJYG64P9mmybH2t/cWXVqbTfC2lxjDeR3i6ibd1U6IC/XKBUpzGOkizuiJ1H5zMd5lhzb0dJitEvl5VFIh0xk7r/2DiMgoJ4q+vyDsWtP9HseVnA2xjVWvJxyt1NYry4yxCwEdJZXsQ0IypqT+NL7JZ8v1Trl1qbvT/GXt8faZzN9UyPL6hxvlUGdM82NNS0q2pRFO+li8MVoqKP9iXmEGNALj5LMsZKnzK7T7A7vuUzKMl9v7nIbO8cUQ+7rFtHw==~-1~-1~-1~~; nlbi_2632254_2147483392=r4K6Xe47bEdqLJItpJKu7wAAAACrsSB6SdKjol0NN0BJtq69; _ga_V0Y9TKKHP3=GS2.1.s1756778129$o8$g1$t1756778880$j56$l0$h0; nlbi_2663987=4OMSU5O1TxH4zsBcI9WWqgAAAADQKSztp64OhoUHaECyA0gJ; incap_ses_781_2663987=ZIRfcaTTEE08DMi0aqvWCp1RtmgAAAAAZiCsuUjvtfVRMTQtn6l2RA==; incap_ses_777_2663987=B4JJIsGt2hzRKhMmd3XICp5RtmgAAAAA1TbRv1+VSlWZLiHXVNJc9g==; nlbi_2663987_2147483392=+OnNBeP+Xl7mDSCsI9WWqgAAAACC9dlp8O7AiUQPikDoNgDT; reese84=3:HCeRUegB3nDcsxDMsS1+ig==:S4XHyzQdrRB2aH7v25TDfwyAjP+SPTP5RwbznOSfe/tAutqudwnO36u0iT94XBw0ZRZ/mlVklIspWW07XziE6EtKETaC8dxhljOcNPk1Dvg/+373TZqFVdyKFDx61Hzl2EKi5LLN5l+g8Bi91wkNlr96mKkhiFOds+umCnAcpQWwcVWNyTA/ec2J8W4mNB0vLG3zss5buVXyBi+FTdsfKMfmd21+nlxjqKTC0CyjbVpLMOdq0eHoJQDm/aMW+VndQIqu/WVBUZQG8SQ+8txa60Ot9XAPazPfoPvSOG0jxJ1kugxl14jr2LXsvcvIxzJ4dbAd3fT2lngEHHOWZg8leGKh+19nNqUVc/CkS8Xjor+glAphRKRJfaH75VxxmoCgLmHVQzl9pMarBB6XjF6OVnyN8kEjE0nsUthoyxge88iX5bau7m5NiOrBSbpoARiAEalXIxNumTTCLtXhaw3KvA==:Sxi/RMAiDJyrq+5SBmOhn7rXKgbJrl0uzSGPfjKk86I=; ko_token=FFw8hKCWMWY273QCAT6C%2F5Umqmtp%2FxGXvyceOBg2UdTFWzJsjgPSz6KQ17hLKLd1kcwhFmK5ZOkRXtWz%2Fbmqkh3xcx6T7vXiwrjJjWpeOMTq5A12lxCnUQE8alXOUJTv2GK10xcuErslbymNCNhWJx6%2FZj32pQl8qfbiO%2FxCp2gu3cMB1GT%2FQYXu6zkmoqFbSrMII5Vs5USoCkYFBrJeM9g62RXx1ldeFpf1loSma60TihKSH2bem1mB%2FSC6QKDklfoEiwfrEtkE%2FIGv3OkM5z8TbS7dmkB3JEdstpsclP%2FJQr7fKGwQQz%2FZilZ9ySwn%2BFYqJMcmP0Q%2B%2FI5ylTCHyUH87%2BKooh%2Bi8%2BoWZ4mQxH%2BECC7JOVnJqwcf8a3JqwYQDkaifW98XXlRRydpIiK0Godgdsal0HwIH1eXPXyQz503D8C%2BsktkCH69R8zjgDi4SjRCXTJFeArQ9mZInK5vgAx3lB1LEU88uJPm1etOT1yifBtANnOabUunuNhvFimJmAux7G1rBE9hXj5g66AncS5PyV6W8%2Bu%2FuCPiGbIlDMGshG%2FB84SEdY7gcFowY%2BEeURSI0zGAjOr9emYybMsca9dNhU9Xfip8prF6YBM3Xvt9HkOV1spUCWnmZFE0q%2FZisS0U9GFBaIGVFe9x29GVmO6LOFbSB%2BWns9oGoTW7xeKvGm2ztsJ6bgdmTS0ZxL5GwZ%2FFvG3HQ%2FoF%2Fj6rqOCwrv61w56cnP2wNXxGgjEPN1vo0cE3SQPvxzKuVw0vwvlOhzn3oEc%2FKECIRi1dUn7i1IcCK3dUoafVH83ZCiXu%2BaM1o1tW4wRCC0F6l3kON8T3z0SvyaLVLLatyiTEYFgAS5h5FerxETE%2B9KBZvAJ2KrZiTx6TceOOTnABifj863xNLT4jyFywvwkBmGpwL3FVkZ3XEVRni248VfykOZZRnnJke6EM4c0r4rFCaVc1DDHSENcAJHqoK8AdlllF4o%2Bc9mFTL5iCVwIgmSojAyrFrv3LkykIjNc%2FIoF6rYsw%2B0t9%2Fj6iFn8MdqPxkhQrHmo1Oazfch1HBh%2FQyMxXudv44pRjqqZ1JijZtQo77LNvxFzg1ttNeUK3MBu8I%2FgyQPFZWZ14cuiABMXj0RLg9sEtqruhbpcpcjqZ%2F9FjW%2FsoxQZwLoyJMpxXTSXN2Jp9DkJQCf%2Fbk6p4K%2BV2pXKq4ehdWpvyGHrc2ry%2BT6YmCbp%2BvEAYueypIrDiv1ecr4OgePIL4cB4Lcdt; ko_token_added=true; utag_main_changed_as_id=0199082f5b4e00132b2a437b604205075003e06d009dc; utag_main_dcsyncran=; utag_main_last_logged_in_hashed_email=2746b18c4175d59f28bfa628c1fc112bad1a83dbe07a9cca9204f0f9acf1468a; utag_main_v_id=0199082f5b4e00132b2a437b604205075003e06d009dc; utag_main_dc_event=29%3Bexp-session; _uetsid=11c38d4086d911f0a987617dede2cee4; _uetvid=092a29a02af511f09172793d952c52b6|2va5av|1747613167687|1|1|bat.bing.com/p/conversions/c/i; ab.storage.deviceId.7a07460e-32c2-420e-979b-3ad707d14b33=%7B%22g%22%3A%22e6bfdcf3-f7aa-b362-906c-3302a34bf989%22%2C%22c%22%3A1746589235226%2C%22l%22%3A1756778945840%7D; ab.storage.userId.7a07460e-32c2-420e-979b-3ad707d14b33=%7B%22g%22%3A%22abfd68626d659451d7e5b25354c0f734d39b25ad74ca3cee77b311d432cc9a27%22%2C%22c%22%3A1756778945839%2C%22l%22%3A1756778945841%7D; ab.storage.sessionId.7a07460e-32c2-420e-979b-3ad707d14b33=%7B%22g%22%3A%2271d192ec-370e-f6b7-6301-8e4bc84fa338%22%2C%22e%22%3A1756780745842%2C%22c%22%3A1756778945839%2C%22l%22%3A1756778945842%7D; _scid_r=C73cIVPJVj1wdGUkNHA-niFCmK8I21N0_2hN5A; ttcsid=1756778130764::zfZ1_uieP8HFanlRKFXE.12.1756778945957; _clsk=1o5u3xb%5E1756778946444%5E12%5E0%5Ev.clarity.ms%2Fcollect; ttcsid_C40FTM1U9OSI9F1LJC9G=1756778130763::GeAOWj5LWvNk3UJHkt5C.11.1756778960753; _ga_CXF7KQVQ46=GS2.1.s1756777533$o12$g1$t1756778960$j9$l0$h0; utag_main__pn=17%3Bexp-session; utag_main__se=46%3Bexp-session; utag_main__st=1756780761060%3Bexp-session; nlbi_382817_2147483392=R6l5PdGXmn3mgboNw6DYdgAAAAC35+zDtzZ8/yLyJWXETRln"
+					}
+				],
+				"body": {
+					"mode": "graphql",
+					"graphql": {
+						"query": "query GetWishListItems($countryCode: Country!) {\n  me {\n    defaultShoppingList {\n      id\n      version\n      key\n      isShared\n      lineItems {\n        id\n        name(locale: \"en-AU\")\n        quantity\n        variant {\n          id\n          sku\n          imageKey\n          bynderImageKey\n          shoppingListPrice(input: {country: $countryCode}) {\n            centAmount\n            __typename\n          }\n          attributes {\n            name\n            value\n            __typename\n          }\n          __typename\n        }\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n",
+						"variables": "{\n  \"countryCode\": \"AU\"\n}"
+					}
+				},
+				"url": {
+					"raw": "https://api.kmart.com.au/gateway/graphql",
+					"protocol": "https",
+					"host": [
+						"api",
+						"kmart",
+						"com",
+						"au"
+					],
+					"path": [
+						"gateway",
+						"graphql"
+					]
+				},
+				"description": "Generated from cURL: curl 'https://api.kmart.com.au/gateway/graphql' \\\n  -H 'accept: */*' \\\n  -H 'accept-language: en-GB,en-US;q=0.9,en;q=0.8' \\\n  -H 'authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ikl1V3loc2lWN3pEalhENXEyWEhmZyJ9.eyJodHRwczovL2ttYXJ0LmNvbS5hdS8iOnsiY3RfdXVpZCI6ImFiNDg1N2VmLTNkYWQtNGNkZC05ZjAwLWU5ZjE5OGYxMjg5OSIsIm9uZXBhc3NfdXVpZCI6ImFiZjYzODQzLTgxMGQtNGE0ZC1iNzEzLWQxOTEzZjY4OWVjMyIsInN0cmF0ZWd5IjoiQ29tbWVyY2V0b29scy1EQiJ9LCJ1c2VyX2lkIjoiYXV0aDB8NjQ3ZDU0NzVkOTQ5NmRkZmZkZGM4MjgwIiwiaXNzIjoiaHR0cHM6Ly9hdXRoLmttYXJ0LmNvbS5hdS8iLCJzdWIiOiJhdXRoMHw2NDdkNTQ3NWQ5NDk2ZGRmZmRkYzgyODAiLCJhdWQiOlsiaHR0cHM6Ly9hcGkua21hcnQuY29tLmF1L2dhdGV3YXkvZ3JhcGhxbCIsImh0dHBzOi8va21hcnRhdS1vbmxpbmUuYXUuYXV0aDAuY29tL3VzZXJpbmZvIl0sImlhdCI6MTc1Njc3ODk0MywiZXhwIjoxNzU2Nzc5ODQzLCJzY29wZSI6Im9wZW5pZCBwcm9maWxlIGVtYWlsIG9mZmxpbmVfYWNjZXNzIiwiYXpwIjoid2YwRHo3bEt1aEtOMzE5c2k3dlJFMERpUHlFeUU1SHkifQ.DJBfoOMh6vFKZfCMFC0rhKcOCZirlh9CURFEAsUnxjS2uB53Oj_FZ1WIQrlrc_8iM1iTU2My3jpKf_kjdiBzljaJW5BGW8x0-z4r5JraTRHSsgONMN_XQSaLv37KFRoeLzzcu28EVBzvNeVWB440KXgGmSJfGR3JfO2rVQ8EGCb73PcHWUiqym7LNWF1TvF_ZXaYCBsRi2TIYHmFlYK5gIqwpPjueFaTkj1inp_xFduyZcuQeBZ5JJISgMoeRhgr0Zlw9vlEhIAraLsuwyECw2IaORXiqglGRppGsPn1iXbApiy7_oP4fSV3iXxIcEfYkAhT-6qqHQTnSromNkpKEg' \\\n  -H 'content-type: application/json' \\\n  -b 'tfc-l=%7B%22k%22%3A%7B%22v%22%3A%22cks2v9cknci9ohes13hkj1404u%22%2C%22e%22%3A1818377925%7D%7D; visid_incap_2663987=Lq9eqs3sRvGu/9JHwZlil8GgrmgAAAAAQUIPAAAAAAAcnKWHAiupRunkkUbyj+g5; _gcl_au=1.1.1852800734.1756274882; utag_main_vapi_domain=kmart.com.au; visid_incap_382817=wuTPWWQ6QsGnQY8+7YCPbcGmrmgAAAAAQUIPAAAAAADF71mEVktQOiC60IcV2fE5; cgt=6; visid_incap_2524447=0VgcMCDlTDm7bFWp2Ii6/s80r2gAAAAAQUIPAAAAAACG+MjwOeSra5EqHnGpu7vD; _pin_unauth=dWlkPU9URTFNV0UzWW1ZdE1HUTRPUzAwWWpjMkxXRTFPVFl0TmpaaE5qbG1NRFZoTnpRNQ; _tt_enable_cookie=1; _ttp=01K3P6CM5Y6G18EZCV1DFKSZD3_.tt.2; _fbp=fb.2.1756312785731.162049412447674056; _scid=F73cIVPJVj1wdGUkNHA-niFCmK8I21N0_2hMpQ; _ScCbts=%5B%22601%3Bchrome.2%3A2%3A5%22%2C%22603%3Bchrome.2%3A2%3A5%22%5D; _sctr=1%7C1756303200000; optimizelySession=0; visid_incap_2632254=C3LQPJLuQi2aLQRTUst2iSGgr2gAAAAAQUIPAAAAAADdW3fNdIe+l5jIN4phHr1X; client_visitor_id=0198ea23f7d2001dd738721731db0507500e206d009dc; _gid=GA1.3.2077233320.1756701982; visid_incap_2663902=ltTf9LaIRcSi7DmAaj+FTR4ltWgAAAAAQUIPAAAAAAD399KdwQOpotk7/dsDtUNH; __adv_opt_ko_=true; nlbi_2524447=3aR0TV3mMHTAFpOIjNNIKAAAAABOa3qKZjVGJJ5kb2GAHlJb; tealium_visitor_id=0198ea23f7d2001dd738721731db0507500e206d009dc; nlbi_382817=c08raYlpWCDCYk8fw6DYdgAAAADozgnariRedqqjXX9ySrUY; nlbi_382817_2615371=+vTTKCPFkzTrsJQzw6DYdgAAAADVoPTMeeQAjc1/GWQBsiG4; _clck=1svfeh9%5E2%5Efyz%5E0%5E2065; incap_ses_777_382817=K+gXMIz4RzpoaQImd3XICnxKtmgAAAAAji3+7B5q4ALsZE6GukPYXA==; incap_ses_781_2632254=xj9UC1AIMWGZE8G0aqvWCo9OtmgAAAAAZFRsWinn5uHDz76lht35eA==; nlbi_2632254_2614284=uHKHSUzkY2nPV4UzpJKu7wAAAAA0rggNRMnchZZk4L9Bqyuh; utag_main__sn=13; utag_main_ses_id=1756778127898%3Bexp-session; utag_main_db_mvkoh1nn=true%3Bexp-session; utag_main_tag_session_30=1%3Bexp-session; utag_main__ss=0%3Bexp-session; utag_main_dc_visit=12; utag_main_dc_region=ap-southeast-2%3Bexp-session; nlbi_2632254_2573261=Q9MhTLqIhGiYVK1+pJKu7wAAAADLeCzKWL4eqjWnTXyF9vz9; nlbi_2632254=O4NIOicVykIE5oAZpJKu7wAAAABG2mhKbSnCVzzXD82KS7MT; nlbi_2632254_2564416=8GC+VYwp6he4gK4xpJKu7wAAAACNvhg0C0WVZ5J8gYXf5+XI; nlbi_2663902=kwMOXLcwR0pbcVivQfDYBQAAAAA1Bz3O314Mbiasko6WOcKP; incap_ses_781_2663902=z92bX7qtxVbYM8G0aqvWCp9OtmgAAAAAkh1iwBhwWOoXw18oU3VTAw==; nlbi_2663902_2147483392=A/enJ0dGEAkC+HTUQfDYBQAAAABooZxSu/31AB8lA2qEw4EC; incap_ses_781_382817=lhOXV5rxWHeTOce0aqvWCkFRtmgAAAAAQJ2V+kx9wa0J64fJodSs3w==; _ga=GA1.1.311133609.1756274882; incap_ses_781_2524447=vAAtcYd/Yw81PMe0aqvWCkNRtmgAAAAAQNrurmhkuanLzpGFxEgySQ==; _abck=4353708A18A702A39DDD23A8ABFAFD14~-1~YAAQDeg/Fx1x4eyYAQAA3VMuCA5ovKBJpU4w9+Z5Iuwk1nQ9blog5htwgwWM/1grRUeEtwtgtGjnusCFcY4m81jK5tWu3g1FsEWk0Tp2HVcSUvs2AG45LGPvYzjGrx8nzb/DC/GubLU0XgpE/IZ5tWqpqqHRCYZm6SwIc2nYjOMuOVplgLcQMeo1rYc7NeJYG64P9mmybH2t/cWXVqbTfC2lxjDeR3i6ibd1U6IC/XKBUpzGOkizuiJ1H5zMd5lhzb0dJitEvl5VFIh0xk7r/2DiMgoJ4q+vyDsWtP9HseVnA2xjVWvJxyt1NYry4yxCwEdJZXsQ0IypqT+NL7JZ8v1Trl1qbvT/GXt8faZzN9UyPL6hxvlUGdM82NNS0q2pRFO+li8MVoqKP9iXmEGNALj5LMsZKnzK7T7A7vuUzKMl9v7nIbO8cUQ+7rFtHw==~-1~-1~-1~~; nlbi_2632254_2147483392=r4K6Xe47bEdqLJItpJKu7wAAAACrsSB6SdKjol0NN0BJtq69; _ga_V0Y9TKKHP3=GS2.1.s1756778129$o8$g1$t1756778880$j56$l0$h0; nlbi_2663987=4OMSU5O1TxH4zsBcI9WWqgAAAADQKSztp64OhoUHaECyA0gJ; incap_ses_781_2663987=ZIRfcaTTEE08DMi0aqvWCp1RtmgAAAAAZiCsuUjvtfVRMTQtn6l2RA==; incap_ses_777_2663987=B4JJIsGt2hzRKhMmd3XICp5RtmgAAAAA1TbRv1+VSlWZLiHXVNJc9g==; nlbi_2663987_2147483392=+OnNBeP+Xl7mDSCsI9WWqgAAAACC9dlp8O7AiUQPikDoNgDT; reese84=3:HCeRUegB3nDcsxDMsS1+ig==:S4XHyzQdrRB2aH7v25TDfwyAjP+SPTP5RwbznOSfe/tAutqudwnO36u0iT94XBw0ZRZ/mlVklIspWW07XziE6EtKETaC8dxhljOcNPk1Dvg/+373TZqFVdyKFDx61Hzl2EKi5LLN5l+g8Bi91wkNlr96mKkhiFOds+umCnAcpQWwcVWNyTA/ec2J8W4mNB0vLG3zss5buVXyBi+FTdsfKMfmd21+nlxjqKTC0CyjbVpLMOdq0eHoJQDm/aMW+VndQIqu/WVBUZQG8SQ+8txa60Ot9XAPazPfoPvSOG0jxJ1kugxl14jr2LXsvcvIxzJ4dbAd3fT2lngEHHOWZg8leGKh+19nNqUVc/CkS8Xjor+glAphRKRJfaH75VxxmoCgLmHVQzl9pMarBB6XjF6OVnyN8kEjE0nsUthoyxge88iX5bau7m5NiOrBSbpoARiAEalXIxNumTTCLtXhaw3KvA==:Sxi/RMAiDJyrq+5SBmOhn7rXKgbJrl0uzSGPfjKk86I=; ko_token=FFw8hKCWMWY273QCAT6C%2F5Umqmtp%2FxGXvyceOBg2UdTFWzJsjgPSz6KQ17hLKLd1kcwhFmK5ZOkRXtWz%2Fbmqkh3xcx6T7vXiwrjJjWpeOMTq5A12lxCnUQE8alXOUJTv2GK10xcuErslbymNCNhWJx6%2FZj32pQl8qfbiO%2FxCp2gu3cMB1GT%2FQYXu6zkmoqFbSrMII5Vs5USoCkYFBrJeM9g62RXx1ldeFpf1loSma60TihKSH2bem1mB%2FSC6QKDklfoEiwfrEtkE%2FIGv3OkM5z8TbS7dmkB3JEdstpsclP%2FJQr7fKGwQQz%2FZilZ9ySwn%2BFYqJMcmP0Q%2B%2FI5ylTCHyUH87%2BKooh%2Bi8%2BoWZ4mQxH%2BECC7JOVnJqwcf8a3JqwYQDkaifW98XXlRRydpIiK0Godgdsal0HwIH1eXPXyQz503D8C%2BsktkCH69R8zjgDi4SjRCXTJFeArQ9mZInK5vgAx3lB1LEU88uJPm1etOT1yifBtANnOabUunuNhvFimJmAux7G1rBE9hXj5g66AncS5PyV6W8%2Bu%2FuCPiGbIlDMGshG%2FB84SEdY7gcFowY%2BEeURSI0zGAjOr9emYybMsca9dNhU9Xfip8prF6YBM3Xvt9HkOV1spUCWnmZFE0q%2FZisS0U9GFBaIGVFe9x29GVmO6LOFbSB%2BWns9oGoTW7xeKvGm2ztsJ6bgdmTS0ZxL5GwZ%2FFvG3HQ%2FoF%2Fj6rqOCwrv61w56cnP2wNXxGgjEPN1vo0cE3SQPvxzKuVw0vwvlOhzn3oEc%2FKECIRi1dUn7i1IcCK3dUoafVH83ZCiXu%2BaM1o1tW4wRCC0F6l3kON8T3z0SvyaLVLLatyiTEYFgAS5h5FerxETE%2B9KBZvAJ2KrZiTx6TceOOTnABifj863xNLT4jyFywvwkBmGpwL3FVkZ3XEVRni248VfykOZZRnnJke6EM4c0r4rFCaVc1DDHSENcAJHqoK8AdlllF4o%2Bc9mFTL5iCVwIgmSojAyrFrv3LkykIjNc%2FIoF6rYsw%2B0t9%2Fj6iFn8MdqPxkhQrHmo1Oazfch1HBh%2FQyMxXudv44pRjqqZ1JijZtQo77LNvxFzg1ttNeUK3MBu8I%2FgyQPFZWZ14cuiABMXj0RLg9sEtqruhbpcpcjqZ%2F9FjW%2FsoxQZwLoyJMpxXTSXN2Jp9DkJQCf%2Fbk6p4K%2BV2pXKq4ehdWpvyGHrc2ry%2BT6YmCbp%2BvEAYueypIrDiv1ecr4OgePIL4cB4Lcdt; ko_token_added=true; utag_main_changed_as_id=0199082f5b4e00132b2a437b604205075003e06d009dc; utag_main_dcsyncran=; utag_main_last_logged_in_hashed_email=2746b18c4175d59f28bfa628c1fc112bad1a83dbe07a9cca9204f0f9acf1468a; utag_main_v_id=0199082f5b4e00132b2a437b604205075003e06d009dc; utag_main_dc_event=29%3Bexp-session; _uetsid=11c38d4086d911f0a987617dede2cee4; _uetvid=092a29a02af511f09172793d952c52b6|2va5av|1747613167687|1|1|bat.bing.com/p/conversions/c/i; ab.storage.deviceId.7a07460e-32c2-420e-979b-3ad707d14b33=%7B%22g%22%3A%22e6bfdcf3-f7aa-b362-906c-3302a34bf989%22%2C%22c%22%3A1746589235226%2C%22l%22%3A1756778945840%7D; ab.storage.userId.7a07460e-32c2-420e-979b-3ad707d14b33=%7B%22g%22%3A%22abfd68626d659451d7e5b25354c0f734d39b25ad74ca3cee77b311d432cc9a27%22%2C%22c%22%3A1756778945839%2C%22l%22%3A1756778945841%7D; ab.storage.sessionId.7a07460e-32c2-420e-979b-3ad707d14b33=%7B%22g%22%3A%2271d192ec-370e-f6b7-6301-8e4bc84fa338%22%2C%22e%22%3A1756780745842%2C%22c%22%3A1756778945839%2C%22l%22%3A1756778945842%7D; _scid_r=C73cIVPJVj1wdGUkNHA-niFCmK8I21N0_2hN5A; ttcsid=1756778130764::zfZ1_uieP8HFanlRKFXE.12.1756778945957; _clsk=1o5u3xb%5E1756778946444%5E12%5E0%5Ev.clarity.ms%2Fcollect; ttcsid_C40FTM1U9OSI9F1LJC9G=1756778130763::GeAOWj5LWvNk3UJHkt5C.11.1756778960753; _ga_CXF7KQVQ46=GS2.1.s1756777533$o12$g1$t1756778960$j9$l0$h0; utag_main__pn=17%3Bexp-session; utag_main__se=46%3Bexp-session; utag_main__st=1756780761060%3Bexp-session; nlbi_382817_2147483392=R6l5PdGXmn3mgboNw6DYdgAAAAC35+zDtzZ8/yLyJWXETRln' \\\n  -H 'newrelic: eyJ2IjpbMCwxXSwiZCI6eyJ0eSI6IkJyb3dzZXIiLCJhYyI6IjEwNjUxNTEiLCJhcCI6IjE4MzQ3Nzc5ODEiLCJpZCI6Ijg1YmQyNTk5NzYzNjhjN2MiLCJ0ciI6IjUwOGUxMmJlYTI4NDEyMzI4N2QwMjVjNjYxNGNhYjE1IiwidGkiOjE3NTY3Nzg5NjE4ODgsInRrIjoiMTY0NzQ1MSJ9fQ==' \\\n  -H 'origin: https://www.kmart.com.au' \\\n  -H 'priority: u=1, i' \\\n  -H 'referer: https://www.kmart.com.au/' \\\n  -H 'sec-ch-ua: \"Not;A=Brand\";v=\"99\", \"Google Chrome\";v=\"139\", \"Chromium\";v=\"139\"' \\\n  -H 'sec-ch-ua-mobile: ?0' \\\n  -H 'sec-ch-ua-platform: \"macOS\"' \\\n  -H 'sec-fetch-dest: empty' \\\n  -H 'sec-fetch-mode: cors' \\\n  -H 'sec-fetch-site: same-site' \\\n  -H 'traceparent: 00-508e12bea284123287d025c6614cab15-85bd259976368c7c-01' \\\n  -H 'tracestate: 1647451@nr=0-1-1065151-1834777981-85bd259976368c7c----1756778961888' \\\n  -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36' \\\n  --data-raw $'{\"operationName\":\"GetWishListItems\",\"variables\":{\"countryCode\":\"AU\"},\"query\":\"query GetWishListItems($countryCode: Country\\u0021) {\\\\n  me {\\\\n    defaultShoppingList {\\\\n      id\\\\n      version\\\\n      key\\\\n      isShared\\\\n      lineItems {\\\\n        id\\\\n        name(locale: \\\\\"en-AU\\\\\")\\\\n        quantity\\\\n        variant {\\\\n          id\\\\n          sku\\\\n          imageKey\\\\n          bynderImageKey\\\\n          shoppingListPrice(input: {country: $countryCode}) {\\\\n            centAmount\\\\n            __typename\\\\n          }\\\\n          attributes {\\\\n            name\\\\n            value\\\\n            __typename\\\\n          }\\\\n          __typename\\\\n        }\\\\n        __typename\\\\n      }\\\\n      __typename\\\\n    }\\\\n    __typename\\\\n  }\\\\n}\\\\n\"}'"
+			},
+			"response": []
+		},
+		{
+			"name": "https://api.kmart.com.au/gateway/graphql Copy",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "accept",
+						"value": "*/*"
+					},
+					{
+						"key": "accept-language",
+						"value": "en-GB,en-US;q=0.9,en;q=0.8"
+					},
+					{
+						"key": "authorization",
+						"value": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ikl1V3loc2lWN3pEalhENXEyWEhmZyJ9.eyJodHRwczovL2ttYXJ0LmNvbS5hdS8iOnsiY3RfdXVpZCI6ImFiNDg1N2VmLTNkYWQtNGNkZC05ZjAwLWU5ZjE5OGYxMjg5OSIsIm9uZXBhc3NfdXVpZCI6ImFiZjYzODQzLTgxMGQtNGE0ZC1iNzEzLWQxOTEzZjY4OWVjMyIsInN0cmF0ZWd5IjoiQ29tbWVyY2V0b29scy1EQiJ9LCJ1c2VyX2lkIjoiYXV0aDB8NjQ3ZDU0NzVkOTQ5NmRkZmZkZGM4MjgwIiwiaXNzIjoiaHR0cHM6Ly9hdXRoLmttYXJ0LmNvbS5hdS8iLCJzdWIiOiJhdXRoMHw2NDdkNTQ3NWQ5NDk2ZGRmZmRkYzgyODAiLCJhdWQiOlsiaHR0cHM6Ly9hcGkua21hcnQuY29tLmF1L2dhdGV3YXkvZ3JhcGhxbCIsImh0dHBzOi8va21hcnRhdS1vbmxpbmUuYXUuYXV0aDAuY29tL3VzZXJpbmZvIl0sImlhdCI6MTc1Njc3ODk0MywiZXhwIjoxNzU2Nzc5ODQzLCJzY29wZSI6Im9wZW5pZCBwcm9maWxlIGVtYWlsIG9mZmxpbmVfYWNjZXNzIiwiYXpwIjoid2YwRHo3bEt1aEtOMzE5c2k3dlJFMERpUHlFeUU1SHkifQ.DJBfoOMh6vFKZfCMFC0rhKcOCZirlh9CURFEAsUnxjS2uB53Oj_FZ1WIQrlrc_8iM1iTU2My3jpKf_kjdiBzljaJW5BGW8x0-z4r5JraTRHSsgONMN_XQSaLv37KFRoeLzzcu28EVBzvNeVWB440KXgGmSJfGR3JfO2rVQ8EGCb73PcHWUiqym7LNWF1TvF_ZXaYCBsRi2TIYHmFlYK5gIqwpPjueFaTkj1inp_xFduyZcuQeBZ5JJISgMoeRhgr0Zlw9vlEhIAraLsuwyECw2IaORXiqglGRppGsPn1iXbApiy7_oP4fSV3iXxIcEfYkAhT-6qqHQTnSromNkpKEg"
+					},
+					{
+						"key": "content-type",
+						"value": "application/json"
+					},
+					{
+						"key": "newrelic",
+						"value": "eyJ2IjpbMCwxXSwiZCI6eyJ0eSI6IkJyb3dzZXIiLCJhYyI6IjEwNjUxNTEiLCJhcCI6IjE4MzQ3Nzc5ODEiLCJpZCI6Ijg1YmQyNTk5NzYzNjhjN2MiLCJ0ciI6IjUwOGUxMmJlYTI4NDEyMzI4N2QwMjVjNjYxNGNhYjE1IiwidGkiOjE3NTY3Nzg5NjE4ODgsInRrIjoiMTY0NzQ1MSJ9fQ=="
+					},
+					{
+						"key": "origin",
+						"value": "https://www.kmart.com.au"
+					},
+					{
+						"key": "priority",
+						"value": "u=1, i"
+					},
+					{
+						"key": "referer",
+						"value": "https://www.kmart.com.au/"
+					},
+					{
+						"key": "sec-ch-ua",
+						"value": "\"Not;A=Brand\";v=\"99\", \"Google Chrome\";v=\"139\", \"Chromium\";v=\"139\""
+					},
+					{
+						"key": "sec-ch-ua-mobile",
+						"value": "?0"
+					},
+					{
+						"key": "sec-ch-ua-platform",
+						"value": "\"macOS\""
+					},
+					{
+						"key": "sec-fetch-dest",
+						"value": "empty"
+					},
+					{
+						"key": "sec-fetch-mode",
+						"value": "cors"
+					},
+					{
+						"key": "sec-fetch-site",
+						"value": "same-site"
+					},
+					{
+						"key": "traceparent",
+						"value": "00-508e12bea284123287d025c6614cab15-85bd259976368c7c-01"
+					},
+					{
+						"key": "tracestate",
+						"value": "1647451@nr=0-1-1065151-1834777981-85bd259976368c7c----1756778961888"
+					},
+					{
+						"key": "user-agent",
+						"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"
+					},
+					{
+						"key": "Cookie",
+						"value": "tfc-l=%7B%22k%22%3A%7B%22v%22%3A%22cks2v9cknci9ohes13hkj1404u%22%2C%22e%22%3A1818377925%7D%7D; visid_incap_2663987=Lq9eqs3sRvGu/9JHwZlil8GgrmgAAAAAQUIPAAAAAAAcnKWHAiupRunkkUbyj+g5; _gcl_au=1.1.1852800734.1756274882; utag_main_vapi_domain=kmart.com.au; visid_incap_382817=wuTPWWQ6QsGnQY8+7YCPbcGmrmgAAAAAQUIPAAAAAADF71mEVktQOiC60IcV2fE5; cgt=6; visid_incap_2524447=0VgcMCDlTDm7bFWp2Ii6/s80r2gAAAAAQUIPAAAAAACG+MjwOeSra5EqHnGpu7vD; _pin_unauth=dWlkPU9URTFNV0UzWW1ZdE1HUTRPUzAwWWpjMkxXRTFPVFl0TmpaaE5qbG1NRFZoTnpRNQ; _tt_enable_cookie=1; _ttp=01K3P6CM5Y6G18EZCV1DFKSZD3_.tt.2; _fbp=fb.2.1756312785731.162049412447674056; _scid=F73cIVPJVj1wdGUkNHA-niFCmK8I21N0_2hMpQ; _ScCbts=%5B%22601%3Bchrome.2%3A2%3A5%22%2C%22603%3Bchrome.2%3A2%3A5%22%5D; _sctr=1%7C1756303200000; optimizelySession=0; visid_incap_2632254=C3LQPJLuQi2aLQRTUst2iSGgr2gAAAAAQUIPAAAAAADdW3fNdIe+l5jIN4phHr1X; client_visitor_id=0198ea23f7d2001dd738721731db0507500e206d009dc; _gid=GA1.3.2077233320.1756701982; visid_incap_2663902=ltTf9LaIRcSi7DmAaj+FTR4ltWgAAAAAQUIPAAAAAAD399KdwQOpotk7/dsDtUNH; __adv_opt_ko_=true; nlbi_2524447=3aR0TV3mMHTAFpOIjNNIKAAAAABOa3qKZjVGJJ5kb2GAHlJb; tealium_visitor_id=0198ea23f7d2001dd738721731db0507500e206d009dc; nlbi_382817=c08raYlpWCDCYk8fw6DYdgAAAADozgnariRedqqjXX9ySrUY; nlbi_382817_2615371=+vTTKCPFkzTrsJQzw6DYdgAAAADVoPTMeeQAjc1/GWQBsiG4; _clck=1svfeh9%5E2%5Efyz%5E0%5E2065; incap_ses_777_382817=K+gXMIz4RzpoaQImd3XICnxKtmgAAAAAji3+7B5q4ALsZE6GukPYXA==; incap_ses_781_2632254=xj9UC1AIMWGZE8G0aqvWCo9OtmgAAAAAZFRsWinn5uHDz76lht35eA==; nlbi_2632254_2614284=uHKHSUzkY2nPV4UzpJKu7wAAAAA0rggNRMnchZZk4L9Bqyuh; utag_main__sn=13; utag_main_ses_id=1756778127898%3Bexp-session; utag_main_db_mvkoh1nn=true%3Bexp-session; utag_main_tag_session_30=1%3Bexp-session; utag_main__ss=0%3Bexp-session; utag_main_dc_visit=12; utag_main_dc_region=ap-southeast-2%3Bexp-session; nlbi_2632254_2573261=Q9MhTLqIhGiYVK1+pJKu7wAAAADLeCzKWL4eqjWnTXyF9vz9; nlbi_2632254=O4NIOicVykIE5oAZpJKu7wAAAABG2mhKbSnCVzzXD82KS7MT; nlbi_2632254_2564416=8GC+VYwp6he4gK4xpJKu7wAAAACNvhg0C0WVZ5J8gYXf5+XI; nlbi_2663902=kwMOXLcwR0pbcVivQfDYBQAAAAA1Bz3O314Mbiasko6WOcKP; incap_ses_781_2663902=z92bX7qtxVbYM8G0aqvWCp9OtmgAAAAAkh1iwBhwWOoXw18oU3VTAw==; nlbi_2663902_2147483392=A/enJ0dGEAkC+HTUQfDYBQAAAABooZxSu/31AB8lA2qEw4EC; incap_ses_781_382817=lhOXV5rxWHeTOce0aqvWCkFRtmgAAAAAQJ2V+kx9wa0J64fJodSs3w==; _ga=GA1.1.311133609.1756274882; incap_ses_781_2524447=vAAtcYd/Yw81PMe0aqvWCkNRtmgAAAAAQNrurmhkuanLzpGFxEgySQ==; _abck=4353708A18A702A39DDD23A8ABFAFD14~-1~YAAQDeg/Fx1x4eyYAQAA3VMuCA5ovKBJpU4w9+Z5Iuwk1nQ9blog5htwgwWM/1grRUeEtwtgtGjnusCFcY4m81jK5tWu3g1FsEWk0Tp2HVcSUvs2AG45LGPvYzjGrx8nzb/DC/GubLU0XgpE/IZ5tWqpqqHRCYZm6SwIc2nYjOMuOVplgLcQMeo1rYc7NeJYG64P9mmybH2t/cWXVqbTfC2lxjDeR3i6ibd1U6IC/XKBUpzGOkizuiJ1H5zMd5lhzb0dJitEvl5VFIh0xk7r/2DiMgoJ4q+vyDsWtP9HseVnA2xjVWvJxyt1NYry4yxCwEdJZXsQ0IypqT+NL7JZ8v1Trl1qbvT/GXt8faZzN9UyPL6hxvlUGdM82NNS0q2pRFO+li8MVoqKP9iXmEGNALj5LMsZKnzK7T7A7vuUzKMl9v7nIbO8cUQ+7rFtHw==~-1~-1~-1~~; nlbi_2632254_2147483392=r4K6Xe47bEdqLJItpJKu7wAAAACrsSB6SdKjol0NN0BJtq69; _ga_V0Y9TKKHP3=GS2.1.s1756778129$o8$g1$t1756778880$j56$l0$h0; nlbi_2663987=4OMSU5O1TxH4zsBcI9WWqgAAAADQKSztp64OhoUHaECyA0gJ; incap_ses_781_2663987=ZIRfcaTTEE08DMi0aqvWCp1RtmgAAAAAZiCsuUjvtfVRMTQtn6l2RA==; incap_ses_777_2663987=B4JJIsGt2hzRKhMmd3XICp5RtmgAAAAA1TbRv1+VSlWZLiHXVNJc9g==; nlbi_2663987_2147483392=+OnNBeP+Xl7mDSCsI9WWqgAAAACC9dlp8O7AiUQPikDoNgDT; reese84=3:HCeRUegB3nDcsxDMsS1+ig==:S4XHyzQdrRB2aH7v25TDfwyAjP+SPTP5RwbznOSfe/tAutqudwnO36u0iT94XBw0ZRZ/mlVklIspWW07XziE6EtKETaC8dxhljOcNPk1Dvg/+373TZqFVdyKFDx61Hzl2EKi5LLN5l+g8Bi91wkNlr96mKkhiFOds+umCnAcpQWwcVWNyTA/ec2J8W4mNB0vLG3zss5buVXyBi+FTdsfKMfmd21+nlxjqKTC0CyjbVpLMOdq0eHoJQDm/aMW+VndQIqu/WVBUZQG8SQ+8txa60Ot9XAPazPfoPvSOG0jxJ1kugxl14jr2LXsvcvIxzJ4dbAd3fT2lngEHHOWZg8leGKh+19nNqUVc/CkS8Xjor+glAphRKRJfaH75VxxmoCgLmHVQzl9pMarBB6XjF6OVnyN8kEjE0nsUthoyxge88iX5bau7m5NiOrBSbpoARiAEalXIxNumTTCLtXhaw3KvA==:Sxi/RMAiDJyrq+5SBmOhn7rXKgbJrl0uzSGPfjKk86I=; ko_token=FFw8hKCWMWY273QCAT6C%2F5Umqmtp%2FxGXvyceOBg2UdTFWzJsjgPSz6KQ17hLKLd1kcwhFmK5ZOkRXtWz%2Fbmqkh3xcx6T7vXiwrjJjWpeOMTq5A12lxCnUQE8alXOUJTv2GK10xcuErslbymNCNhWJx6%2FZj32pQl8qfbiO%2FxCp2gu3cMB1GT%2FQYXu6zkmoqFbSrMII5Vs5USoCkYFBrJeM9g62RXx1ldeFpf1loSma60TihKSH2bem1mB%2FSC6QKDklfoEiwfrEtkE%2FIGv3OkM5z8TbS7dmkB3JEdstpsclP%2FJQr7fKGwQQz%2FZilZ9ySwn%2BFYqJMcmP0Q%2B%2FI5ylTCHyUH87%2BKooh%2Bi8%2BoWZ4mQxH%2BECC7JOVnJqwcf8a3JqwYQDkaifW98XXlRRydpIiK0Godgdsal0HwIH1eXPXyQz503D8C%2BsktkCH69R8zjgDi4SjRCXTJFeArQ9mZInK5vgAx3lB1LEU88uJPm1etOT1yifBtANnOabUunuNhvFimJmAux7G1rBE9hXj5g66AncS5PyV6W8%2Bu%2FuCPiGbIlDMGshG%2FB84SEdY7gcFowY%2BEeURSI0zGAjOr9emYybMsca9dNhU9Xfip8prF6YBM3Xvt9HkOV1spUCWnmZFE0q%2FZisS0U9GFBaIGVFe9x29GVmO6LOFbSB%2BWns9oGoTW7xeKvGm2ztsJ6bgdmTS0ZxL5GwZ%2FFvG3HQ%2FoF%2Fj6rqOCwrv61w56cnP2wNXxGgjEPN1vo0cE3SQPvxzKuVw0vwvlOhzn3oEc%2FKECIRi1dUn7i1IcCK3dUoafVH83ZCiXu%2BaM1o1tW4wRCC0F6l3kON8T3z0SvyaLVLLatyiTEYFgAS5h5FerxETE%2B9KBZvAJ2KrZiTx6TceOOTnABifj863xNLT4jyFywvwkBmGpwL3FVkZ3XEVRni248VfykOZZRnnJke6EM4c0r4rFCaVc1DDHSENcAJHqoK8AdlllF4o%2Bc9mFTL5iCVwIgmSojAyrFrv3LkykIjNc%2FIoF6rYsw%2B0t9%2Fj6iFn8MdqPxkhQrHmo1Oazfch1HBh%2FQyMxXudv44pRjqqZ1JijZtQo77LNvxFzg1ttNeUK3MBu8I%2FgyQPFZWZ14cuiABMXj0RLg9sEtqruhbpcpcjqZ%2F9FjW%2FsoxQZwLoyJMpxXTSXN2Jp9DkJQCf%2Fbk6p4K%2BV2pXKq4ehdWpvyGHrc2ry%2BT6YmCbp%2BvEAYueypIrDiv1ecr4OgePIL4cB4Lcdt; ko_token_added=true; utag_main_changed_as_id=0199082f5b4e00132b2a437b604205075003e06d009dc; utag_main_dcsyncran=; utag_main_last_logged_in_hashed_email=2746b18c4175d59f28bfa628c1fc112bad1a83dbe07a9cca9204f0f9acf1468a; utag_main_v_id=0199082f5b4e00132b2a437b604205075003e06d009dc; utag_main_dc_event=29%3Bexp-session; _uetsid=11c38d4086d911f0a987617dede2cee4; _uetvid=092a29a02af511f09172793d952c52b6|2va5av|1747613167687|1|1|bat.bing.com/p/conversions/c/i; ab.storage.deviceId.7a07460e-32c2-420e-979b-3ad707d14b33=%7B%22g%22%3A%22e6bfdcf3-f7aa-b362-906c-3302a34bf989%22%2C%22c%22%3A1746589235226%2C%22l%22%3A1756778945840%7D; ab.storage.userId.7a07460e-32c2-420e-979b-3ad707d14b33=%7B%22g%22%3A%22abfd68626d659451d7e5b25354c0f734d39b25ad74ca3cee77b311d432cc9a27%22%2C%22c%22%3A1756778945839%2C%22l%22%3A1756778945841%7D; ab.storage.sessionId.7a07460e-32c2-420e-979b-3ad707d14b33=%7B%22g%22%3A%2271d192ec-370e-f6b7-6301-8e4bc84fa338%22%2C%22e%22%3A1756780745842%2C%22c%22%3A1756778945839%2C%22l%22%3A1756778945842%7D; _scid_r=C73cIVPJVj1wdGUkNHA-niFCmK8I21N0_2hN5A; ttcsid=1756778130764::zfZ1_uieP8HFanlRKFXE.12.1756778945957; _clsk=1o5u3xb%5E1756778946444%5E12%5E0%5Ev.clarity.ms%2Fcollect; ttcsid_C40FTM1U9OSI9F1LJC9G=1756778130763::GeAOWj5LWvNk3UJHkt5C.11.1756778960753; _ga_CXF7KQVQ46=GS2.1.s1756777533$o12$g1$t1756778960$j9$l0$h0; utag_main__pn=17%3Bexp-session; utag_main__se=46%3Bexp-session; utag_main__st=1756780761060%3Bexp-session; nlbi_382817_2147483392=R6l5PdGXmn3mgboNw6DYdgAAAAC35+zDtzZ8/yLyJWXETRln"
+					}
+				],
+				"body": {
+					"mode": "graphql",
+					"graphql": {
+						"query": "query GetWishListItems($countryCode: Country!) {\n  me {\n    defaultShoppingList {\n      id\n      version\n      key\n      isShared\n      lineItems {\n        id\n        name(locale: \"en-AU\")\n        quantity\n        variant {\n          id\n          sku\n          imageKey\n          bynderImageKey\n          shoppingListPrice(input: {country: $countryCode}) {\n            centAmount\n            __typename\n          }\n          attributes {\n            name\n            value\n            __typename\n          }\n          __typename\n        }\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n",
+						"variables": "{\n  \"countryCode\": \"AU\"\n}"
+					}
+				},
+				"url": {
+					"raw": "https://api.kmart.com.au/gateway/graphql",
+					"protocol": "https",
+					"host": [
+						"api",
+						"kmart",
+						"com",
+						"au"
+					],
+					"path": [
+						"gateway",
+						"graphql"
+					]
+				},
+				"description": "Generated from cURL: curl 'https://api.kmart.com.au/gateway/graphql' \\\n  -H 'accept: */*' \\\n  -H 'accept-language: en-GB,en-US;q=0.9,en;q=0.8' \\\n  -H 'authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ikl1V3loc2lWN3pEalhENXEyWEhmZyJ9.eyJodHRwczovL2ttYXJ0LmNvbS5hdS8iOnsiY3RfdXVpZCI6ImFiNDg1N2VmLTNkYWQtNGNkZC05ZjAwLWU5ZjE5OGYxMjg5OSIsIm9uZXBhc3NfdXVpZCI6ImFiZjYzODQzLTgxMGQtNGE0ZC1iNzEzLWQxOTEzZjY4OWVjMyIsInN0cmF0ZWd5IjoiQ29tbWVyY2V0b29scy1EQiJ9LCJ1c2VyX2lkIjoiYXV0aDB8NjQ3ZDU0NzVkOTQ5NmRkZmZkZGM4MjgwIiwiaXNzIjoiaHR0cHM6Ly9hdXRoLmttYXJ0LmNvbS5hdS8iLCJzdWIiOiJhdXRoMHw2NDdkNTQ3NWQ5NDk2ZGRmZmRkYzgyODAiLCJhdWQiOlsiaHR0cHM6Ly9hcGkua21hcnQuY29tLmF1L2dhdGV3YXkvZ3JhcGhxbCIsImh0dHBzOi8va21hcnRhdS1vbmxpbmUuYXUuYXV0aDAuY29tL3VzZXJpbmZvIl0sImlhdCI6MTc1Njc3ODk0MywiZXhwIjoxNzU2Nzc5ODQzLCJzY29wZSI6Im9wZW5pZCBwcm9maWxlIGVtYWlsIG9mZmxpbmVfYWNjZXNzIiwiYXpwIjoid2YwRHo3bEt1aEtOMzE5c2k3dlJFMERpUHlFeUU1SHkifQ.DJBfoOMh6vFKZfCMFC0rhKcOCZirlh9CURFEAsUnxjS2uB53Oj_FZ1WIQrlrc_8iM1iTU2My3jpKf_kjdiBzljaJW5BGW8x0-z4r5JraTRHSsgONMN_XQSaLv37KFRoeLzzcu28EVBzvNeVWB440KXgGmSJfGR3JfO2rVQ8EGCb73PcHWUiqym7LNWF1TvF_ZXaYCBsRi2TIYHmFlYK5gIqwpPjueFaTkj1inp_xFduyZcuQeBZ5JJISgMoeRhgr0Zlw9vlEhIAraLsuwyECw2IaORXiqglGRppGsPn1iXbApiy7_oP4fSV3iXxIcEfYkAhT-6qqHQTnSromNkpKEg' \\\n  -H 'content-type: application/json' \\\n  -b 'tfc-l=%7B%22k%22%3A%7B%22v%22%3A%22cks2v9cknci9ohes13hkj1404u%22%2C%22e%22%3A1818377925%7D%7D; visid_incap_2663987=Lq9eqs3sRvGu/9JHwZlil8GgrmgAAAAAQUIPAAAAAAAcnKWHAiupRunkkUbyj+g5; _gcl_au=1.1.1852800734.1756274882; utag_main_vapi_domain=kmart.com.au; visid_incap_382817=wuTPWWQ6QsGnQY8+7YCPbcGmrmgAAAAAQUIPAAAAAADF71mEVktQOiC60IcV2fE5; cgt=6; visid_incap_2524447=0VgcMCDlTDm7bFWp2Ii6/s80r2gAAAAAQUIPAAAAAACG+MjwOeSra5EqHnGpu7vD; _pin_unauth=dWlkPU9URTFNV0UzWW1ZdE1HUTRPUzAwWWpjMkxXRTFPVFl0TmpaaE5qbG1NRFZoTnpRNQ; _tt_enable_cookie=1; _ttp=01K3P6CM5Y6G18EZCV1DFKSZD3_.tt.2; _fbp=fb.2.1756312785731.162049412447674056; _scid=F73cIVPJVj1wdGUkNHA-niFCmK8I21N0_2hMpQ; _ScCbts=%5B%22601%3Bchrome.2%3A2%3A5%22%2C%22603%3Bchrome.2%3A2%3A5%22%5D; _sctr=1%7C1756303200000; optimizelySession=0; visid_incap_2632254=C3LQPJLuQi2aLQRTUst2iSGgr2gAAAAAQUIPAAAAAADdW3fNdIe+l5jIN4phHr1X; client_visitor_id=0198ea23f7d2001dd738721731db0507500e206d009dc; _gid=GA1.3.2077233320.1756701982; visid_incap_2663902=ltTf9LaIRcSi7DmAaj+FTR4ltWgAAAAAQUIPAAAAAAD399KdwQOpotk7/dsDtUNH; __adv_opt_ko_=true; nlbi_2524447=3aR0TV3mMHTAFpOIjNNIKAAAAABOa3qKZjVGJJ5kb2GAHlJb; tealium_visitor_id=0198ea23f7d2001dd738721731db0507500e206d009dc; nlbi_382817=c08raYlpWCDCYk8fw6DYdgAAAADozgnariRedqqjXX9ySrUY; nlbi_382817_2615371=+vTTKCPFkzTrsJQzw6DYdgAAAADVoPTMeeQAjc1/GWQBsiG4; _clck=1svfeh9%5E2%5Efyz%5E0%5E2065; incap_ses_777_382817=K+gXMIz4RzpoaQImd3XICnxKtmgAAAAAji3+7B5q4ALsZE6GukPYXA==; incap_ses_781_2632254=xj9UC1AIMWGZE8G0aqvWCo9OtmgAAAAAZFRsWinn5uHDz76lht35eA==; nlbi_2632254_2614284=uHKHSUzkY2nPV4UzpJKu7wAAAAA0rggNRMnchZZk4L9Bqyuh; utag_main__sn=13; utag_main_ses_id=1756778127898%3Bexp-session; utag_main_db_mvkoh1nn=true%3Bexp-session; utag_main_tag_session_30=1%3Bexp-session; utag_main__ss=0%3Bexp-session; utag_main_dc_visit=12; utag_main_dc_region=ap-southeast-2%3Bexp-session; nlbi_2632254_2573261=Q9MhTLqIhGiYVK1+pJKu7wAAAADLeCzKWL4eqjWnTXyF9vz9; nlbi_2632254=O4NIOicVykIE5oAZpJKu7wAAAABG2mhKbSnCVzzXD82KS7MT; nlbi_2632254_2564416=8GC+VYwp6he4gK4xpJKu7wAAAACNvhg0C0WVZ5J8gYXf5+XI; nlbi_2663902=kwMOXLcwR0pbcVivQfDYBQAAAAA1Bz3O314Mbiasko6WOcKP; incap_ses_781_2663902=z92bX7qtxVbYM8G0aqvWCp9OtmgAAAAAkh1iwBhwWOoXw18oU3VTAw==; nlbi_2663902_2147483392=A/enJ0dGEAkC+HTUQfDYBQAAAABooZxSu/31AB8lA2qEw4EC; incap_ses_781_382817=lhOXV5rxWHeTOce0aqvWCkFRtmgAAAAAQJ2V+kx9wa0J64fJodSs3w==; _ga=GA1.1.311133609.1756274882; incap_ses_781_2524447=vAAtcYd/Yw81PMe0aqvWCkNRtmgAAAAAQNrurmhkuanLzpGFxEgySQ==; _abck=4353708A18A702A39DDD23A8ABFAFD14~-1~YAAQDeg/Fx1x4eyYAQAA3VMuCA5ovKBJpU4w9+Z5Iuwk1nQ9blog5htwgwWM/1grRUeEtwtgtGjnusCFcY4m81jK5tWu3g1FsEWk0Tp2HVcSUvs2AG45LGPvYzjGrx8nzb/DC/GubLU0XgpE/IZ5tWqpqqHRCYZm6SwIc2nYjOMuOVplgLcQMeo1rYc7NeJYG64P9mmybH2t/cWXVqbTfC2lxjDeR3i6ibd1U6IC/XKBUpzGOkizuiJ1H5zMd5lhzb0dJitEvl5VFIh0xk7r/2DiMgoJ4q+vyDsWtP9HseVnA2xjVWvJxyt1NYry4yxCwEdJZXsQ0IypqT+NL7JZ8v1Trl1qbvT/GXt8faZzN9UyPL6hxvlUGdM82NNS0q2pRFO+li8MVoqKP9iXmEGNALj5LMsZKnzK7T7A7vuUzKMl9v7nIbO8cUQ+7rFtHw==~-1~-1~-1~~; nlbi_2632254_2147483392=r4K6Xe47bEdqLJItpJKu7wAAAACrsSB6SdKjol0NN0BJtq69; _ga_V0Y9TKKHP3=GS2.1.s1756778129$o8$g1$t1756778880$j56$l0$h0; nlbi_2663987=4OMSU5O1TxH4zsBcI9WWqgAAAADQKSztp64OhoUHaECyA0gJ; incap_ses_781_2663987=ZIRfcaTTEE08DMi0aqvWCp1RtmgAAAAAZiCsuUjvtfVRMTQtn6l2RA==; incap_ses_777_2663987=B4JJIsGt2hzRKhMmd3XICp5RtmgAAAAA1TbRv1+VSlWZLiHXVNJc9g==; nlbi_2663987_2147483392=+OnNBeP+Xl7mDSCsI9WWqgAAAACC9dlp8O7AiUQPikDoNgDT; reese84=3:HCeRUegB3nDcsxDMsS1+ig==:S4XHyzQdrRB2aH7v25TDfwyAjP+SPTP5RwbznOSfe/tAutqudwnO36u0iT94XBw0ZRZ/mlVklIspWW07XziE6EtKETaC8dxhljOcNPk1Dvg/+373TZqFVdyKFDx61Hzl2EKi5LLN5l+g8Bi91wkNlr96mKkhiFOds+umCnAcpQWwcVWNyTA/ec2J8W4mNB0vLG3zss5buVXyBi+FTdsfKMfmd21+nlxjqKTC0CyjbVpLMOdq0eHoJQDm/aMW+VndQIqu/WVBUZQG8SQ+8txa60Ot9XAPazPfoPvSOG0jxJ1kugxl14jr2LXsvcvIxzJ4dbAd3fT2lngEHHOWZg8leGKh+19nNqUVc/CkS8Xjor+glAphRKRJfaH75VxxmoCgLmHVQzl9pMarBB6XjF6OVnyN8kEjE0nsUthoyxge88iX5bau7m5NiOrBSbpoARiAEalXIxNumTTCLtXhaw3KvA==:Sxi/RMAiDJyrq+5SBmOhn7rXKgbJrl0uzSGPfjKk86I=; ko_token=FFw8hKCWMWY273QCAT6C%2F5Umqmtp%2FxGXvyceOBg2UdTFWzJsjgPSz6KQ17hLKLd1kcwhFmK5ZOkRXtWz%2Fbmqkh3xcx6T7vXiwrjJjWpeOMTq5A12lxCnUQE8alXOUJTv2GK10xcuErslbymNCNhWJx6%2FZj32pQl8qfbiO%2FxCp2gu3cMB1GT%2FQYXu6zkmoqFbSrMII5Vs5USoCkYFBrJeM9g62RXx1ldeFpf1loSma60TihKSH2bem1mB%2FSC6QKDklfoEiwfrEtkE%2FIGv3OkM5z8TbS7dmkB3JEdstpsclP%2FJQr7fKGwQQz%2FZilZ9ySwn%2BFYqJMcmP0Q%2B%2FI5ylTCHyUH87%2BKooh%2Bi8%2BoWZ4mQxH%2BECC7JOVnJqwcf8a3JqwYQDkaifW98XXlRRydpIiK0Godgdsal0HwIH1eXPXyQz503D8C%2BsktkCH69R8zjgDi4SjRCXTJFeArQ9mZInK5vgAx3lB1LEU88uJPm1etOT1yifBtANnOabUunuNhvFimJmAux7G1rBE9hXj5g66AncS5PyV6W8%2Bu%2FuCPiGbIlDMGshG%2FB84SEdY7gcFowY%2BEeURSI0zGAjOr9emYybMsca9dNhU9Xfip8prF6YBM3Xvt9HkOV1spUCWnmZFE0q%2FZisS0U9GFBaIGVFe9x29GVmO6LOFbSB%2BWns9oGoTW7xeKvGm2ztsJ6bgdmTS0ZxL5GwZ%2FFvG3HQ%2FoF%2Fj6rqOCwrv61w56cnP2wNXxGgjEPN1vo0cE3SQPvxzKuVw0vwvlOhzn3oEc%2FKECIRi1dUn7i1IcCK3dUoafVH83ZCiXu%2BaM1o1tW4wRCC0F6l3kON8T3z0SvyaLVLLatyiTEYFgAS5h5FerxETE%2B9KBZvAJ2KrZiTx6TceOOTnABifj863xNLT4jyFywvwkBmGpwL3FVkZ3XEVRni248VfykOZZRnnJke6EM4c0r4rFCaVc1DDHSENcAJHqoK8AdlllF4o%2Bc9mFTL5iCVwIgmSojAyrFrv3LkykIjNc%2FIoF6rYsw%2B0t9%2Fj6iFn8MdqPxkhQrHmo1Oazfch1HBh%2FQyMxXudv44pRjqqZ1JijZtQo77LNvxFzg1ttNeUK3MBu8I%2FgyQPFZWZ14cuiABMXj0RLg9sEtqruhbpcpcjqZ%2F9FjW%2FsoxQZwLoyJMpxXTSXN2Jp9DkJQCf%2Fbk6p4K%2BV2pXKq4ehdWpvyGHrc2ry%2BT6YmCbp%2BvEAYueypIrDiv1ecr4OgePIL4cB4Lcdt; ko_token_added=true; utag_main_changed_as_id=0199082f5b4e00132b2a437b604205075003e06d009dc; utag_main_dcsyncran=; utag_main_last_logged_in_hashed_email=2746b18c4175d59f28bfa628c1fc112bad1a83dbe07a9cca9204f0f9acf1468a; utag_main_v_id=0199082f5b4e00132b2a437b604205075003e06d009dc; utag_main_dc_event=29%3Bexp-session; _uetsid=11c38d4086d911f0a987617dede2cee4; _uetvid=092a29a02af511f09172793d952c52b6|2va5av|1747613167687|1|1|bat.bing.com/p/conversions/c/i; ab.storage.deviceId.7a07460e-32c2-420e-979b-3ad707d14b33=%7B%22g%22%3A%22e6bfdcf3-f7aa-b362-906c-3302a34bf989%22%2C%22c%22%3A1746589235226%2C%22l%22%3A1756778945840%7D; ab.storage.userId.7a07460e-32c2-420e-979b-3ad707d14b33=%7B%22g%22%3A%22abfd68626d659451d7e5b25354c0f734d39b25ad74ca3cee77b311d432cc9a27%22%2C%22c%22%3A1756778945839%2C%22l%22%3A1756778945841%7D; ab.storage.sessionId.7a07460e-32c2-420e-979b-3ad707d14b33=%7B%22g%22%3A%2271d192ec-370e-f6b7-6301-8e4bc84fa338%22%2C%22e%22%3A1756780745842%2C%22c%22%3A1756778945839%2C%22l%22%3A1756778945842%7D; _scid_r=C73cIVPJVj1wdGUkNHA-niFCmK8I21N0_2hN5A; ttcsid=1756778130764::zfZ1_uieP8HFanlRKFXE.12.1756778945957; _clsk=1o5u3xb%5E1756778946444%5E12%5E0%5Ev.clarity.ms%2Fcollect; ttcsid_C40FTM1U9OSI9F1LJC9G=1756778130763::GeAOWj5LWvNk3UJHkt5C.11.1756778960753; _ga_CXF7KQVQ46=GS2.1.s1756777533$o12$g1$t1756778960$j9$l0$h0; utag_main__pn=17%3Bexp-session; utag_main__se=46%3Bexp-session; utag_main__st=1756780761060%3Bexp-session; nlbi_382817_2147483392=R6l5PdGXmn3mgboNw6DYdgAAAAC35+zDtzZ8/yLyJWXETRln' \\\n  -H 'newrelic: eyJ2IjpbMCwxXSwiZCI6eyJ0eSI6IkJyb3dzZXIiLCJhYyI6IjEwNjUxNTEiLCJhcCI6IjE4MzQ3Nzc5ODEiLCJpZCI6Ijg1YmQyNTk5NzYzNjhjN2MiLCJ0ciI6IjUwOGUxMmJlYTI4NDEyMzI4N2QwMjVjNjYxNGNhYjE1IiwidGkiOjE3NTY3Nzg5NjE4ODgsInRrIjoiMTY0NzQ1MSJ9fQ==' \\\n  -H 'origin: https://www.kmart.com.au' \\\n  -H 'priority: u=1, i' \\\n  -H 'referer: https://www.kmart.com.au/' \\\n  -H 'sec-ch-ua: \"Not;A=Brand\";v=\"99\", \"Google Chrome\";v=\"139\", \"Chromium\";v=\"139\"' \\\n  -H 'sec-ch-ua-mobile: ?0' \\\n  -H 'sec-ch-ua-platform: \"macOS\"' \\\n  -H 'sec-fetch-dest: empty' \\\n  -H 'sec-fetch-mode: cors' \\\n  -H 'sec-fetch-site: same-site' \\\n  -H 'traceparent: 00-508e12bea284123287d025c6614cab15-85bd259976368c7c-01' \\\n  -H 'tracestate: 1647451@nr=0-1-1065151-1834777981-85bd259976368c7c----1756778961888' \\\n  -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36' \\\n  --data-raw $'{\"operationName\":\"GetWishListItems\",\"variables\":{\"countryCode\":\"AU\"},\"query\":\"query GetWishListItems($countryCode: Country\\u0021) {\\\\n  me {\\\\n    defaultShoppingList {\\\\n      id\\\\n      version\\\\n      key\\\\n      isShared\\\\n      lineItems {\\\\n        id\\\\n        name(locale: \\\\\"en-AU\\\\\")\\\\n        quantity\\\\n        variant {\\\\n          id\\\\n          sku\\\\n          imageKey\\\\n          bynderImageKey\\\\n          shoppingListPrice(input: {country: $countryCode}) {\\\\n            centAmount\\\\n            __typename\\\\n          }\\\\n          attributes {\\\\n            name\\\\n            value\\\\n            __typename\\\\n          }\\\\n          __typename\\\\n        }\\\\n        __typename\\\\n      }\\\\n      __typename\\\\n    }\\\\n    __typename\\\\n  }\\\\n}\\\\n\"}'"
+			},
+			"response": []
+		},
+		{
+			"name": "https://api.kmart.com.au/gateway/graphql",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "accept",
+						"value": "*/*"
+					},
+					{
+						"key": "accept-language",
+						"value": "en-GB,en-US;q=0.9,en;q=0.8"
+					},
+					{
+						"key": "authorization",
+						"value": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ikl1V3loc2lWN3pEalhENXEyWEhmZyJ9.eyJodHRwczovL2ttYXJ0LmNvbS5hdS8iOnsiY3RfdXVpZCI6ImFiNDg1N2VmLTNkYWQtNGNkZC05ZjAwLWU5ZjE5OGYxMjg5OSIsIm9uZXBhc3NfdXVpZCI6ImFiZjYzODQzLTgxMGQtNGE0ZC1iNzEzLWQxOTEzZjY4OWVjMyIsInN0cmF0ZWd5IjoiQ29tbWVyY2V0b29scy1EQiJ9LCJ1c2VyX2lkIjoiYXV0aDB8NjQ3ZDU0NzVkOTQ5NmRkZmZkZGM4MjgwIiwiaXNzIjoiaHR0cHM6Ly9hdXRoLmttYXJ0LmNvbS5hdS8iLCJzdWIiOiJhdXRoMHw2NDdkNTQ3NWQ5NDk2ZGRmZmRkYzgyODAiLCJhdWQiOlsiaHR0cHM6Ly9hcGkua21hcnQuY29tLmF1L2dhdGV3YXkvZ3JhcGhxbCIsImh0dHBzOi8va21hcnRhdS1vbmxpbmUuYXUuYXV0aDAuY29tL3VzZXJpbmZvIl0sImlhdCI6MTc1Njc3ODk0MywiZXhwIjoxNzU2Nzc5ODQzLCJzY29wZSI6Im9wZW5pZCBwcm9maWxlIGVtYWlsIG9mZmxpbmVfYWNjZXNzIiwiYXpwIjoid2YwRHo3bEt1aEtOMzE5c2k3dlJFMERpUHlFeUU1SHkifQ.DJBfoOMh6vFKZfCMFC0rhKcOCZirlh9CURFEAsUnxjS2uB53Oj_FZ1WIQrlrc_8iM1iTU2My3jpKf_kjdiBzljaJW5BGW8x0-z4r5JraTRHSsgONMN_XQSaLv37KFRoeLzzcu28EVBzvNeVWB440KXgGmSJfGR3JfO2rVQ8EGCb73PcHWUiqym7LNWF1TvF_ZXaYCBsRi2TIYHmFlYK5gIqwpPjueFaTkj1inp_xFduyZcuQeBZ5JJISgMoeRhgr0Zlw9vlEhIAraLsuwyECw2IaORXiqglGRppGsPn1iXbApiy7_oP4fSV3iXxIcEfYkAhT-6qqHQTnSromNkpKEg"
+					},
+					{
+						"key": "content-type",
+						"value": "application/json"
+					},
+					{
+						"key": "newrelic",
+						"value": "eyJ2IjpbMCwxXSwiZCI6eyJ0eSI6IkJyb3dzZXIiLCJhYyI6IjEwNjUxNTEiLCJhcCI6IjE1NjQ5NTAyMDAiLCJpZCI6IjVhYzA0MjAyMGViMmFlOTciLCJ0ciI6IjYwZjBjZjljZGJlOWUyNmM1ZDQxMmIyOGFkMDFmYjM1IiwidGkiOjE3NTY3NzkyOTc5MjEsInRrIjoiMTY0NzQ1MSJ9fQ=="
+					},
+					{
+						"key": "origin",
+						"value": "https://www.kmart.com.au"
+					},
+					{
+						"key": "priority",
+						"value": "u=1, i"
+					},
+					{
+						"key": "referer",
+						"value": "https://www.kmart.com.au/"
+					},
+					{
+						"key": "sec-ch-ua",
+						"value": "\"Not;A=Brand\";v=\"99\", \"Google Chrome\";v=\"139\", \"Chromium\";v=\"139\""
+					},
+					{
+						"key": "sec-ch-ua-mobile",
+						"value": "?0"
+					},
+					{
+						"key": "sec-ch-ua-platform",
+						"value": "\"macOS\""
+					},
+					{
+						"key": "sec-fetch-dest",
+						"value": "empty"
+					},
+					{
+						"key": "sec-fetch-mode",
+						"value": "cors"
+					},
+					{
+						"key": "sec-fetch-site",
+						"value": "same-site"
+					},
+					{
+						"key": "traceparent",
+						"value": "00-60f0cf9cdbe9e26c5d412b28ad01fb35-5ac042020eb2ae97-01"
+					},
+					{
+						"key": "tracestate",
+						"value": "1647451@nr=0-1-1065151-1564950200-5ac042020eb2ae97----1756779297921"
+					},
+					{
+						"key": "user-agent",
+						"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"
+					},
+					{
+						"key": "Cookie",
+						"value": "tfc-l=%7B%22k%22%3A%7B%22v%22%3A%22cks2v9cknci9ohes13hkj1404u%22%2C%22e%22%3A1818377925%7D%7D; visid_incap_2663987=Lq9eqs3sRvGu/9JHwZlil8GgrmgAAAAAQUIPAAAAAAAcnKWHAiupRunkkUbyj+g5; _gcl_au=1.1.1852800734.1756274882; utag_main_vapi_domain=kmart.com.au; visid_incap_382817=wuTPWWQ6QsGnQY8+7YCPbcGmrmgAAAAAQUIPAAAAAADF71mEVktQOiC60IcV2fE5; cgt=6; visid_incap_2524447=0VgcMCDlTDm7bFWp2Ii6/s80r2gAAAAAQUIPAAAAAACG+MjwOeSra5EqHnGpu7vD; _pin_unauth=dWlkPU9URTFNV0UzWW1ZdE1HUTRPUzAwWWpjMkxXRTFPVFl0TmpaaE5qbG1NRFZoTnpRNQ; _tt_enable_cookie=1; _ttp=01K3P6CM5Y6G18EZCV1DFKSZD3_.tt.2; _fbp=fb.2.1756312785731.162049412447674056; _scid=F73cIVPJVj1wdGUkNHA-niFCmK8I21N0_2hMpQ; _ScCbts=%5B%22601%3Bchrome.2%3A2%3A5%22%2C%22603%3Bchrome.2%3A2%3A5%22%5D; _sctr=1%7C1756303200000; optimizelySession=0; visid_incap_2632254=C3LQPJLuQi2aLQRTUst2iSGgr2gAAAAAQUIPAAAAAADdW3fNdIe+l5jIN4phHr1X; client_visitor_id=0198ea23f7d2001dd738721731db0507500e206d009dc; _gid=GA1.3.2077233320.1756701982; visid_incap_2663902=ltTf9LaIRcSi7DmAaj+FTR4ltWgAAAAAQUIPAAAAAAD399KdwQOpotk7/dsDtUNH; __adv_opt_ko_=true; nlbi_2524447=3aR0TV3mMHTAFpOIjNNIKAAAAABOa3qKZjVGJJ5kb2GAHlJb; nlbi_382817=c08raYlpWCDCYk8fw6DYdgAAAADozgnariRedqqjXX9ySrUY; nlbi_382817_2615371=+vTTKCPFkzTrsJQzw6DYdgAAAADVoPTMeeQAjc1/GWQBsiG4; _clck=1svfeh9%5E2%5Efyz%5E0%5E2065; incap_ses_781_2632254=xj9UC1AIMWGZE8G0aqvWCo9OtmgAAAAAZFRsWinn5uHDz76lht35eA==; nlbi_2632254_2614284=uHKHSUzkY2nPV4UzpJKu7wAAAAA0rggNRMnchZZk4L9Bqyuh; utag_main__sn=13; utag_main_ses_id=1756778127898%3Bexp-session; utag_main_db_mvkoh1nn=true%3Bexp-session; utag_main_tag_session_30=1%3Bexp-session; utag_main__ss=0%3Bexp-session; utag_main_dc_visit=12; utag_main_dc_region=ap-southeast-2%3Bexp-session; nlbi_2632254_2573261=Q9MhTLqIhGiYVK1+pJKu7wAAAADLeCzKWL4eqjWnTXyF9vz9; nlbi_2632254=O4NIOicVykIE5oAZpJKu7wAAAABG2mhKbSnCVzzXD82KS7MT; nlbi_2632254_2564416=8GC+VYwp6he4gK4xpJKu7wAAAACNvhg0C0WVZ5J8gYXf5+XI; nlbi_2663902=kwMOXLcwR0pbcVivQfDYBQAAAAA1Bz3O314Mbiasko6WOcKP; incap_ses_781_2663902=z92bX7qtxVbYM8G0aqvWCp9OtmgAAAAAkh1iwBhwWOoXw18oU3VTAw==; nlbi_2663902_2147483392=A/enJ0dGEAkC+HTUQfDYBQAAAABooZxSu/31AB8lA2qEw4EC; incap_ses_781_382817=lhOXV5rxWHeTOce0aqvWCkFRtmgAAAAAQJ2V+kx9wa0J64fJodSs3w==; _ga=GA1.1.311133609.1756274882; incap_ses_781_2524447=vAAtcYd/Yw81PMe0aqvWCkNRtmgAAAAAQNrurmhkuanLzpGFxEgySQ==; _abck=4353708A18A702A39DDD23A8ABFAFD14~-1~YAAQDeg/Fx1x4eyYAQAA3VMuCA5ovKBJpU4w9+Z5Iuwk1nQ9blog5htwgwWM/1grRUeEtwtgtGjnusCFcY4m81jK5tWu3g1FsEWk0Tp2HVcSUvs2AG45LGPvYzjGrx8nzb/DC/GubLU0XgpE/IZ5tWqpqqHRCYZm6SwIc2nYjOMuOVplgLcQMeo1rYc7NeJYG64P9mmybH2t/cWXVqbTfC2lxjDeR3i6ibd1U6IC/XKBUpzGOkizuiJ1H5zMd5lhzb0dJitEvl5VFIh0xk7r/2DiMgoJ4q+vyDsWtP9HseVnA2xjVWvJxyt1NYry4yxCwEdJZXsQ0IypqT+NL7JZ8v1Trl1qbvT/GXt8faZzN9UyPL6hxvlUGdM82NNS0q2pRFO+li8MVoqKP9iXmEGNALj5LMsZKnzK7T7A7vuUzKMl9v7nIbO8cUQ+7rFtHw==~-1~-1~-1~~; nlbi_2632254_2147483392=r4K6Xe47bEdqLJItpJKu7wAAAACrsSB6SdKjol0NN0BJtq69; _ga_V0Y9TKKHP3=GS2.1.s1756778129$o8$g1$t1756778880$j56$l0$h0; nlbi_2663987=4OMSU5O1TxH4zsBcI9WWqgAAAADQKSztp64OhoUHaECyA0gJ; incap_ses_781_2663987=ZIRfcaTTEE08DMi0aqvWCp1RtmgAAAAAZiCsuUjvtfVRMTQtn6l2RA==; incap_ses_777_2663987=B4JJIsGt2hzRKhMmd3XICp5RtmgAAAAA1TbRv1+VSlWZLiHXVNJc9g==; nlbi_2663987_2147483392=+OnNBeP+Xl7mDSCsI9WWqgAAAACC9dlp8O7AiUQPikDoNgDT; reese84=3:HCeRUegB3nDcsxDMsS1+ig==:S4XHyzQdrRB2aH7v25TDfwyAjP+SPTP5RwbznOSfe/tAutqudwnO36u0iT94XBw0ZRZ/mlVklIspWW07XziE6EtKETaC8dxhljOcNPk1Dvg/+373TZqFVdyKFDx61Hzl2EKi5LLN5l+g8Bi91wkNlr96mKkhiFOds+umCnAcpQWwcVWNyTA/ec2J8W4mNB0vLG3zss5buVXyBi+FTdsfKMfmd21+nlxjqKTC0CyjbVpLMOdq0eHoJQDm/aMW+VndQIqu/WVBUZQG8SQ+8txa60Ot9XAPazPfoPvSOG0jxJ1kugxl14jr2LXsvcvIxzJ4dbAd3fT2lngEHHOWZg8leGKh+19nNqUVc/CkS8Xjor+glAphRKRJfaH75VxxmoCgLmHVQzl9pMarBB6XjF6OVnyN8kEjE0nsUthoyxge88iX5bau7m5NiOrBSbpoARiAEalXIxNumTTCLtXhaw3KvA==:Sxi/RMAiDJyrq+5SBmOhn7rXKgbJrl0uzSGPfjKk86I=; ko_token=FFw8hKCWMWY273QCAT6C%2F5Umqmtp%2FxGXvyceOBg2UdTFWzJsjgPSz6KQ17hLKLd1kcwhFmK5ZOkRXtWz%2Fbmqkh3xcx6T7vXiwrjJjWpeOMTq5A12lxCnUQE8alXOUJTv2GK10xcuErslbymNCNhWJx6%2FZj32pQl8qfbiO%2FxCp2gu3cMB1GT%2FQYXu6zkmoqFbSrMII5Vs5USoCkYFBrJeM9g62RXx1ldeFpf1loSma60TihKSH2bem1mB%2FSC6QKDklfoEiwfrEtkE%2FIGv3OkM5z8TbS7dmkB3JEdstpsclP%2FJQr7fKGwQQz%2FZilZ9ySwn%2BFYqJMcmP0Q%2B%2FI5ylTCHyUH87%2BKooh%2Bi8%2BoWZ4mQxH%2BECC7JOVnJqwcf8a3JqwYQDkaifW98XXlRRydpIiK0Godgdsal0HwIH1eXPXyQz503D8C%2BsktkCH69R8zjgDi4SjRCXTJFeArQ9mZInK5vgAx3lB1LEU88uJPm1etOT1yifBtANnOabUunuNhvFimJmAux7G1rBE9hXj5g66AncS5PyV6W8%2Bu%2FuCPiGbIlDMGshG%2FB84SEdY7gcFowY%2BEeURSI0zGAjOr9emYybMsca9dNhU9Xfip8prF6YBM3Xvt9HkOV1spUCWnmZFE0q%2FZisS0U9GFBaIGVFe9x29GVmO6LOFbSB%2BWns9oGoTW7xeKvGm2ztsJ6bgdmTS0ZxL5GwZ%2FFvG3HQ%2FoF%2Fj6rqOCwrv61w56cnP2wNXxGgjEPN1vo0cE3SQPvxzKuVw0vwvlOhzn3oEc%2FKECIRi1dUn7i1IcCK3dUoafVH83ZCiXu%2BaM1o1tW4wRCC0F6l3kON8T3z0SvyaLVLLatyiTEYFgAS5h5FerxETE%2B9KBZvAJ2KrZiTx6TceOOTnABifj863xNLT4jyFywvwkBmGpwL3FVkZ3XEVRni248VfykOZZRnnJke6EM4c0r4rFCaVc1DDHSENcAJHqoK8AdlllF4o%2Bc9mFTL5iCVwIgmSojAyrFrv3LkykIjNc%2FIoF6rYsw%2B0t9%2Fj6iFn8MdqPxkhQrHmo1Oazfch1HBh%2FQyMxXudv44pRjqqZ1JijZtQo77LNvxFzg1ttNeUK3MBu8I%2FgyQPFZWZ14cuiABMXj0RLg9sEtqruhbpcpcjqZ%2F9FjW%2FsoxQZwLoyJMpxXTSXN2Jp9DkJQCf%2Fbk6p4K%2BV2pXKq4ehdWpvyGHrc2ry%2BT6YmCbp%2BvEAYueypIrDiv1ecr4OgePIL4cB4Lcdt; ko_token_added=true; utag_main_changed_as_id=0199082f5b4e00132b2a437b604205075003e06d009dc; utag_main_dcsyncran=; utag_main_last_logged_in_hashed_email=2746b18c4175d59f28bfa628c1fc112bad1a83dbe07a9cca9204f0f9acf1468a; utag_main_v_id=0199082f5b4e00132b2a437b604205075003e06d009dc; ab.storage.deviceId.7a07460e-32c2-420e-979b-3ad707d14b33=%7B%22g%22%3A%22e6bfdcf3-f7aa-b362-906c-3302a34bf989%22%2C%22c%22%3A1746589235226%2C%22l%22%3A1756778945840%7D; ab.storage.userId.7a07460e-32c2-420e-979b-3ad707d14b33=%7B%22g%22%3A%22abfd68626d659451d7e5b25354c0f734d39b25ad74ca3cee77b311d432cc9a27%22%2C%22c%22%3A1756778945839%2C%22l%22%3A1756778945841%7D; tealium_visitor_id=0199082f5b4e00132b2a437b604205075003e06d009dc; _scid_r=HL3cIVPJVj1wdGUkNHA-niFCmK8I21N0_2hN5Q; ab.storage.sessionId.7a07460e-32c2-420e-979b-3ad707d14b33=%7B%22g%22%3A%2271d192ec-370e-f6b7-6301-8e4bc84fa338%22%2C%22e%22%3A1756780763436%2C%22c%22%3A1756778945839%2C%22l%22%3A1756778963436%7D; _uetsid=11c38d4086d911f0a987617dede2cee4; _uetvid=092a29a02af511f09172793d952c52b6|2va5av|1747613167687|1|1|bat.bing.com/p/conversions/c/i; ttcsid=1756778130764::zfZ1_uieP8HFanlRKFXE.12.1756778963758; ttcsid_C40FTM1U9OSI9F1LJC9G=1756778130763::GeAOWj5LWvNk3UJHkt5C.11.1756778964034; _clsk=1o5u3xb%5E1756778964634%5E13%5E0%5Ev.clarity.ms%2Fcollect; _ga_CXF7KQVQ46=GS2.1.s1756777533$o12$g1$t1756779296$j59$l0$h0; utag_main_dc_event=32%3Bexp-session; incap_ses_777_382817=7oKNdrOhkW8T9BYmd3XICiBTtmgAAAAAyGewMVjOcHt5u4vnppRFIQ==; nlbi_382817_2147483392=EqTYZasq6VUAbhxow6DYdgAAAADpTTH4VmxxN2XA/y24jAjz; utag_main__pn=18%3Bexp-session; utag_main__se=50%3Bexp-session; utag_main__st=1756781097658%3Bexp-session"
+					}
+				],
+				"body": {
+					"mode": "graphql",
+					"graphql": {
+						"query": "query getProductAvailability($input: ProductAvailabilityQueryInput!) {\n  getProductAvailability(input: $input) {\n    postcode\n    country\n    region\n    availability {\n      HOME_DELIVERY {\n        keycode\n        poolName\n        stock {\n          available\n          __typename\n        }\n        __typename\n      }\n      CLICK_AND_COLLECT {\n        keycode\n        stock {\n          totalAvailable\n          __typename\n        }\n        locations {\n          fulfilment {\n            isBuddyLocation\n            locationId\n            stock {\n              available\n              __typename\n            }\n            __typename\n          }\n          location {\n            locationId\n            __typename\n          }\n          __typename\n        }\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n",
+						"variables": "{\n  \"input\": {\n    \"country\": \"AU\",\n    \"postcode\": \"3027\",\n    \"products\": [\n      {\n        \"keycode\": \"41541531\",\n        \"quantity\": 1,\n        \"isNationalInventory\": false,\n        \"isClickAndCollectOnly\": false\n      }\n    ],\n    \"fulfilmentMethods\": [\n      \"HOME_DELIVERY\",\n      \"CLICK_AND_COLLECT\"\n    ],\n    \"amendNearestInStockCnc\": true,\n    \"limit\": 3\n  }\n}"
+					}
+				},
+				"url": {
+					"raw": "https://api.kmart.com.au/gateway/graphql",
+					"protocol": "https",
+					"host": [
+						"api",
+						"kmart",
+						"com",
+						"au"
+					],
+					"path": [
+						"gateway",
+						"graphql"
+					]
+				},
+				"description": "Generated from cURL: curl 'https://api.kmart.com.au/gateway/graphql' \\\n  -H 'accept: */*' \\\n  -H 'accept-language: en-GB,en-US;q=0.9,en;q=0.8' \\\n  -H 'authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ikl1V3loc2lWN3pEalhENXEyWEhmZyJ9.eyJodHRwczovL2ttYXJ0LmNvbS5hdS8iOnsiY3RfdXVpZCI6ImFiNDg1N2VmLTNkYWQtNGNkZC05ZjAwLWU5ZjE5OGYxMjg5OSIsIm9uZXBhc3NfdXVpZCI6ImFiZjYzODQzLTgxMGQtNGE0ZC1iNzEzLWQxOTEzZjY4OWVjMyIsInN0cmF0ZWd5IjoiQ29tbWVyY2V0b29scy1EQiJ9LCJ1c2VyX2lkIjoiYXV0aDB8NjQ3ZDU0NzVkOTQ5NmRkZmZkZGM4MjgwIiwiaXNzIjoiaHR0cHM6Ly9hdXRoLmttYXJ0LmNvbS5hdS8iLCJzdWIiOiJhdXRoMHw2NDdkNTQ3NWQ5NDk2ZGRmZmRkYzgyODAiLCJhdWQiOlsiaHR0cHM6Ly9hcGkua21hcnQuY29tLmF1L2dhdGV3YXkvZ3JhcGhxbCIsImh0dHBzOi8va21hcnRhdS1vbmxpbmUuYXUuYXV0aDAuY29tL3VzZXJpbmZvIl0sImlhdCI6MTc1Njc3ODk0MywiZXhwIjoxNzU2Nzc5ODQzLCJzY29wZSI6Im9wZW5pZCBwcm9maWxlIGVtYWlsIG9mZmxpbmVfYWNjZXNzIiwiYXpwIjoid2YwRHo3bEt1aEtOMzE5c2k3dlJFMERpUHlFeUU1SHkifQ.DJBfoOMh6vFKZfCMFC0rhKcOCZirlh9CURFEAsUnxjS2uB53Oj_FZ1WIQrlrc_8iM1iTU2My3jpKf_kjdiBzljaJW5BGW8x0-z4r5JraTRHSsgONMN_XQSaLv37KFRoeLzzcu28EVBzvNeVWB440KXgGmSJfGR3JfO2rVQ8EGCb73PcHWUiqym7LNWF1TvF_ZXaYCBsRi2TIYHmFlYK5gIqwpPjueFaTkj1inp_xFduyZcuQeBZ5JJISgMoeRhgr0Zlw9vlEhIAraLsuwyECw2IaORXiqglGRppGsPn1iXbApiy7_oP4fSV3iXxIcEfYkAhT-6qqHQTnSromNkpKEg' \\\n  -H 'content-type: application/json' \\\n  -b 'tfc-l=%7B%22k%22%3A%7B%22v%22%3A%22cks2v9cknci9ohes13hkj1404u%22%2C%22e%22%3A1818377925%7D%7D; visid_incap_2663987=Lq9eqs3sRvGu/9JHwZlil8GgrmgAAAAAQUIPAAAAAAAcnKWHAiupRunkkUbyj+g5; _gcl_au=1.1.1852800734.1756274882; utag_main_vapi_domain=kmart.com.au; visid_incap_382817=wuTPWWQ6QsGnQY8+7YCPbcGmrmgAAAAAQUIPAAAAAADF71mEVktQOiC60IcV2fE5; cgt=6; visid_incap_2524447=0VgcMCDlTDm7bFWp2Ii6/s80r2gAAAAAQUIPAAAAAACG+MjwOeSra5EqHnGpu7vD; _pin_unauth=dWlkPU9URTFNV0UzWW1ZdE1HUTRPUzAwWWpjMkxXRTFPVFl0TmpaaE5qbG1NRFZoTnpRNQ; _tt_enable_cookie=1; _ttp=01K3P6CM5Y6G18EZCV1DFKSZD3_.tt.2; _fbp=fb.2.1756312785731.162049412447674056; _scid=F73cIVPJVj1wdGUkNHA-niFCmK8I21N0_2hMpQ; _ScCbts=%5B%22601%3Bchrome.2%3A2%3A5%22%2C%22603%3Bchrome.2%3A2%3A5%22%5D; _sctr=1%7C1756303200000; optimizelySession=0; visid_incap_2632254=C3LQPJLuQi2aLQRTUst2iSGgr2gAAAAAQUIPAAAAAADdW3fNdIe+l5jIN4phHr1X; client_visitor_id=0198ea23f7d2001dd738721731db0507500e206d009dc; _gid=GA1.3.2077233320.1756701982; visid_incap_2663902=ltTf9LaIRcSi7DmAaj+FTR4ltWgAAAAAQUIPAAAAAAD399KdwQOpotk7/dsDtUNH; __adv_opt_ko_=true; nlbi_2524447=3aR0TV3mMHTAFpOIjNNIKAAAAABOa3qKZjVGJJ5kb2GAHlJb; nlbi_382817=c08raYlpWCDCYk8fw6DYdgAAAADozgnariRedqqjXX9ySrUY; nlbi_382817_2615371=+vTTKCPFkzTrsJQzw6DYdgAAAADVoPTMeeQAjc1/GWQBsiG4; _clck=1svfeh9%5E2%5Efyz%5E0%5E2065; incap_ses_781_2632254=xj9UC1AIMWGZE8G0aqvWCo9OtmgAAAAAZFRsWinn5uHDz76lht35eA==; nlbi_2632254_2614284=uHKHSUzkY2nPV4UzpJKu7wAAAAA0rggNRMnchZZk4L9Bqyuh; utag_main__sn=13; utag_main_ses_id=1756778127898%3Bexp-session; utag_main_db_mvkoh1nn=true%3Bexp-session; utag_main_tag_session_30=1%3Bexp-session; utag_main__ss=0%3Bexp-session; utag_main_dc_visit=12; utag_main_dc_region=ap-southeast-2%3Bexp-session; nlbi_2632254_2573261=Q9MhTLqIhGiYVK1+pJKu7wAAAADLeCzKWL4eqjWnTXyF9vz9; nlbi_2632254=O4NIOicVykIE5oAZpJKu7wAAAABG2mhKbSnCVzzXD82KS7MT; nlbi_2632254_2564416=8GC+VYwp6he4gK4xpJKu7wAAAACNvhg0C0WVZ5J8gYXf5+XI; nlbi_2663902=kwMOXLcwR0pbcVivQfDYBQAAAAA1Bz3O314Mbiasko6WOcKP; incap_ses_781_2663902=z92bX7qtxVbYM8G0aqvWCp9OtmgAAAAAkh1iwBhwWOoXw18oU3VTAw==; nlbi_2663902_2147483392=A/enJ0dGEAkC+HTUQfDYBQAAAABooZxSu/31AB8lA2qEw4EC; incap_ses_781_382817=lhOXV5rxWHeTOce0aqvWCkFRtmgAAAAAQJ2V+kx9wa0J64fJodSs3w==; _ga=GA1.1.311133609.1756274882; incap_ses_781_2524447=vAAtcYd/Yw81PMe0aqvWCkNRtmgAAAAAQNrurmhkuanLzpGFxEgySQ==; _abck=4353708A18A702A39DDD23A8ABFAFD14~-1~YAAQDeg/Fx1x4eyYAQAA3VMuCA5ovKBJpU4w9+Z5Iuwk1nQ9blog5htwgwWM/1grRUeEtwtgtGjnusCFcY4m81jK5tWu3g1FsEWk0Tp2HVcSUvs2AG45LGPvYzjGrx8nzb/DC/GubLU0XgpE/IZ5tWqpqqHRCYZm6SwIc2nYjOMuOVplgLcQMeo1rYc7NeJYG64P9mmybH2t/cWXVqbTfC2lxjDeR3i6ibd1U6IC/XKBUpzGOkizuiJ1H5zMd5lhzb0dJitEvl5VFIh0xk7r/2DiMgoJ4q+vyDsWtP9HseVnA2xjVWvJxyt1NYry4yxCwEdJZXsQ0IypqT+NL7JZ8v1Trl1qbvT/GXt8faZzN9UyPL6hxvlUGdM82NNS0q2pRFO+li8MVoqKP9iXmEGNALj5LMsZKnzK7T7A7vuUzKMl9v7nIbO8cUQ+7rFtHw==~-1~-1~-1~~; nlbi_2632254_2147483392=r4K6Xe47bEdqLJItpJKu7wAAAACrsSB6SdKjol0NN0BJtq69; _ga_V0Y9TKKHP3=GS2.1.s1756778129$o8$g1$t1756778880$j56$l0$h0; nlbi_2663987=4OMSU5O1TxH4zsBcI9WWqgAAAADQKSztp64OhoUHaECyA0gJ; incap_ses_781_2663987=ZIRfcaTTEE08DMi0aqvWCp1RtmgAAAAAZiCsuUjvtfVRMTQtn6l2RA==; incap_ses_777_2663987=B4JJIsGt2hzRKhMmd3XICp5RtmgAAAAA1TbRv1+VSlWZLiHXVNJc9g==; nlbi_2663987_2147483392=+OnNBeP+Xl7mDSCsI9WWqgAAAACC9dlp8O7AiUQPikDoNgDT; reese84=3:HCeRUegB3nDcsxDMsS1+ig==:S4XHyzQdrRB2aH7v25TDfwyAjP+SPTP5RwbznOSfe/tAutqudwnO36u0iT94XBw0ZRZ/mlVklIspWW07XziE6EtKETaC8dxhljOcNPk1Dvg/+373TZqFVdyKFDx61Hzl2EKi5LLN5l+g8Bi91wkNlr96mKkhiFOds+umCnAcpQWwcVWNyTA/ec2J8W4mNB0vLG3zss5buVXyBi+FTdsfKMfmd21+nlxjqKTC0CyjbVpLMOdq0eHoJQDm/aMW+VndQIqu/WVBUZQG8SQ+8txa60Ot9XAPazPfoPvSOG0jxJ1kugxl14jr2LXsvcvIxzJ4dbAd3fT2lngEHHOWZg8leGKh+19nNqUVc/CkS8Xjor+glAphRKRJfaH75VxxmoCgLmHVQzl9pMarBB6XjF6OVnyN8kEjE0nsUthoyxge88iX5bau7m5NiOrBSbpoARiAEalXIxNumTTCLtXhaw3KvA==:Sxi/RMAiDJyrq+5SBmOhn7rXKgbJrl0uzSGPfjKk86I=; ko_token=FFw8hKCWMWY273QCAT6C%2F5Umqmtp%2FxGXvyceOBg2UdTFWzJsjgPSz6KQ17hLKLd1kcwhFmK5ZOkRXtWz%2Fbmqkh3xcx6T7vXiwrjJjWpeOMTq5A12lxCnUQE8alXOUJTv2GK10xcuErslbymNCNhWJx6%2FZj32pQl8qfbiO%2FxCp2gu3cMB1GT%2FQYXu6zkmoqFbSrMII5Vs5USoCkYFBrJeM9g62RXx1ldeFpf1loSma60TihKSH2bem1mB%2FSC6QKDklfoEiwfrEtkE%2FIGv3OkM5z8TbS7dmkB3JEdstpsclP%2FJQr7fKGwQQz%2FZilZ9ySwn%2BFYqJMcmP0Q%2B%2FI5ylTCHyUH87%2BKooh%2Bi8%2BoWZ4mQxH%2BECC7JOVnJqwcf8a3JqwYQDkaifW98XXlRRydpIiK0Godgdsal0HwIH1eXPXyQz503D8C%2BsktkCH69R8zjgDi4SjRCXTJFeArQ9mZInK5vgAx3lB1LEU88uJPm1etOT1yifBtANnOabUunuNhvFimJmAux7G1rBE9hXj5g66AncS5PyV6W8%2Bu%2FuCPiGbIlDMGshG%2FB84SEdY7gcFowY%2BEeURSI0zGAjOr9emYybMsca9dNhU9Xfip8prF6YBM3Xvt9HkOV1spUCWnmZFE0q%2FZisS0U9GFBaIGVFe9x29GVmO6LOFbSB%2BWns9oGoTW7xeKvGm2ztsJ6bgdmTS0ZxL5GwZ%2FFvG3HQ%2FoF%2Fj6rqOCwrv61w56cnP2wNXxGgjEPN1vo0cE3SQPvxzKuVw0vwvlOhzn3oEc%2FKECIRi1dUn7i1IcCK3dUoafVH83ZCiXu%2BaM1o1tW4wRCC0F6l3kON8T3z0SvyaLVLLatyiTEYFgAS5h5FerxETE%2B9KBZvAJ2KrZiTx6TceOOTnABifj863xNLT4jyFywvwkBmGpwL3FVkZ3XEVRni248VfykOZZRnnJke6EM4c0r4rFCaVc1DDHSENcAJHqoK8AdlllF4o%2Bc9mFTL5iCVwIgmSojAyrFrv3LkykIjNc%2FIoF6rYsw%2B0t9%2Fj6iFn8MdqPxkhQrHmo1Oazfch1HBh%2FQyMxXudv44pRjqqZ1JijZtQo77LNvxFzg1ttNeUK3MBu8I%2FgyQPFZWZ14cuiABMXj0RLg9sEtqruhbpcpcjqZ%2F9FjW%2FsoxQZwLoyJMpxXTSXN2Jp9DkJQCf%2Fbk6p4K%2BV2pXKq4ehdWpvyGHrc2ry%2BT6YmCbp%2BvEAYueypIrDiv1ecr4OgePIL4cB4Lcdt; ko_token_added=true; utag_main_changed_as_id=0199082f5b4e00132b2a437b604205075003e06d009dc; utag_main_dcsyncran=; utag_main_last_logged_in_hashed_email=2746b18c4175d59f28bfa628c1fc112bad1a83dbe07a9cca9204f0f9acf1468a; utag_main_v_id=0199082f5b4e00132b2a437b604205075003e06d009dc; ab.storage.deviceId.7a07460e-32c2-420e-979b-3ad707d14b33=%7B%22g%22%3A%22e6bfdcf3-f7aa-b362-906c-3302a34bf989%22%2C%22c%22%3A1746589235226%2C%22l%22%3A1756778945840%7D; ab.storage.userId.7a07460e-32c2-420e-979b-3ad707d14b33=%7B%22g%22%3A%22abfd68626d659451d7e5b25354c0f734d39b25ad74ca3cee77b311d432cc9a27%22%2C%22c%22%3A1756778945839%2C%22l%22%3A1756778945841%7D; tealium_visitor_id=0199082f5b4e00132b2a437b604205075003e06d009dc; _scid_r=HL3cIVPJVj1wdGUkNHA-niFCmK8I21N0_2hN5Q; ab.storage.sessionId.7a07460e-32c2-420e-979b-3ad707d14b33=%7B%22g%22%3A%2271d192ec-370e-f6b7-6301-8e4bc84fa338%22%2C%22e%22%3A1756780763436%2C%22c%22%3A1756778945839%2C%22l%22%3A1756778963436%7D; _uetsid=11c38d4086d911f0a987617dede2cee4; _uetvid=092a29a02af511f09172793d952c52b6|2va5av|1747613167687|1|1|bat.bing.com/p/conversions/c/i; ttcsid=1756778130764::zfZ1_uieP8HFanlRKFXE.12.1756778963758; ttcsid_C40FTM1U9OSI9F1LJC9G=1756778130763::GeAOWj5LWvNk3UJHkt5C.11.1756778964034; _clsk=1o5u3xb%5E1756778964634%5E13%5E0%5Ev.clarity.ms%2Fcollect; _ga_CXF7KQVQ46=GS2.1.s1756777533$o12$g1$t1756779296$j59$l0$h0; utag_main_dc_event=32%3Bexp-session; incap_ses_777_382817=7oKNdrOhkW8T9BYmd3XICiBTtmgAAAAAyGewMVjOcHt5u4vnppRFIQ==; nlbi_382817_2147483392=EqTYZasq6VUAbhxow6DYdgAAAADpTTH4VmxxN2XA/y24jAjz; utag_main__pn=18%3Bexp-session; utag_main__se=50%3Bexp-session; utag_main__st=1756781097658%3Bexp-session' \\\n  -H 'newrelic: eyJ2IjpbMCwxXSwiZCI6eyJ0eSI6IkJyb3dzZXIiLCJhYyI6IjEwNjUxNTEiLCJhcCI6IjE1NjQ5NTAyMDAiLCJpZCI6IjVhYzA0MjAyMGViMmFlOTciLCJ0ciI6IjYwZjBjZjljZGJlOWUyNmM1ZDQxMmIyOGFkMDFmYjM1IiwidGkiOjE3NTY3NzkyOTc5MjEsInRrIjoiMTY0NzQ1MSJ9fQ==' \\\n  -H 'origin: https://www.kmart.com.au' \\\n  -H 'priority: u=1, i' \\\n  -H 'referer: https://www.kmart.com.au/' \\\n  -H 'sec-ch-ua: \"Not;A=Brand\";v=\"99\", \"Google Chrome\";v=\"139\", \"Chromium\";v=\"139\"' \\\n  -H 'sec-ch-ua-mobile: ?0' \\\n  -H 'sec-ch-ua-platform: \"macOS\"' \\\n  -H 'sec-fetch-dest: empty' \\\n  -H 'sec-fetch-mode: cors' \\\n  -H 'sec-fetch-site: same-site' \\\n  -H 'traceparent: 00-60f0cf9cdbe9e26c5d412b28ad01fb35-5ac042020eb2ae97-01' \\\n  -H 'tracestate: 1647451@nr=0-1-1065151-1564950200-5ac042020eb2ae97----1756779297921' \\\n  -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36' \\\n  --data-raw $'{\"operationName\":\"getProductAvailability\",\"variables\":{\"input\":{\"country\":\"AU\",\"postcode\":\"3027\",\"products\":[{\"keycode\":\"41541531\",\"quantity\":1,\"isNationalInventory\":false,\"isClickAndCollectOnly\":false}],\"fulfilmentMethods\":[\"HOME_DELIVERY\",\"CLICK_AND_COLLECT\"],\"amendNearestInStockCnc\":true,\"limit\":3}},\"query\":\"query getProductAvailability($input: ProductAvailabilityQueryInput\\u0021) {\\\\n  getProductAvailability(input: $input) {\\\\n    postcode\\\\n    country\\\\n    region\\\\n    availability {\\\\n      HOME_DELIVERY {\\\\n        keycode\\\\n        poolName\\\\n        stock {\\\\n          available\\\\n          __typename\\\\n        }\\\\n        __typename\\\\n      }\\\\n      CLICK_AND_COLLECT {\\\\n        keycode\\\\n        stock {\\\\n          totalAvailable\\\\n          __typename\\\\n        }\\\\n        locations {\\\\n          fulfilment {\\\\n            isBuddyLocation\\\\n            locationId\\\\n            stock {\\\\n              available\\\\n              __typename\\\\n            }\\\\n            __typename\\\\n          }\\\\n          location {\\\\n            locationId\\\\n            __typename\\\\n          }\\\\n          __typename\\\\n        }\\\\n        __typename\\\\n      }\\\\n      __typename\\\\n    }\\\\n    __typename\\\\n  }\\\\n}\\\\n\"}'"
+			},
+			"response": []
+		},
+		{
+			"name": "https://api.kmart.com.au/gateway/graphql",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "accept",
+						"value": "*/*"
+					},
+					{
+						"key": "accept-language",
+						"value": "en-GB,en-US;q=0.9,en;q=0.8"
+					},
+					{
+						"key": "authorization",
+						"value": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ikl1V3loc2lWN3pEalhENXEyWEhmZyJ9.eyJodHRwczovL2ttYXJ0LmNvbS5hdS8iOnsiY3RfdXVpZCI6ImFiNDg1N2VmLTNkYWQtNGNkZC05ZjAwLWU5ZjE5OGYxMjg5OSIsIm9uZXBhc3NfdXVpZCI6ImFiZjYzODQzLTgxMGQtNGE0ZC1iNzEzLWQxOTEzZjY4OWVjMyIsInN0cmF0ZWd5IjoiQ29tbWVyY2V0b29scy1EQiJ9LCJ1c2VyX2lkIjoiYXV0aDB8NjQ3ZDU0NzVkOTQ5NmRkZmZkZGM4MjgwIiwiaXNzIjoiaHR0cHM6Ly9hdXRoLmttYXJ0LmNvbS5hdS8iLCJzdWIiOiJhdXRoMHw2NDdkNTQ3NWQ5NDk2ZGRmZmRkYzgyODAiLCJhdWQiOlsiaHR0cHM6Ly9hcGkua21hcnQuY29tLmF1L2dhdGV3YXkvZ3JhcGhxbCIsImh0dHBzOi8va21hcnRhdS1vbmxpbmUuYXUuYXV0aDAuY29tL3VzZXJpbmZvIl0sImlhdCI6MTc1Njc3ODk0MywiZXhwIjoxNzU2Nzc5ODQzLCJzY29wZSI6Im9wZW5pZCBwcm9maWxlIGVtYWlsIG9mZmxpbmVfYWNjZXNzIiwiYXpwIjoid2YwRHo3bEt1aEtOMzE5c2k3dlJFMERpUHlFeUU1SHkifQ.DJBfoOMh6vFKZfCMFC0rhKcOCZirlh9CURFEAsUnxjS2uB53Oj_FZ1WIQrlrc_8iM1iTU2My3jpKf_kjdiBzljaJW5BGW8x0-z4r5JraTRHSsgONMN_XQSaLv37KFRoeLzzcu28EVBzvNeVWB440KXgGmSJfGR3JfO2rVQ8EGCb73PcHWUiqym7LNWF1TvF_ZXaYCBsRi2TIYHmFlYK5gIqwpPjueFaTkj1inp_xFduyZcuQeBZ5JJISgMoeRhgr0Zlw9vlEhIAraLsuwyECw2IaORXiqglGRppGsPn1iXbApiy7_oP4fSV3iXxIcEfYkAhT-6qqHQTnSromNkpKEg"
+					},
+					{
+						"key": "content-type",
+						"value": "application/json"
+					},
+					{
+						"key": "newrelic",
+						"value": "eyJ2IjpbMCwxXSwiZCI6eyJ0eSI6IkJyb3dzZXIiLCJhYyI6IjEwNjUxNTEiLCJhcCI6IjE1NjQ5NTAyMDAiLCJpZCI6IjNmZDgzNzk3MTYzZGI3MzkiLCJ0ciI6IjVmYzdhNWZhNDc5MGRhMmU1ZmYzNTA2YjQxNjJlN2FkIiwidGkiOjE3NTY3NzkzMDAwNzcsInRrIjoiMTY0NzQ1MSJ9fQ=="
+					},
+					{
+						"key": "origin",
+						"value": "https://www.kmart.com.au"
+					},
+					{
+						"key": "priority",
+						"value": "u=1, i"
+					},
+					{
+						"key": "referer",
+						"value": "https://www.kmart.com.au/"
+					},
+					{
+						"key": "sec-ch-ua",
+						"value": "\"Not;A=Brand\";v=\"99\", \"Google Chrome\";v=\"139\", \"Chromium\";v=\"139\""
+					},
+					{
+						"key": "sec-ch-ua-mobile",
+						"value": "?0"
+					},
+					{
+						"key": "sec-ch-ua-platform",
+						"value": "\"macOS\""
+					},
+					{
+						"key": "sec-fetch-dest",
+						"value": "empty"
+					},
+					{
+						"key": "sec-fetch-mode",
+						"value": "cors"
+					},
+					{
+						"key": "sec-fetch-site",
+						"value": "same-site"
+					},
+					{
+						"key": "traceparent",
+						"value": "00-5fc7a5fa4790da2e5ff3506b4162e7ad-3fd83797163db739-01"
+					},
+					{
+						"key": "tracestate",
+						"value": "1647451@nr=0-1-1065151-1564950200-3fd83797163db739----1756779300077"
+					},
+					{
+						"key": "user-agent",
+						"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"
+					},
+					{
+						"key": "Cookie",
+						"value": "tfc-l=%7B%22k%22%3A%7B%22v%22%3A%22cks2v9cknci9ohes13hkj1404u%22%2C%22e%22%3A1818377925%7D%7D; visid_incap_2663987=Lq9eqs3sRvGu/9JHwZlil8GgrmgAAAAAQUIPAAAAAAAcnKWHAiupRunkkUbyj+g5; _gcl_au=1.1.1852800734.1756274882; utag_main_vapi_domain=kmart.com.au; visid_incap_382817=wuTPWWQ6QsGnQY8+7YCPbcGmrmgAAAAAQUIPAAAAAADF71mEVktQOiC60IcV2fE5; cgt=6; visid_incap_2524447=0VgcMCDlTDm7bFWp2Ii6/s80r2gAAAAAQUIPAAAAAACG+MjwOeSra5EqHnGpu7vD; _pin_unauth=dWlkPU9URTFNV0UzWW1ZdE1HUTRPUzAwWWpjMkxXRTFPVFl0TmpaaE5qbG1NRFZoTnpRNQ; _tt_enable_cookie=1; _ttp=01K3P6CM5Y6G18EZCV1DFKSZD3_.tt.2; _fbp=fb.2.1756312785731.162049412447674056; _scid=F73cIVPJVj1wdGUkNHA-niFCmK8I21N0_2hMpQ; _ScCbts=%5B%22601%3Bchrome.2%3A2%3A5%22%2C%22603%3Bchrome.2%3A2%3A5%22%5D; _sctr=1%7C1756303200000; optimizelySession=0; visid_incap_2632254=C3LQPJLuQi2aLQRTUst2iSGgr2gAAAAAQUIPAAAAAADdW3fNdIe+l5jIN4phHr1X; client_visitor_id=0198ea23f7d2001dd738721731db0507500e206d009dc; _gid=GA1.3.2077233320.1756701982; visid_incap_2663902=ltTf9LaIRcSi7DmAaj+FTR4ltWgAAAAAQUIPAAAAAAD399KdwQOpotk7/dsDtUNH; __adv_opt_ko_=true; nlbi_382817=c08raYlpWCDCYk8fw6DYdgAAAADozgnariRedqqjXX9ySrUY; nlbi_382817_2615371=+vTTKCPFkzTrsJQzw6DYdgAAAADVoPTMeeQAjc1/GWQBsiG4; _clck=1svfeh9%5E2%5Efyz%5E0%5E2065; incap_ses_781_2632254=xj9UC1AIMWGZE8G0aqvWCo9OtmgAAAAAZFRsWinn5uHDz76lht35eA==; nlbi_2632254_2614284=uHKHSUzkY2nPV4UzpJKu7wAAAAA0rggNRMnchZZk4L9Bqyuh; utag_main__sn=13; utag_main_ses_id=1756778127898%3Bexp-session; utag_main_db_mvkoh1nn=true%3Bexp-session; utag_main_tag_session_30=1%3Bexp-session; utag_main__ss=0%3Bexp-session; utag_main_dc_visit=12; utag_main_dc_region=ap-southeast-2%3Bexp-session; nlbi_2632254_2573261=Q9MhTLqIhGiYVK1+pJKu7wAAAADLeCzKWL4eqjWnTXyF9vz9; nlbi_2632254=O4NIOicVykIE5oAZpJKu7wAAAABG2mhKbSnCVzzXD82KS7MT; nlbi_2632254_2564416=8GC+VYwp6he4gK4xpJKu7wAAAACNvhg0C0WVZ5J8gYXf5+XI; nlbi_2663902=kwMOXLcwR0pbcVivQfDYBQAAAAA1Bz3O314Mbiasko6WOcKP; incap_ses_781_2663902=z92bX7qtxVbYM8G0aqvWCp9OtmgAAAAAkh1iwBhwWOoXw18oU3VTAw==; nlbi_2663902_2147483392=A/enJ0dGEAkC+HTUQfDYBQAAAABooZxSu/31AB8lA2qEw4EC; incap_ses_781_382817=lhOXV5rxWHeTOce0aqvWCkFRtmgAAAAAQJ2V+kx9wa0J64fJodSs3w==; _ga=GA1.1.311133609.1756274882; incap_ses_781_2524447=vAAtcYd/Yw81PMe0aqvWCkNRtmgAAAAAQNrurmhkuanLzpGFxEgySQ==; _abck=4353708A18A702A39DDD23A8ABFAFD14~-1~YAAQDeg/Fx1x4eyYAQAA3VMuCA5ovKBJpU4w9+Z5Iuwk1nQ9blog5htwgwWM/1grRUeEtwtgtGjnusCFcY4m81jK5tWu3g1FsEWk0Tp2HVcSUvs2AG45LGPvYzjGrx8nzb/DC/GubLU0XgpE/IZ5tWqpqqHRCYZm6SwIc2nYjOMuOVplgLcQMeo1rYc7NeJYG64P9mmybH2t/cWXVqbTfC2lxjDeR3i6ibd1U6IC/XKBUpzGOkizuiJ1H5zMd5lhzb0dJitEvl5VFIh0xk7r/2DiMgoJ4q+vyDsWtP9HseVnA2xjVWvJxyt1NYry4yxCwEdJZXsQ0IypqT+NL7JZ8v1Trl1qbvT/GXt8faZzN9UyPL6hxvlUGdM82NNS0q2pRFO+li8MVoqKP9iXmEGNALj5LMsZKnzK7T7A7vuUzKMl9v7nIbO8cUQ+7rFtHw==~-1~-1~-1~~; nlbi_2632254_2147483392=r4K6Xe47bEdqLJItpJKu7wAAAACrsSB6SdKjol0NN0BJtq69; _ga_V0Y9TKKHP3=GS2.1.s1756778129$o8$g1$t1756778880$j56$l0$h0; nlbi_2663987=4OMSU5O1TxH4zsBcI9WWqgAAAADQKSztp64OhoUHaECyA0gJ; incap_ses_781_2663987=ZIRfcaTTEE08DMi0aqvWCp1RtmgAAAAAZiCsuUjvtfVRMTQtn6l2RA==; incap_ses_777_2663987=B4JJIsGt2hzRKhMmd3XICp5RtmgAAAAA1TbRv1+VSlWZLiHXVNJc9g==; nlbi_2663987_2147483392=+OnNBeP+Xl7mDSCsI9WWqgAAAACC9dlp8O7AiUQPikDoNgDT; reese84=3:HCeRUegB3nDcsxDMsS1+ig==:S4XHyzQdrRB2aH7v25TDfwyAjP+SPTP5RwbznOSfe/tAutqudwnO36u0iT94XBw0ZRZ/mlVklIspWW07XziE6EtKETaC8dxhljOcNPk1Dvg/+373TZqFVdyKFDx61Hzl2EKi5LLN5l+g8Bi91wkNlr96mKkhiFOds+umCnAcpQWwcVWNyTA/ec2J8W4mNB0vLG3zss5buVXyBi+FTdsfKMfmd21+nlxjqKTC0CyjbVpLMOdq0eHoJQDm/aMW+VndQIqu/WVBUZQG8SQ+8txa60Ot9XAPazPfoPvSOG0jxJ1kugxl14jr2LXsvcvIxzJ4dbAd3fT2lngEHHOWZg8leGKh+19nNqUVc/CkS8Xjor+glAphRKRJfaH75VxxmoCgLmHVQzl9pMarBB6XjF6OVnyN8kEjE0nsUthoyxge88iX5bau7m5NiOrBSbpoARiAEalXIxNumTTCLtXhaw3KvA==:Sxi/RMAiDJyrq+5SBmOhn7rXKgbJrl0uzSGPfjKk86I=; ko_token=FFw8hKCWMWY273QCAT6C%2F5Umqmtp%2FxGXvyceOBg2UdTFWzJsjgPSz6KQ17hLKLd1kcwhFmK5ZOkRXtWz%2Fbmqkh3xcx6T7vXiwrjJjWpeOMTq5A12lxCnUQE8alXOUJTv2GK10xcuErslbymNCNhWJx6%2FZj32pQl8qfbiO%2FxCp2gu3cMB1GT%2FQYXu6zkmoqFbSrMII5Vs5USoCkYFBrJeM9g62RXx1ldeFpf1loSma60TihKSH2bem1mB%2FSC6QKDklfoEiwfrEtkE%2FIGv3OkM5z8TbS7dmkB3JEdstpsclP%2FJQr7fKGwQQz%2FZilZ9ySwn%2BFYqJMcmP0Q%2B%2FI5ylTCHyUH87%2BKooh%2Bi8%2BoWZ4mQxH%2BECC7JOVnJqwcf8a3JqwYQDkaifW98XXlRRydpIiK0Godgdsal0HwIH1eXPXyQz503D8C%2BsktkCH69R8zjgDi4SjRCXTJFeArQ9mZInK5vgAx3lB1LEU88uJPm1etOT1yifBtANnOabUunuNhvFimJmAux7G1rBE9hXj5g66AncS5PyV6W8%2Bu%2FuCPiGbIlDMGshG%2FB84SEdY7gcFowY%2BEeURSI0zGAjOr9emYybMsca9dNhU9Xfip8prF6YBM3Xvt9HkOV1spUCWnmZFE0q%2FZisS0U9GFBaIGVFe9x29GVmO6LOFbSB%2BWns9oGoTW7xeKvGm2ztsJ6bgdmTS0ZxL5GwZ%2FFvG3HQ%2FoF%2Fj6rqOCwrv61w56cnP2wNXxGgjEPN1vo0cE3SQPvxzKuVw0vwvlOhzn3oEc%2FKECIRi1dUn7i1IcCK3dUoafVH83ZCiXu%2BaM1o1tW4wRCC0F6l3kON8T3z0SvyaLVLLatyiTEYFgAS5h5FerxETE%2B9KBZvAJ2KrZiTx6TceOOTnABifj863xNLT4jyFywvwkBmGpwL3FVkZ3XEVRni248VfykOZZRnnJke6EM4c0r4rFCaVc1DDHSENcAJHqoK8AdlllF4o%2Bc9mFTL5iCVwIgmSojAyrFrv3LkykIjNc%2FIoF6rYsw%2B0t9%2Fj6iFn8MdqPxkhQrHmo1Oazfch1HBh%2FQyMxXudv44pRjqqZ1JijZtQo77LNvxFzg1ttNeUK3MBu8I%2FgyQPFZWZ14cuiABMXj0RLg9sEtqruhbpcpcjqZ%2F9FjW%2FsoxQZwLoyJMpxXTSXN2Jp9DkJQCf%2Fbk6p4K%2BV2pXKq4ehdWpvyGHrc2ry%2BT6YmCbp%2BvEAYueypIrDiv1ecr4OgePIL4cB4Lcdt; ko_token_added=true; utag_main_changed_as_id=0199082f5b4e00132b2a437b604205075003e06d009dc; utag_main_dcsyncran=; utag_main_last_logged_in_hashed_email=2746b18c4175d59f28bfa628c1fc112bad1a83dbe07a9cca9204f0f9acf1468a; utag_main_v_id=0199082f5b4e00132b2a437b604205075003e06d009dc; ab.storage.deviceId.7a07460e-32c2-420e-979b-3ad707d14b33=%7B%22g%22%3A%22e6bfdcf3-f7aa-b362-906c-3302a34bf989%22%2C%22c%22%3A1746589235226%2C%22l%22%3A1756778945840%7D; ab.storage.userId.7a07460e-32c2-420e-979b-3ad707d14b33=%7B%22g%22%3A%22abfd68626d659451d7e5b25354c0f734d39b25ad74ca3cee77b311d432cc9a27%22%2C%22c%22%3A1756778945839%2C%22l%22%3A1756778945841%7D; tealium_visitor_id=0199082f5b4e00132b2a437b604205075003e06d009dc; _scid_r=HL3cIVPJVj1wdGUkNHA-niFCmK8I21N0_2hN5Q; ab.storage.sessionId.7a07460e-32c2-420e-979b-3ad707d14b33=%7B%22g%22%3A%2271d192ec-370e-f6b7-6301-8e4bc84fa338%22%2C%22e%22%3A1756780763436%2C%22c%22%3A1756778945839%2C%22l%22%3A1756778963436%7D; _uetsid=11c38d4086d911f0a987617dede2cee4; _uetvid=092a29a02af511f09172793d952c52b6|2va5av|1747613167687|1|1|bat.bing.com/p/conversions/c/i; ttcsid=1756778130764::zfZ1_uieP8HFanlRKFXE.12.1756778963758; ttcsid_C40FTM1U9OSI9F1LJC9G=1756778130763::GeAOWj5LWvNk3UJHkt5C.11.1756778964034; _clsk=1o5u3xb%5E1756778964634%5E13%5E0%5Ev.clarity.ms%2Fcollect; incap_ses_777_382817=7oKNdrOhkW8T9BYmd3XICiBTtmgAAAAAyGewMVjOcHt5u4vnppRFIQ==; nlbi_382817_2147483392=EqTYZasq6VUAbhxow6DYdgAAAADpTTH4VmxxN2XA/y24jAjz; utag_main__pn=18%3Bexp-session; nlbi_2524447=e/iBeOr4Ikmg2eBijNNIKAAAAABq7uPsbINeZKl96+fYYdwr; incap_ses_777_2524447=sc7tYryBlkcw+RYmd3XICiNTtmgAAAAAejNgDoI2LeToSwsArTlCEw==; _ga_CXF7KQVQ46=GS2.1.s1756777533$o12$g1$t1756779299$j56$l0$h0; utag_main__se=51%3Bexp-session; utag_main__st=1756781099454%3Bexp-session; utag_main_dc_event=33%3Bexp-session"
+					}
+				],
+				"body": {
+					"mode": "graphql",
+					"graphql": {
+						"query": "mutation createMyShoppingList($quantity: Int!, $sku: String!, $version: Long) {\n  addItemToShoppingList(version: $version, sku: $sku, quantity: $quantity) {\n    lineItems {\n      id\n      quantity\n      variant {\n        id\n        sku\n        __typename\n      }\n      __typename\n    }\n    id\n    version\n    __typename\n  }\n}\n",
+						"variables": "{\n  \"quantity\": 1,\n  \"sku\": \"43494385\",\n  \"version\": 2678\n}"
+					}
+				},
+				"url": {
+					"raw": "https://api.kmart.com.au/gateway/graphql",
+					"protocol": "https",
+					"host": [
+						"api",
+						"kmart",
+						"com",
+						"au"
+					],
+					"path": [
+						"gateway",
+						"graphql"
+					]
+				},
+				"description": "Generated from cURL: curl 'https://api.kmart.com.au/gateway/graphql' \\\n  -H 'accept: */*' \\\n  -H 'accept-language: en-GB,en-US;q=0.9,en;q=0.8' \\\n  -H 'authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ikl1V3loc2lWN3pEalhENXEyWEhmZyJ9.eyJodHRwczovL2ttYXJ0LmNvbS5hdS8iOnsiY3RfdXVpZCI6ImFiNDg1N2VmLTNkYWQtNGNkZC05ZjAwLWU5ZjE5OGYxMjg5OSIsIm9uZXBhc3NfdXVpZCI6ImFiZjYzODQzLTgxMGQtNGE0ZC1iNzEzLWQxOTEzZjY4OWVjMyIsInN0cmF0ZWd5IjoiQ29tbWVyY2V0b29scy1EQiJ9LCJ1c2VyX2lkIjoiYXV0aDB8NjQ3ZDU0NzVkOTQ5NmRkZmZkZGM4MjgwIiwiaXNzIjoiaHR0cHM6Ly9hdXRoLmttYXJ0LmNvbS5hdS8iLCJzdWIiOiJhdXRoMHw2NDdkNTQ3NWQ5NDk2ZGRmZmRkYzgyODAiLCJhdWQiOlsiaHR0cHM6Ly9hcGkua21hcnQuY29tLmF1L2dhdGV3YXkvZ3JhcGhxbCIsImh0dHBzOi8va21hcnRhdS1vbmxpbmUuYXUuYXV0aDAuY29tL3VzZXJpbmZvIl0sImlhdCI6MTc1Njc3ODk0MywiZXhwIjoxNzU2Nzc5ODQzLCJzY29wZSI6Im9wZW5pZCBwcm9maWxlIGVtYWlsIG9mZmxpbmVfYWNjZXNzIiwiYXpwIjoid2YwRHo3bEt1aEtOMzE5c2k3dlJFMERpUHlFeUU1SHkifQ.DJBfoOMh6vFKZfCMFC0rhKcOCZirlh9CURFEAsUnxjS2uB53Oj_FZ1WIQrlrc_8iM1iTU2My3jpKf_kjdiBzljaJW5BGW8x0-z4r5JraTRHSsgONMN_XQSaLv37KFRoeLzzcu28EVBzvNeVWB440KXgGmSJfGR3JfO2rVQ8EGCb73PcHWUiqym7LNWF1TvF_ZXaYCBsRi2TIYHmFlYK5gIqwpPjueFaTkj1inp_xFduyZcuQeBZ5JJISgMoeRhgr0Zlw9vlEhIAraLsuwyECw2IaORXiqglGRppGsPn1iXbApiy7_oP4fSV3iXxIcEfYkAhT-6qqHQTnSromNkpKEg' \\\n  -H 'content-type: application/json' \\\n  -b 'tfc-l=%7B%22k%22%3A%7B%22v%22%3A%22cks2v9cknci9ohes13hkj1404u%22%2C%22e%22%3A1818377925%7D%7D; visid_incap_2663987=Lq9eqs3sRvGu/9JHwZlil8GgrmgAAAAAQUIPAAAAAAAcnKWHAiupRunkkUbyj+g5; _gcl_au=1.1.1852800734.1756274882; utag_main_vapi_domain=kmart.com.au; visid_incap_382817=wuTPWWQ6QsGnQY8+7YCPbcGmrmgAAAAAQUIPAAAAAADF71mEVktQOiC60IcV2fE5; cgt=6; visid_incap_2524447=0VgcMCDlTDm7bFWp2Ii6/s80r2gAAAAAQUIPAAAAAACG+MjwOeSra5EqHnGpu7vD; _pin_unauth=dWlkPU9URTFNV0UzWW1ZdE1HUTRPUzAwWWpjMkxXRTFPVFl0TmpaaE5qbG1NRFZoTnpRNQ; _tt_enable_cookie=1; _ttp=01K3P6CM5Y6G18EZCV1DFKSZD3_.tt.2; _fbp=fb.2.1756312785731.162049412447674056; _scid=F73cIVPJVj1wdGUkNHA-niFCmK8I21N0_2hMpQ; _ScCbts=%5B%22601%3Bchrome.2%3A2%3A5%22%2C%22603%3Bchrome.2%3A2%3A5%22%5D; _sctr=1%7C1756303200000; optimizelySession=0; visid_incap_2632254=C3LQPJLuQi2aLQRTUst2iSGgr2gAAAAAQUIPAAAAAADdW3fNdIe+l5jIN4phHr1X; client_visitor_id=0198ea23f7d2001dd738721731db0507500e206d009dc; _gid=GA1.3.2077233320.1756701982; visid_incap_2663902=ltTf9LaIRcSi7DmAaj+FTR4ltWgAAAAAQUIPAAAAAAD399KdwQOpotk7/dsDtUNH; __adv_opt_ko_=true; nlbi_382817=c08raYlpWCDCYk8fw6DYdgAAAADozgnariRedqqjXX9ySrUY; nlbi_382817_2615371=+vTTKCPFkzTrsJQzw6DYdgAAAADVoPTMeeQAjc1/GWQBsiG4; _clck=1svfeh9%5E2%5Efyz%5E0%5E2065; incap_ses_781_2632254=xj9UC1AIMWGZE8G0aqvWCo9OtmgAAAAAZFRsWinn5uHDz76lht35eA==; nlbi_2632254_2614284=uHKHSUzkY2nPV4UzpJKu7wAAAAA0rggNRMnchZZk4L9Bqyuh; utag_main__sn=13; utag_main_ses_id=1756778127898%3Bexp-session; utag_main_db_mvkoh1nn=true%3Bexp-session; utag_main_tag_session_30=1%3Bexp-session; utag_main__ss=0%3Bexp-session; utag_main_dc_visit=12; utag_main_dc_region=ap-southeast-2%3Bexp-session; nlbi_2632254_2573261=Q9MhTLqIhGiYVK1+pJKu7wAAAADLeCzKWL4eqjWnTXyF9vz9; nlbi_2632254=O4NIOicVykIE5oAZpJKu7wAAAABG2mhKbSnCVzzXD82KS7MT; nlbi_2632254_2564416=8GC+VYwp6he4gK4xpJKu7wAAAACNvhg0C0WVZ5J8gYXf5+XI; nlbi_2663902=kwMOXLcwR0pbcVivQfDYBQAAAAA1Bz3O314Mbiasko6WOcKP; incap_ses_781_2663902=z92bX7qtxVbYM8G0aqvWCp9OtmgAAAAAkh1iwBhwWOoXw18oU3VTAw==; nlbi_2663902_2147483392=A/enJ0dGEAkC+HTUQfDYBQAAAABooZxSu/31AB8lA2qEw4EC; incap_ses_781_382817=lhOXV5rxWHeTOce0aqvWCkFRtmgAAAAAQJ2V+kx9wa0J64fJodSs3w==; _ga=GA1.1.311133609.1756274882; incap_ses_781_2524447=vAAtcYd/Yw81PMe0aqvWCkNRtmgAAAAAQNrurmhkuanLzpGFxEgySQ==; _abck=4353708A18A702A39DDD23A8ABFAFD14~-1~YAAQDeg/Fx1x4eyYAQAA3VMuCA5ovKBJpU4w9+Z5Iuwk1nQ9blog5htwgwWM/1grRUeEtwtgtGjnusCFcY4m81jK5tWu3g1FsEWk0Tp2HVcSUvs2AG45LGPvYzjGrx8nzb/DC/GubLU0XgpE/IZ5tWqpqqHRCYZm6SwIc2nYjOMuOVplgLcQMeo1rYc7NeJYG64P9mmybH2t/cWXVqbTfC2lxjDeR3i6ibd1U6IC/XKBUpzGOkizuiJ1H5zMd5lhzb0dJitEvl5VFIh0xk7r/2DiMgoJ4q+vyDsWtP9HseVnA2xjVWvJxyt1NYry4yxCwEdJZXsQ0IypqT+NL7JZ8v1Trl1qbvT/GXt8faZzN9UyPL6hxvlUGdM82NNS0q2pRFO+li8MVoqKP9iXmEGNALj5LMsZKnzK7T7A7vuUzKMl9v7nIbO8cUQ+7rFtHw==~-1~-1~-1~~; nlbi_2632254_2147483392=r4K6Xe47bEdqLJItpJKu7wAAAACrsSB6SdKjol0NN0BJtq69; _ga_V0Y9TKKHP3=GS2.1.s1756778129$o8$g1$t1756778880$j56$l0$h0; nlbi_2663987=4OMSU5O1TxH4zsBcI9WWqgAAAADQKSztp64OhoUHaECyA0gJ; incap_ses_781_2663987=ZIRfcaTTEE08DMi0aqvWCp1RtmgAAAAAZiCsuUjvtfVRMTQtn6l2RA==; incap_ses_777_2663987=B4JJIsGt2hzRKhMmd3XICp5RtmgAAAAA1TbRv1+VSlWZLiHXVNJc9g==; nlbi_2663987_2147483392=+OnNBeP+Xl7mDSCsI9WWqgAAAACC9dlp8O7AiUQPikDoNgDT; reese84=3:HCeRUegB3nDcsxDMsS1+ig==:S4XHyzQdrRB2aH7v25TDfwyAjP+SPTP5RwbznOSfe/tAutqudwnO36u0iT94XBw0ZRZ/mlVklIspWW07XziE6EtKETaC8dxhljOcNPk1Dvg/+373TZqFVdyKFDx61Hzl2EKi5LLN5l+g8Bi91wkNlr96mKkhiFOds+umCnAcpQWwcVWNyTA/ec2J8W4mNB0vLG3zss5buVXyBi+FTdsfKMfmd21+nlxjqKTC0CyjbVpLMOdq0eHoJQDm/aMW+VndQIqu/WVBUZQG8SQ+8txa60Ot9XAPazPfoPvSOG0jxJ1kugxl14jr2LXsvcvIxzJ4dbAd3fT2lngEHHOWZg8leGKh+19nNqUVc/CkS8Xjor+glAphRKRJfaH75VxxmoCgLmHVQzl9pMarBB6XjF6OVnyN8kEjE0nsUthoyxge88iX5bau7m5NiOrBSbpoARiAEalXIxNumTTCLtXhaw3KvA==:Sxi/RMAiDJyrq+5SBmOhn7rXKgbJrl0uzSGPfjKk86I=; ko_token=FFw8hKCWMWY273QCAT6C%2F5Umqmtp%2FxGXvyceOBg2UdTFWzJsjgPSz6KQ17hLKLd1kcwhFmK5ZOkRXtWz%2Fbmqkh3xcx6T7vXiwrjJjWpeOMTq5A12lxCnUQE8alXOUJTv2GK10xcuErslbymNCNhWJx6%2FZj32pQl8qfbiO%2FxCp2gu3cMB1GT%2FQYXu6zkmoqFbSrMII5Vs5USoCkYFBrJeM9g62RXx1ldeFpf1loSma60TihKSH2bem1mB%2FSC6QKDklfoEiwfrEtkE%2FIGv3OkM5z8TbS7dmkB3JEdstpsclP%2FJQr7fKGwQQz%2FZilZ9ySwn%2BFYqJMcmP0Q%2B%2FI5ylTCHyUH87%2BKooh%2Bi8%2BoWZ4mQxH%2BECC7JOVnJqwcf8a3JqwYQDkaifW98XXlRRydpIiK0Godgdsal0HwIH1eXPXyQz503D8C%2BsktkCH69R8zjgDi4SjRCXTJFeArQ9mZInK5vgAx3lB1LEU88uJPm1etOT1yifBtANnOabUunuNhvFimJmAux7G1rBE9hXj5g66AncS5PyV6W8%2Bu%2FuCPiGbIlDMGshG%2FB84SEdY7gcFowY%2BEeURSI0zGAjOr9emYybMsca9dNhU9Xfip8prF6YBM3Xvt9HkOV1spUCWnmZFE0q%2FZisS0U9GFBaIGVFe9x29GVmO6LOFbSB%2BWns9oGoTW7xeKvGm2ztsJ6bgdmTS0ZxL5GwZ%2FFvG3HQ%2FoF%2Fj6rqOCwrv61w56cnP2wNXxGgjEPN1vo0cE3SQPvxzKuVw0vwvlOhzn3oEc%2FKECIRi1dUn7i1IcCK3dUoafVH83ZCiXu%2BaM1o1tW4wRCC0F6l3kON8T3z0SvyaLVLLatyiTEYFgAS5h5FerxETE%2B9KBZvAJ2KrZiTx6TceOOTnABifj863xNLT4jyFywvwkBmGpwL3FVkZ3XEVRni248VfykOZZRnnJke6EM4c0r4rFCaVc1DDHSENcAJHqoK8AdlllF4o%2Bc9mFTL5iCVwIgmSojAyrFrv3LkykIjNc%2FIoF6rYsw%2B0t9%2Fj6iFn8MdqPxkhQrHmo1Oazfch1HBh%2FQyMxXudv44pRjqqZ1JijZtQo77LNvxFzg1ttNeUK3MBu8I%2FgyQPFZWZ14cuiABMXj0RLg9sEtqruhbpcpcjqZ%2F9FjW%2FsoxQZwLoyJMpxXTSXN2Jp9DkJQCf%2Fbk6p4K%2BV2pXKq4ehdWpvyGHrc2ry%2BT6YmCbp%2BvEAYueypIrDiv1ecr4OgePIL4cB4Lcdt; ko_token_added=true; utag_main_changed_as_id=0199082f5b4e00132b2a437b604205075003e06d009dc; utag_main_dcsyncran=; utag_main_last_logged_in_hashed_email=2746b18c4175d59f28bfa628c1fc112bad1a83dbe07a9cca9204f0f9acf1468a; utag_main_v_id=0199082f5b4e00132b2a437b604205075003e06d009dc; ab.storage.deviceId.7a07460e-32c2-420e-979b-3ad707d14b33=%7B%22g%22%3A%22e6bfdcf3-f7aa-b362-906c-3302a34bf989%22%2C%22c%22%3A1746589235226%2C%22l%22%3A1756778945840%7D; ab.storage.userId.7a07460e-32c2-420e-979b-3ad707d14b33=%7B%22g%22%3A%22abfd68626d659451d7e5b25354c0f734d39b25ad74ca3cee77b311d432cc9a27%22%2C%22c%22%3A1756778945839%2C%22l%22%3A1756778945841%7D; tealium_visitor_id=0199082f5b4e00132b2a437b604205075003e06d009dc; _scid_r=HL3cIVPJVj1wdGUkNHA-niFCmK8I21N0_2hN5Q; ab.storage.sessionId.7a07460e-32c2-420e-979b-3ad707d14b33=%7B%22g%22%3A%2271d192ec-370e-f6b7-6301-8e4bc84fa338%22%2C%22e%22%3A1756780763436%2C%22c%22%3A1756778945839%2C%22l%22%3A1756778963436%7D; _uetsid=11c38d4086d911f0a987617dede2cee4; _uetvid=092a29a02af511f09172793d952c52b6|2va5av|1747613167687|1|1|bat.bing.com/p/conversions/c/i; ttcsid=1756778130764::zfZ1_uieP8HFanlRKFXE.12.1756778963758; ttcsid_C40FTM1U9OSI9F1LJC9G=1756778130763::GeAOWj5LWvNk3UJHkt5C.11.1756778964034; _clsk=1o5u3xb%5E1756778964634%5E13%5E0%5Ev.clarity.ms%2Fcollect; incap_ses_777_382817=7oKNdrOhkW8T9BYmd3XICiBTtmgAAAAAyGewMVjOcHt5u4vnppRFIQ==; nlbi_382817_2147483392=EqTYZasq6VUAbhxow6DYdgAAAADpTTH4VmxxN2XA/y24jAjz; utag_main__pn=18%3Bexp-session; nlbi_2524447=e/iBeOr4Ikmg2eBijNNIKAAAAABq7uPsbINeZKl96+fYYdwr; incap_ses_777_2524447=sc7tYryBlkcw+RYmd3XICiNTtmgAAAAAejNgDoI2LeToSwsArTlCEw==; _ga_CXF7KQVQ46=GS2.1.s1756777533$o12$g1$t1756779299$j56$l0$h0; utag_main__se=51%3Bexp-session; utag_main__st=1756781099454%3Bexp-session; utag_main_dc_event=33%3Bexp-session' \\\n  -H 'newrelic: eyJ2IjpbMCwxXSwiZCI6eyJ0eSI6IkJyb3dzZXIiLCJhYyI6IjEwNjUxNTEiLCJhcCI6IjE1NjQ5NTAyMDAiLCJpZCI6IjNmZDgzNzk3MTYzZGI3MzkiLCJ0ciI6IjVmYzdhNWZhNDc5MGRhMmU1ZmYzNTA2YjQxNjJlN2FkIiwidGkiOjE3NTY3NzkzMDAwNzcsInRrIjoiMTY0NzQ1MSJ9fQ==' \\\n  -H 'origin: https://www.kmart.com.au' \\\n  -H 'priority: u=1, i' \\\n  -H 'referer: https://www.kmart.com.au/' \\\n  -H 'sec-ch-ua: \"Not;A=Brand\";v=\"99\", \"Google Chrome\";v=\"139\", \"Chromium\";v=\"139\"' \\\n  -H 'sec-ch-ua-mobile: ?0' \\\n  -H 'sec-ch-ua-platform: \"macOS\"' \\\n  -H 'sec-fetch-dest: empty' \\\n  -H 'sec-fetch-mode: cors' \\\n  -H 'sec-fetch-site: same-site' \\\n  -H 'traceparent: 00-5fc7a5fa4790da2e5ff3506b4162e7ad-3fd83797163db739-01' \\\n  -H 'tracestate: 1647451@nr=0-1-1065151-1564950200-3fd83797163db739----1756779300077' \\\n  -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36' \\\n  --data-raw $'{\"operationName\":\"createMyShoppingList\",\"variables\":{\"quantity\":1,\"sku\":\"41541531\",\"version\":2678},\"query\":\"mutation createMyShoppingList($quantity: Int\\u0021, $sku: String\\u0021, $version: Long) {\\\\n  addItemToShoppingList(version: $version, sku: $sku, quantity: $quantity) {\\\\n    lineItems {\\\\n      id\\\\n      quantity\\\\n      variant {\\\\n        id\\\\n        sku\\\\n        __typename\\\\n      }\\\\n      __typename\\\\n    }\\\\n    id\\\\n    version\\\\n    __typename\\\\n  }\\\\n}\\\\n\"}'"
+			},
+			"response": []
+		},
+		{
+			"name": "CommerceTool-Search",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "accept",
+						"value": "application/json"
+					},
+					{
+						"key": "accept-language",
+						"value": "en-GB,en-US;q=0.9,en;q=0.8"
+					},
+					{
+						"key": "content-type",
+						"value": "application/json"
+					},
+					{
+						"key": "origin",
+						"value": "https://mc.australia-southeast1.gcp.commercetools.com"
+					},
+					{
+						"key": "priority",
+						"value": "u=1, i"
+					},
+					{
+						"key": "sec-ch-ua",
+						"value": "\"Not;A=Brand\";v=\"99\", \"Google Chrome\";v=\"139\", \"Chromium\";v=\"139\""
+					},
+					{
+						"key": "sec-ch-ua-mobile",
+						"value": "?0"
+					},
+					{
+						"key": "sec-ch-ua-platform",
+						"value": "\"macOS\""
+					},
+					{
+						"key": "sec-fetch-dest",
+						"value": "empty"
+					},
+					{
+						"key": "sec-fetch-mode",
+						"value": "cors"
+					},
+					{
+						"key": "sec-fetch-site",
+						"value": "same-site"
+					},
+					{
+						"key": "user-agent",
+						"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"
+					},
+					{
+						"key": "x-application-id",
+						"value": "__internal:products"
+					},
+					{
+						"key": "x-correlation-id",
+						"value": "mc/kmart-production/941dc8ba-fd2b-4be3-a375-2d5ef173394d/d5763090-e46d-4759-80da-dd76d4ca703f"
+					},
+					{
+						"key": "x-project-key",
+						"value": "kmart-production"
+					},
+					{
+						"key": "x-user-agent",
+						"value": "@commercetools/sdk-client Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 products/sdk/24.5.0 (+https://git.io/fjuyC; +mc@commercetools.com)"
+					},
+					{
+						"key": "Cookie",
+						"value": "mcAccessToken=eyJhbGciOiJSUzI1NiIsImtpZCI6IkNPMEZXcktIVGNMSTBndDluTE5ZSlF2bENvLURHbWFMVmx0RTR1Q2FOb1EifQ.eyJleHAiOjE3NTkzNzIwMDUsInN1YiI6Ijk0MWRjOGJhLWZkMmItNGJlMy1hMzc1LTJkNWVmMTczMzk0ZCIsImlzcyI6Imh0dHBzOi8vbWMtYXBpLmF1c3RyYWxpYS1zb3V0aGVhc3QxLmdjcC5jb21tZXJjZXRvb2xzLmNvbSIsImF1ZCI6Imh0dHBzOi8vbWMuYXVzdHJhbGlhLXNvdXRoZWFzdDEuZ2NwLmNvbW1lcmNldG9vbHMuY29tIiwidG9rZW4iOiJleUpoYkdjaU9pSlNVMEV0VDBGRlVDMHlOVFlpTENKbGJtTWlPaUpCTWpVMlIwTk5JbjAuTllKYXRGbkc5ZkpMaU9Ra09faFZlcldvRF9WSjViQ0tvZWNYT3U4MHF6c0RJaXFTTVdndE5tVk1DNU5EVUlfRVZjbWpkV25zcmRrNGZWT1dTREx4S05obFhESzR2T2NTSXpJaHBrRUo4SHg1U0xSeUtBck1CZmNsRHJjTEh4VUo4Mk1hQjJpSWptN0dJaGJyUnpXMmZ6aHNBUFhmVWZqamU2TklTNUdGLUZ4aml2SDJldXV6Q280QUVJbzdydzh3bFdNa3c2TXZLTE5nS0JpbEk1Ynl0bE1UcXZ5SXJQWE1ZbHR5RXlBZXJQR1hTU2RCMUpOZVNSRUZUMGVod3B5TDE3RllpQ3ZacVpTRjB5eFFmWmhNQ3hWbU0xMzRsb1NuR25LY0NlWloyTWxHSGVfdkdPTUlWNXhFUjdXMHhFNEoxOXZEbURaQ3FHLUQxaExlRGtRRUp3LmJWOEFTaUZDcm1fdHJWdzcuT2NMY2thQ1ludDRBeUszVXkzcDlPTmtRNktYMDN3Z0dyWFhYX2JOMmlaYy4xVUdNeXdkSEJYT2VoanY1dFBpb01RIiwidG9rZW5Db250ZXh0IjoiZXlKaGJHY2lPaUpTVTBFdFQwRkZVQzB5TlRZaUxDSmxibU1pT2lKQk1qVTJSME5OSW4wLmJBVzVVeDJHdHdJZVVUTWR0YVh0TGhRY3JVM1UzZHpFaXRSUDZxRldkcUltdEZVV0Q0eXUyZTJ3SXo2MEJTTXg5MG1GdVBBbXVwbW1WYTBfQ2xzSm9CMkFwRW44V2p4QzVIN2lCc29DR3VjWF9fTDBBMm1Gdm1fQjAzdGhLbk5tYTJKN0hiU1FaUjFHa3lXWnhuOXNlRkZYdkJDSVNwZTNQSUhVTFVCVzhGa0RGeTNtLVR2UDJCd2hOZmxQS3U4VGdJNFhNQl9NbTdnak9TRHZ0eUtSdG9pejlRdkV1OUdsWUhXalBDVkJ2TkNGUjNicjhoUEpBNl91NE1uRjRNUXQtVWJzUFhQZXNKTE1IV2NhVWFNQjRNS3BfeENPVzgxbU9oajJIZG9ZTkRpQjhra0VwRFZTWHYyWU5SeVE4a1ZVX1pWOHphVjNaVFhVYWIxSFJzdTlsQS5DTS00akpHMlo4c0xGMThZLl8xbDhHcXpnLWdxdm9GVFlJSU5OYU5BZE1UTmFwT2JoZkZ6X3V4RmxFVUlPMUpqVDVaV2JYRDI2bVVaMDJrdHZxS2NGVTN3dHFJc3FNdzNuclk4UWpnd0xrc1JxY05WMF9od0g5S21vaDl0X2R1eVBLaGoteHM4MW5nLlJUajN4Mnl2LVFSUFQyeWVuQkFDYlEiLCJzc29Db250ZXh0IjoiZXlKaGJHY2lPaUpTVTBFdFQwRkZVQzB5TlRZaUxDSmxibU1pT2lKQk1qVTJSME5OSW4wLlhxTHR2WDJxdWZCVlZ0c2xRVXRodld0VlFKZVlDS3R5S1pHMGZJZl9KUGhzRDVUaXYyZEU2Q3ZCcmlNSm5DcnhCNXh3d1dWSGZXWEtnTmo1V1RFdlNUa2RNcjRYdWt2N0pBR09Hcjk0WmVVT2w1ZVdQd1B6RHFzYjJKdEJnejEtX3U3eHpldE5ITjQ2RDRIYmEtR1hRZGhyY1g3WWdEeE54SnZTY2xkNzl5NDNTUlI2Yi1rZzJqQTg5aGJfcTE5RURuNmtCc0lvVERHOHRMdDJfaUFpLUlKNVFkc1JwOS15bm5SU0VrRGxTams2b1loVnR3WXlUeThUcjdMbmtDaGh0OEtEZEpHMWVoX1pSVk92S1pYdTV0a3JjOTFCdC1qb21COHlNYUdaYWRPUF94VkszLTlDeUJaMWltU0hKUXQ5VG40cXBnU1JGR3BOWmY3UnhBaGhGUS4zWXVlYW5PcXJfVVlFSUJELmNnVVdHMDk1dWhEbTJjSFFCVE1SYlRhbnZHbm40cXg3bHJXX01KZ2c5b2ctY1Z3UjRmN2dNYUp5WmZHZWhfazZNMXFLQ1VpclUtQ0lmT19WYTZwUXRzazZWbFBjQlRya2paREMxd2o1TUVuTzRqa2YxaGRiaWtYd29hOFAzQllMbmQybWRsV3NYYXdYX0xWUUJ4dWJrZlZ3eXBHbXJ5TER2YXZDWXMwRkVIOEpiNFVnYUpzSU5XV2hGVVNkMzk1UWhnWFBpMzg3WEZ1aEQzbDJSSzVzVnJjc3dtLU5Vb3N3QTg2M1JFUTF5U29vQmk1N1ZMN2hXbmNqOEJNbE9jY2VZTWw1ZGNrZEg2WEVqU25yTldCdVNKWTdqbUlWLUk3RkV6OXZOVFVCdF9RNVhiRGxxTWF4Tzcwd1Q3TGhRak1DbE9BdVRUT2NLRmRpYTRCQjFFM2dvcXdGc1U0LW4wNFJ3eEowckFpVGtvLUtlbDEwOTN3VnlmWTJaQjR5MlVGWHV4ZkxCSXRxNTR4VkpmX2hJbVRqZWp6RW5mc29qZFhyeXJoUmIzYUk1MEFjT1NSczNIRlZQUXVOSWdLRTlJN3R4MC16SkRqTmFVMktHcGN3SVRZanNtYk5aUFNEd1Flb2NQSERJNFN2d2UwU2RPMk9kOHZjX3VFalJQdk5MQWI2c1lnUGRDaVlmTVo3ekdxX0Y1cmFPa1hTMThZcURXcmMxa001b2VqMW4wbDFqWk9Oa2pwQTA5eW9QMU5LbmxRZ08xNXpBTkZ6cThEbzhHXzllQjJOcVlpekFxVS41WHFIdFo0d1Fobmd5ejVQTWVHS0xBIiwiaHR0cHM6Ly9tYy1hcGkuYXVzdHJhbGlhLXNvdXRoZWFzdDEuZ2NwLmNvbW1lcmNldG9vbHMuY29tL2NsYWltcy9sb2dpbl9zdHJhdGVneSI6InNzbyJ9.WVDOVXczF9u0rXUousWYsmrH0exLiBwJPETa8sNqO0hgItI-h6XkxUNrfCesffoL8Fc6QZ9F2nkpCPblWdVumHHaEoOh7cCq5kzjtDdyu6odkzRTIyFCXOoXLB4PKSbuNRqMsTwIxdQyR8ngrvkKnQ9TGywJkd8AqG2UVMxE3hpGLn92QguWDMxNMBbhAsAQPj-vuASqvsOBOGqCzjVpXMom5pKmRnK9tYD9q7cdKIoDC4-QWBA_Zt8WesO9Q-tj8Zva7DZMzLIFrwzWsjFtP7aIxPSVfFjKRR2UAdiN27_4SYMG6i1M3dnChiXID5bVeD6bnmXbTa-vuEK9NpoyJg"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"limit\": 20,\n    \"offset\": 0,\n    \"query\": {\n        \"or\": [\n            {\n                \"fullText\": {\n                    \"field\": \"name\",\n                    \"language\": \"en-AU\",\n                    \"value\": \"43494385\"\n                }\n            },\n            {\n                \"fullText\": {\n                    \"field\": \"description\",\n                    \"language\": \"en-AU\",\n                    \"value\": \"43494385\"\n                }\n            },\n            {\n                \"fullText\": {\n                    \"field\": \"slug\",\n                    \"language\": \"en-AU\",\n                    \"value\": \"43494385\"\n                }\n            }\n        ]\n    },\n    \"enableTiebreaker\": false\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://mc-api.australia-southeast1.gcp.commercetools.com/proxy/pim-search/kmart-production/search/products",
+					"protocol": "https",
+					"host": [
+						"mc-api",
+						"australia-southeast1",
+						"gcp",
+						"commercetools",
+						"com"
+					],
+					"path": [
+						"proxy",
+						"pim-search",
+						"kmart-production",
+						"search",
+						"products"
+					]
+				},
+				"description": "Generated from cURL: curl 'https://mc-api.australia-southeast1.gcp.commercetools.com/proxy/pim-search/kmart-production/search/products' \\\n  -H 'accept: application/json' \\\n  -H 'accept-language: en-GB,en-US;q=0.9,en;q=0.8' \\\n  -H 'content-type: application/json' \\\n  -b 'mcAccessToken=eyJhbGciOiJSUzI1NiIsImtpZCI6IkNPMEZXcktIVGNMSTBndDluTE5ZSlF2bENvLURHbWFMVmx0RTR1Q2FOb1EifQ.eyJleHAiOjE3NTkzNzIwMDUsInN1YiI6Ijk0MWRjOGJhLWZkMmItNGJlMy1hMzc1LTJkNWVmMTczMzk0ZCIsImlzcyI6Imh0dHBzOi8vbWMtYXBpLmF1c3RyYWxpYS1zb3V0aGVhc3QxLmdjcC5jb21tZXJjZXRvb2xzLmNvbSIsImF1ZCI6Imh0dHBzOi8vbWMuYXVzdHJhbGlhLXNvdXRoZWFzdDEuZ2NwLmNvbW1lcmNldG9vbHMuY29tIiwidG9rZW4iOiJleUpoYkdjaU9pSlNVMEV0VDBGRlVDMHlOVFlpTENKbGJtTWlPaUpCTWpVMlIwTk5JbjAuTllKYXRGbkc5ZkpMaU9Ra09faFZlcldvRF9WSjViQ0tvZWNYT3U4MHF6c0RJaXFTTVdndE5tVk1DNU5EVUlfRVZjbWpkV25zcmRrNGZWT1dTREx4S05obFhESzR2T2NTSXpJaHBrRUo4SHg1U0xSeUtBck1CZmNsRHJjTEh4VUo4Mk1hQjJpSWptN0dJaGJyUnpXMmZ6aHNBUFhmVWZqamU2TklTNUdGLUZ4aml2SDJldXV6Q280QUVJbzdydzh3bFdNa3c2TXZLTE5nS0JpbEk1Ynl0bE1UcXZ5SXJQWE1ZbHR5RXlBZXJQR1hTU2RCMUpOZVNSRUZUMGVod3B5TDE3RllpQ3ZacVpTRjB5eFFmWmhNQ3hWbU0xMzRsb1NuR25LY0NlWloyTWxHSGVfdkdPTUlWNXhFUjdXMHhFNEoxOXZEbURaQ3FHLUQxaExlRGtRRUp3LmJWOEFTaUZDcm1fdHJWdzcuT2NMY2thQ1ludDRBeUszVXkzcDlPTmtRNktYMDN3Z0dyWFhYX2JOMmlaYy4xVUdNeXdkSEJYT2VoanY1dFBpb01RIiwidG9rZW5Db250ZXh0IjoiZXlKaGJHY2lPaUpTVTBFdFQwRkZVQzB5TlRZaUxDSmxibU1pT2lKQk1qVTJSME5OSW4wLmJBVzVVeDJHdHdJZVVUTWR0YVh0TGhRY3JVM1UzZHpFaXRSUDZxRldkcUltdEZVV0Q0eXUyZTJ3SXo2MEJTTXg5MG1GdVBBbXVwbW1WYTBfQ2xzSm9CMkFwRW44V2p4QzVIN2lCc29DR3VjWF9fTDBBMm1Gdm1fQjAzdGhLbk5tYTJKN0hiU1FaUjFHa3lXWnhuOXNlRkZYdkJDSVNwZTNQSUhVTFVCVzhGa0RGeTNtLVR2UDJCd2hOZmxQS3U4VGdJNFhNQl9NbTdnak9TRHZ0eUtSdG9pejlRdkV1OUdsWUhXalBDVkJ2TkNGUjNicjhoUEpBNl91NE1uRjRNUXQtVWJzUFhQZXNKTE1IV2NhVWFNQjRNS3BfeENPVzgxbU9oajJIZG9ZTkRpQjhra0VwRFZTWHYyWU5SeVE4a1ZVX1pWOHphVjNaVFhVYWIxSFJzdTlsQS5DTS00akpHMlo4c0xGMThZLl8xbDhHcXpnLWdxdm9GVFlJSU5OYU5BZE1UTmFwT2JoZkZ6X3V4RmxFVUlPMUpqVDVaV2JYRDI2bVVaMDJrdHZxS2NGVTN3dHFJc3FNdzNuclk4UWpnd0xrc1JxY05WMF9od0g5S21vaDl0X2R1eVBLaGoteHM4MW5nLlJUajN4Mnl2LVFSUFQyeWVuQkFDYlEiLCJzc29Db250ZXh0IjoiZXlKaGJHY2lPaUpTVTBFdFQwRkZVQzB5TlRZaUxDSmxibU1pT2lKQk1qVTJSME5OSW4wLlhxTHR2WDJxdWZCVlZ0c2xRVXRodld0VlFKZVlDS3R5S1pHMGZJZl9KUGhzRDVUaXYyZEU2Q3ZCcmlNSm5DcnhCNXh3d1dWSGZXWEtnTmo1V1RFdlNUa2RNcjRYdWt2N0pBR09Hcjk0WmVVT2w1ZVdQd1B6RHFzYjJKdEJnejEtX3U3eHpldE5ITjQ2RDRIYmEtR1hRZGhyY1g3WWdEeE54SnZTY2xkNzl5NDNTUlI2Yi1rZzJqQTg5aGJfcTE5RURuNmtCc0lvVERHOHRMdDJfaUFpLUlKNVFkc1JwOS15bm5SU0VrRGxTams2b1loVnR3WXlUeThUcjdMbmtDaGh0OEtEZEpHMWVoX1pSVk92S1pYdTV0a3JjOTFCdC1qb21COHlNYUdaYWRPUF94VkszLTlDeUJaMWltU0hKUXQ5VG40cXBnU1JGR3BOWmY3UnhBaGhGUS4zWXVlYW5PcXJfVVlFSUJELmNnVVdHMDk1dWhEbTJjSFFCVE1SYlRhbnZHbm40cXg3bHJXX01KZ2c5b2ctY1Z3UjRmN2dNYUp5WmZHZWhfazZNMXFLQ1VpclUtQ0lmT19WYTZwUXRzazZWbFBjQlRya2paREMxd2o1TUVuTzRqa2YxaGRiaWtYd29hOFAzQllMbmQybWRsV3NYYXdYX0xWUUJ4dWJrZlZ3eXBHbXJ5TER2YXZDWXMwRkVIOEpiNFVnYUpzSU5XV2hGVVNkMzk1UWhnWFBpMzg3WEZ1aEQzbDJSSzVzVnJjc3dtLU5Vb3N3QTg2M1JFUTF5U29vQmk1N1ZMN2hXbmNqOEJNbE9jY2VZTWw1ZGNrZEg2WEVqU25yTldCdVNKWTdqbUlWLUk3RkV6OXZOVFVCdF9RNVhiRGxxTWF4Tzcwd1Q3TGhRak1DbE9BdVRUT2NLRmRpYTRCQjFFM2dvcXdGc1U0LW4wNFJ3eEowckFpVGtvLUtlbDEwOTN3VnlmWTJaQjR5MlVGWHV4ZkxCSXRxNTR4VkpmX2hJbVRqZWp6RW5mc29qZFhyeXJoUmIzYUk1MEFjT1NSczNIRlZQUXVOSWdLRTlJN3R4MC16SkRqTmFVMktHcGN3SVRZanNtYk5aUFNEd1Flb2NQSERJNFN2d2UwU2RPMk9kOHZjX3VFalJQdk5MQWI2c1lnUGRDaVlmTVo3ekdxX0Y1cmFPa1hTMThZcURXcmMxa001b2VqMW4wbDFqWk9Oa2pwQTA5eW9QMU5LbmxRZ08xNXpBTkZ6cThEbzhHXzllQjJOcVlpekFxVS41WHFIdFo0d1Fobmd5ejVQTWVHS0xBIiwiaHR0cHM6Ly9tYy1hcGkuYXVzdHJhbGlhLXNvdXRoZWFzdDEuZ2NwLmNvbW1lcmNldG9vbHMuY29tL2NsYWltcy9sb2dpbl9zdHJhdGVneSI6InNzbyJ9.WVDOVXczF9u0rXUousWYsmrH0exLiBwJPETa8sNqO0hgItI-h6XkxUNrfCesffoL8Fc6QZ9F2nkpCPblWdVumHHaEoOh7cCq5kzjtDdyu6odkzRTIyFCXOoXLB4PKSbuNRqMsTwIxdQyR8ngrvkKnQ9TGywJkd8AqG2UVMxE3hpGLn92QguWDMxNMBbhAsAQPj-vuASqvsOBOGqCzjVpXMom5pKmRnK9tYD9q7cdKIoDC4-QWBA_Zt8WesO9Q-tj8Zva7DZMzLIFrwzWsjFtP7aIxPSVfFjKRR2UAdiN27_4SYMG6i1M3dnChiXID5bVeD6bnmXbTa-vuEK9NpoyJg' \\\n  -H 'origin: https://mc.australia-southeast1.gcp.commercetools.com' \\\n  -H 'priority: u=1, i' \\\n  -H 'sec-ch-ua: \"Not;A=Brand\";v=\"99\", \"Google Chrome\";v=\"139\", \"Chromium\";v=\"139\"' \\\n  -H 'sec-ch-ua-mobile: ?0' \\\n  -H 'sec-ch-ua-platform: \"macOS\"' \\\n  -H 'sec-fetch-dest: empty' \\\n  -H 'sec-fetch-mode: cors' \\\n  -H 'sec-fetch-site: same-site' \\\n  -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36' \\\n  -H 'x-application-id: __internal:products' \\\n  -H 'x-correlation-id: mc/kmart-production/941dc8ba-fd2b-4be3-a375-2d5ef173394d/d5763090-e46d-4759-80da-dd76d4ca703f' \\\n  -H 'x-project-key: kmart-production' \\\n  -H 'x-user-agent: @commercetools/sdk-client Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 products/sdk/24.5.0 (+https://git.io/fjuyC; +mc@commercetools.com)' \\\n  --data-raw '{\"limit\":20,\"offset\":0,\"query\":{\"or\":[{\"fullText\":{\"field\":\"name\",\"language\":\"en-AU\",\"value\":\"43494385\"}},{\"fullText\":{\"field\":\"description\",\"language\":\"en-AU\",\"value\":\"43494385\"}},{\"fullText\":{\"field\":\"slug\",\"language\":\"en-AU\",\"value\":\"43494385\"}},{\"prefix\":{\"field\":\"key\",\"language\":\"en-AU\",\"value\":\"43494385\",\"caseInsensitive\":true}},{\"prefix\":{\"field\":\"variants.sku\",\"value\":\"43494385\",\"caseInsensitive\":true}},{\"prefix\":{\"field\":\"variants.key\",\"value\":\"43494385\",\"caseInsensitive\":true}}]},\"enableTiebreaker\":false}'"
+			},
+			"response": []
+		}
+	]
+}

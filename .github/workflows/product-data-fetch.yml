@@ -1,0 +1,526 @@
+name: Product Data Fetch and Export
+
+on:
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    # Allow manual triggering
+    inputs:
+      max_products:
+        description: 'Maximum number of products to process (default: 100)'
+        required: false
+        default: '100'
+        type: string
+      region_filter:
+        description: 'Filter by region (AU, NZ, or ALL)'
+        required: false
+        default: 'ALL'
+        type: choice
+        options:
+          - ALL
+          - AU
+          - NZ
+
+jobs:
+  fetch-product-data:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pandas requests sqlite3 python-dotenv
+        
+    - name: Create workflow script
+      run: |
+        cat > workflow_script.py << 'EOF'
+        #!/usr/bin/env python3
+        """
+        GitHub Actions Workflow Script
+        Fetches product data from database and CommerceTool API
+        """
+        
+        import os
+        import sys
+        import sqlite3
+        import json
+        import requests
+        import pandas as pd
+        import logging
+        from datetime import datetime
+        from typing import List, Dict, Optional
+        import time
+        
+        # Configure logging
+        logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+        logger = logging.getLogger(__name__)
+        
+        class WorkflowProductFetcher:
+            def __init__(self):
+                self.db_path = "product_availability.db"
+                self.base_url = "https://mc-api.australia-southeast1.gcp.commercetools.com"
+                self.search_endpoint = f"{self.base_url}/proxy/pim-search/kmart-production/search/products"
+                self.graphql_endpoint = f"{self.base_url}/graphql"
+                
+                # Get secrets from environment
+                self.auth_token = os.getenv('COMMERCETOOL_AUTH_TOKEN')
+                self.api_key = os.getenv('COMMERCETOOL_API_KEY')
+                self.project_key = os.getenv('COMMERCETOOL_PROJECT_KEY', 'kmart-production')
+                
+                if not self.auth_token:
+                    logger.warning("COMMERCETOOL_AUTH_TOKEN not found in environment")
+                
+                # Headers for API requests
+                self.search_headers = {
+                    "accept": "application/json",
+                    "accept-language": "en-GB,en-US;q=0.9,en;q=0.8",
+                    "content-type": "application/json",
+                    "authorization": f"Bearer {self.auth_token}" if self.auth_token else "",
+                    "x-application-id": "__internal:products",
+                    "x-project-key": self.project_key,
+                    "x-user-agent": "@commercetools/sdk-client GitHub-Actions-Workflow"
+                }
+                
+                self.graphql_headers = {
+                    "accept": "application/json",
+                    "accept-language": "en-GB,en-US;q=0.9,en;q=0.8",
+                    "content-type": "application/json",
+                    "authorization": f"Bearer {self.auth_token}" if self.auth_token else "",
+                    "x-application-id": "__internal:products",
+                    "x-graphql-operation-name": "GeneralInfoTabQuery",
+                    "x-graphql-target": "ctp",
+                    "x-project-key": self.project_key,
+                    "x-user-agent": "apollo-client GitHub-Actions-Workflow"
+                }
+        
+            def get_products_from_database(self, region_filter: str = "ALL", max_products: int = 100) -> List[Dict]:
+                """Get products from database with optional filtering."""
+                try:
+                    conn = sqlite3.connect(self.db_path)
+                    cursor = conn.cursor()
+                    
+                    if region_filter == "ALL":
+                        query = 'SELECT ID, SKU, DETAILS FROM "products-in-links" LIMIT ?'
+                        cursor.execute(query, (max_products,))
+                    else:
+                        query = '''
+                            SELECT ID, SKU, DETAILS 
+                            FROM "products-in-links" 
+                            WHERE json_extract(DETAILS, '$.region') = ? 
+                            LIMIT ?
+                        '''
+                        cursor.execute(query, (region_filter, max_products))
+                    
+                    rows = cursor.fetchall()
+                    conn.close()
+                    
+                    products = []
+                    for row in rows:
+                        try:
+                            details = json.loads(row[2]) if row[2] else {}
+                        except json.JSONDecodeError:
+                            details = {"error": "Invalid JSON data"}
+                        
+                        products.append({
+                            "id": row[0],
+                            "sku": row[1],
+                            "details": details
+                        })
+                    
+                    logger.info(f"Retrieved {len(products)} products from database")
+                    return products
+                    
+                except Exception as e:
+                    logger.error(f"Error retrieving products from database: {e}")
+                    return []
+        
+            def search_product_by_sku(self, sku: str) -> Optional[str]:
+                """Search for product ID by SKU using the search API."""
+                payload = {
+                    "query": {
+                        "fullText": {
+                            "field": "variants.sku",
+                            "value": sku
+                        }
+                    },
+                    "limit": 1
+                }
+                
+                try:
+                    response = requests.post(
+                        self.search_endpoint,
+                        headers=self.search_headers,
+                        json=payload,
+                        timeout=30
+                    )
+                    
+                    if response.status_code == 200:
+                        data = response.json()
+                        if data.get('results') and len(data['results']) > 0:
+                            return data['results'][0].get('id')
+                    else:
+                        logger.warning(f"Search API returned status {response.status_code} for SKU {sku}")
+                    
+                except Exception as e:
+                    logger.error(f"Error searching for SKU {sku}: {e}")
+                
+                return None
+        
+            def get_product_details(self, product_id: str) -> Optional[Dict]:
+                """Get detailed product information using GraphQL API."""
+                graphql_query = """
+                query GeneralInfoTabQuery($productId: String!, $isProductAttributeEnabled: Boolean!, $locale: Locale!, $enableLocaleLabelOptimization: Boolean!) {
+                  product(id: $productId) {
+                    id
+                    key
+                    version
+                    createdAt
+                    lastModifiedAt
+                    productType {
+                      name
+                      key
+                    }
+                    masterData {
+                      staged {
+                        nameAllLocales {
+                          locale
+                          value
+                        }
+                        descriptionAllLocales {
+                          locale
+                          value
+                        }
+                        masterVariant {
+                          id
+                          sku
+                          key
+                          attributesRaw @include(if: $isProductAttributeEnabled) {
+                            name
+                            value
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+                """
+                
+                variables = {
+                    "productId": product_id,
+                    "isProductAttributeEnabled": True,
+                    "locale": "en-AU",
+                    "enableLocaleLabelOptimization": False
+                }
+                
+                payload = {
+                    "operationName": "GeneralInfoTabQuery",
+                    "variables": variables,
+                    "query": graphql_query
+                }
+                
+                try:
+                    response = requests.post(
+                        self.graphql_endpoint,
+                        headers=self.graphql_headers,
+                        json=payload,
+                        timeout=30
+                    )
+                    
+                    if response.status_code == 200:
+                        return response.json()
+                    else:
+                        logger.warning(f"GraphQL API returned status {response.status_code} for product ID {product_id}")
+                    
+                except Exception as e:
+                    logger.error(f"Error getting product details for {product_id}: {e}")
+                
+                return None
+        
+            def process_products(self, region_filter: str = "ALL", max_products: int = 100) -> List[Dict]:
+                """Process products and fetch their details."""
+                products = self.get_products_from_database(region_filter, max_products)
+                results = []
+                
+                for i, product in enumerate(products, 1):
+                    sku = product['sku']
+                    logger.info(f"Processing product {i}/{len(products)}: SKU {sku}")
+                    
+                    # Search for product ID
+                    product_id = self.search_product_by_sku(sku)
+                    
+                    if not product_id:
+                        logger.warning(f"Could not find product ID for SKU {sku}")
+                        results.append({
+                            "SKU": sku,
+                            "ID": "NOT_FOUND",
+                            "DETAIL": "Product ID not found via search API"
+                        })
+                        continue
+                    
+                    # Get product details
+                    details = self.get_product_details(product_id)
+                    
+                    if details and details.get('data', {}).get('product'):
+                        product_data = details['data']['product']
+                        
+                        # Extract key information
+                        name = "Unknown"
+                        if product_data.get('masterData', {}).get('staged', {}).get('nameAllLocales'):
+                            name_locales = product_data['masterData']['staged']['nameAllLocales']
+                            for locale_data in name_locales:
+                                if locale_data.get('locale') == 'en-AU':
+                                    name = locale_data.get('value', 'Unknown')
+                                    break
+                        
+                        # Create detailed information
+                        detail_info = {
+                            "name": name,
+                            "product_type": product_data.get('productType', {}).get('name', 'Unknown'),
+                            "key": product_data.get('key', ''),
+                            "version": product_data.get('version', 0),
+                            "created_at": product_data.get('createdAt', ''),
+                            "last_modified": product_data.get('lastModifiedAt', ''),
+                            "master_variant_sku": product_data.get('masterData', {}).get('staged', {}).get('masterVariant', {}).get('sku', ''),
+                            "attributes_count": len(product_data.get('masterData', {}).get('staged', {}).get('masterVariant', {}).get('attributesRaw', []))
+                        }
+                        
+                        results.append({
+                            "SKU": sku,
+                            "ID": product_id,
+                            "DETAIL": json.dumps(detail_info)
+                        })
+                        
+                        logger.info(f"Successfully processed SKU {sku} -> ID {product_id}")
+                    else:
+                        logger.warning(f"Could not get details for product ID {product_id}")
+                        results.append({
+                            "SKU": sku,
+                            "ID": product_id,
+                            "DETAIL": "Failed to fetch product details"
+                        })
+                    
+                    # Rate limiting - small delay between requests
+                    time.sleep(0.5)
+                
+                return results
+        
+            def save_to_csv(self, results: List[Dict], filename: str = "product_export.csv"):
+                """Save results to CSV file."""
+                try:
+                    df = pd.DataFrame(results)
+                    df.to_csv(filename, index=False)
+                    logger.info(f"Saved {len(results)} records to {filename}")
+                    return True
+                except Exception as e:
+                    logger.error(f"Error saving to CSV: {e}")
+                    return False
+        
+        def main():
+            """Main workflow function."""
+            # Get workflow inputs
+            max_products = int(os.getenv('INPUT_MAX_PRODUCTS', '100'))
+            region_filter = os.getenv('INPUT_REGION_FILTER', 'ALL')
+            
+            logger.info(f"Starting product data fetch workflow")
+            logger.info(f"Max products: {max_products}, Region filter: {region_filter}")
+            
+            # Initialize fetcher
+            fetcher = WorkflowProductFetcher()
+            
+            # Process products
+            results = fetcher.process_products(region_filter, max_products)
+            
+            if results:
+                # Save to CSV
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                filename = f"product_export_{timestamp}.csv"
+                
+                if fetcher.save_to_csv(results, filename):
+                    logger.info(f"Workflow completed successfully. Generated {filename}")
+                    
+                    # Print summary
+                    print(f"\n=== WORKFLOW SUMMARY ===")
+                    print(f"Total products processed: {len(results)}")
+                    print(f"Region filter: {region_filter}")
+                    print(f"Output file: {filename}")
+                    
+                    # Count successful vs failed
+                    successful = sum(1 for r in results if r['ID'] != 'NOT_FOUND' and 'Failed to fetch' not in r['DETAIL'])
+                    print(f"Successful fetches: {successful}/{len(results)}")
+                else:
+                    logger.error("Failed to save results to CSV")
+                    sys.exit(1)
+            else:
+                logger.error("No results to save")
+                sys.exit(1)
+        
+        if __name__ == "__main__":
+            main()
+        EOF
+        
+    - name: Download existing database (if available)
+      continue-on-error: true
+      run: |
+        # Try to download database from previous workflow runs
+        echo "Checking for existing database..."
+        if [ ! -f "product_availability.db" ]; then
+          echo "No existing database found, will create new one"
+          python -c "
+        import sqlite3
+        conn = sqlite3.connect('product_availability.db')
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS \"products-in-links\" (
+                ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                SKU TEXT UNIQUE NOT NULL,
+                DETAILS TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_sku ON \"products-in-links\" (SKU)')
+        conn.commit()
+        conn.close()
+        print('Database initialized')
+          "
+        fi
+        
+    - name: Update database with SKUs from CSV files
+      run: |
+        python -c "
+        import pandas as pd
+        import re
+        import sqlite3
+        import json
+        from datetime import datetime
+        
+        def extract_sku_from_url(url):
+            pattern = r'/product/[^/]+-([0-9]+)/?'
+            match = re.search(pattern, url)
+            return match.group(1) if match else None
+        
+        def process_csv_file(csv_path, region):
+            try:
+                df = pd.read_csv(csv_path)
+                skus = set()
+                
+                # Find URL column
+                url_column = None
+                for col in df.columns:
+                    if 'url' in col.lower() or 'link' in col.lower():
+                        url_column = col
+                        break
+                
+                if url_column:
+                    for _, row in df.iterrows():
+                        url = str(row[url_column])
+                        if pd.notna(url) and url != 'nan':
+                            sku = extract_sku_from_url(url)
+                            if sku:
+                                skus.add(sku)
+                
+                return skus
+            except Exception as e:
+                print(f'Error processing {csv_path}: {e}')
+                return set()
+        
+        # Process CSV files if they exist
+        au_skus = set()
+        nz_skus = set()
+        
+        try:
+            au_skus = process_csv_file('latest AU.csv', 'AU')
+            print(f'Found {len(au_skus)} AU SKUs')
+        except:
+            print('AU CSV not found or error processing')
+        
+        try:
+            nz_skus = process_csv_file('latest_nz.csv', 'NZ')
+            print(f'Found {len(nz_skus)} NZ SKUs')
+        except:
+            print('NZ CSV not found or error processing')
+        
+        # Update database
+        conn = sqlite3.connect('product_availability.db')
+        cursor = conn.cursor()
+        
+        total_added = 0
+        for region, skus in [('AU', au_skus), ('NZ', nz_skus)]:
+            for sku in skus:
+                cursor.execute('SELECT SKU FROM \"products-in-links\" WHERE SKU = ?', (sku,))
+                if not cursor.fetchone():
+                    details = {
+                        'sku': sku,
+                        'region': region,
+                        'source': 'workflow_csv_import',
+                        'status': 'pending_fetch',
+                        'import_timestamp': datetime.now().isoformat()
+                    }
+                    cursor.execute(
+                        'INSERT INTO \"products-in-links\" (SKU, DETAILS) VALUES (?, ?)',
+                        (sku, json.dumps(details))
+                    )
+                    total_added += 1
+        
+        conn.commit()
+        conn.close()
+        print(f'Added {total_added} new SKUs to database')
+        "
+        
+    - name: Run product data fetch
+      env:
+        COMMERCETOOL_AUTH_TOKEN: ${{ secrets.COMMERCETOOL_AUTH_TOKEN }}
+        COMMERCETOOL_API_KEY: ${{ secrets.COMMERCETOOL_API_KEY }}
+        COMMERCETOOL_PROJECT_KEY: ${{ secrets.COMMERCETOOL_PROJECT_KEY }}
+        INPUT_MAX_PRODUCTS: ${{ github.event.inputs.max_products || '100' }}
+        INPUT_REGION_FILTER: ${{ github.event.inputs.region_filter || 'ALL' }}
+      run: |
+        python workflow_script.py
+        
+    - name: Upload CSV artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: product-export-csv
+        path: product_export_*.csv
+        retention-days: 30
+        
+    - name: Upload database artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: product-database
+        path: product_availability.db
+        retention-days: 7
+        
+    - name: Create summary
+      run: |
+        echo "## Product Data Fetch Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Workflow Parameters:**" >> $GITHUB_STEP_SUMMARY
+        echo "- Max Products: ${{ github.event.inputs.max_products || '100' }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Region Filter: ${{ github.event.inputs.region_filter || 'ALL' }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Timestamp: $(date)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ -f product_export_*.csv ]; then
+          CSV_FILE=$(ls product_export_*.csv | head -1)
+          RECORD_COUNT=$(tail -n +2 "$CSV_FILE" | wc -l)
+          echo "**Results:**" >> $GITHUB_STEP_SUMMARY
+          echo "- CSV File Generated: $CSV_FILE" >> $GITHUB_STEP_SUMMARY
+          echo "- Total Records: $RECORD_COUNT" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Sample Data (first 5 rows):**" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          head -6 "$CSV_FILE" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ No CSV file was generated" >> $GITHUB_STEP_SUMMARY
+        fi
