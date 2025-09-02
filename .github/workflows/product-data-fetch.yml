@@ -246,45 +246,195 @@ jobs:
             def get_product_details(self, product_id: str) -> Optional[Dict]:
                 """Get detailed product information using GraphQL API."""
                 graphql_query = """
-                query GeneralInfoTabQuery($productId: String!, $isProductAttributeEnabled: Boolean!, $locale: Locale!, $enableLocaleLabelOptimization: Boolean!) {
+                query GeneralInfoTabQuery($productId: String, $isProductAttributeEnabled: Boolean!, $enableLocaleLabelOptimization: Boolean!, $locale: Locale!) {
                   product(id: $productId) {
                     id
-                    key
-                    version
+                    ...ProductTypeFragment
                     createdAt
                     lastModifiedAt
-                    productType {
+                    version
+                    key
+                    priceMode
+                    taxCategory {
+                      id
                       name
                       key
+                      __typename
                     }
                     masterData {
                       staged {
                         nameAllLocales {
                           locale
                           value
+                          __typename
                         }
                         descriptionAllLocales {
                           locale
                           value
+                          __typename
+                        }
+                        categories {
+                          ...CurrentCategoryFragment
+                          ancestors {
+                            ...CurrentCategoryFragment
+                            __typename
+                          }
+                          __typename
                         }
                         masterVariant {
-                          id
-                          sku
-                          key
-                          attributesRaw @include(if: $isProductAttributeEnabled) {
+                          attributesRaw {
                             name
                             value
+                            __typename
                           }
+                          __typename
                         }
+                        attributesRaw {
+                          name
+                          value
+                          __typename
+                        }
+                        __typename
                       }
+                      __typename
                     }
+                    __typename
                   }
+                }
+                
+                fragment ProductTypeFragment on Product {
+                  productType {
+                    id
+                    name
+                    attributeDefinitions {
+                      results {
+                        attributeConstraint
+                        level @include(if: $isProductAttributeEnabled)
+                        isSearchable
+                        labelByLocale: label(locale: $locale) @include(if: $enableLocaleLabelOptimization)
+                        labelAllLocales @skip(if: $enableLocaleLabelOptimization) {
+                          locale
+                          value
+                          __typename
+                        }
+                        inputHint
+                        inputTipAllLocales {
+                          locale
+                          value
+                          __typename
+                        }
+                        isRequired
+                        name
+                        type {
+                          name
+                          ... on SetAttributeDefinitionType {
+                            elementType {
+                              name
+                              ... on NestedAttributeDefinitionType {
+                                typeRef {
+                                  id
+                                  __typename
+                                }
+                                __typename
+                              }
+                              ... on EnumAttributeDefinitionType {
+                                values {
+                                  results {
+                                    key
+                                    label
+                                    __typename
+                                  }
+                                  __typename
+                                }
+                                __typename
+                              }
+                              ... on LocalizableEnumAttributeDefinitionType {
+                                values {
+                                  results {
+                                    key
+                                    labelByLocale: label(locale: $locale) @include(if: $enableLocaleLabelOptimization)
+                                    labelAllLocales @skip(if: $enableLocaleLabelOptimization) {
+                                      locale
+                                      value
+                                      __typename
+                                    }
+                                    __typename
+                                  }
+                                  __typename
+                                }
+                                __typename
+                              }
+                              ... on ReferenceAttributeDefinitionType {
+                                referenceTypeId
+                                __typename
+                              }
+                              __typename
+                            }
+                            __typename
+                          }
+                          ... on ReferenceAttributeDefinitionType {
+                            referenceTypeId
+                            __typename
+                          }
+                          ... on NestedAttributeDefinitionType {
+                            typeRef {
+                              id
+                              __typename
+                            }
+                            __typename
+                          }
+                          ... on EnumAttributeDefinitionType {
+                            values {
+                              results {
+                                key
+                                label
+                                __typename
+                              }
+                              __typename
+                            }
+                            __typename
+                          }
+                          ... on LocalizableEnumAttributeDefinitionType {
+                            values {
+                              results {
+                                key
+                                labelByLocale: label(locale: $locale) @include(if: $enableLocaleLabelOptimization)
+                                labelAllLocales @skip(if: $enableLocaleLabelOptimization) {
+                                  locale
+                                  value
+                                  __typename
+                                }
+                                __typename
+                              }
+                              __typename
+                            }
+                            __typename
+                          }
+                          __typename
+                        }
+                        __typename
+                      }
+                      __typename
+                    }
+                    __typename
+                  }
+                  __typename
+                }
+                
+                fragment CurrentCategoryFragment on Category {
+                  id
+                  nameAllLocales {
+                    locale
+                    value
+                    __typename
+                  }
+                  __typename
                 }
                 """
                 
                 variables = {
                     "productId": product_id,
-                    "isProductAttributeEnabled": True,
+                    "isProductAttributeEnabled": False,
                     "locale": "en-AU",
                     "enableLocaleLabelOptimization": False
                 }
