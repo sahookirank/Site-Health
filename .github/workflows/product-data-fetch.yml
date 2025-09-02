@@ -38,7 +38,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pandas requests sqlite3 python-dotenv
+        pip install pandas requests python-dotenv
         
     - name: Create workflow script
       run: |
@@ -394,87 +394,9 @@ jobs:
           "
         fi
         
-    - name: Update database with SKUs from CSV files
-      run: |
-        python -c "
-        import pandas as pd
-        import re
-        import sqlite3
-        import json
-        from datetime import datetime
-        
-        def extract_sku_from_url(url):
-            pattern = r'/product/[^/]+-([0-9]+)/?'
-            match = re.search(pattern, url)
-            return match.group(1) if match else None
-        
-        def process_csv_file(csv_path, region):
-            try:
-                df = pd.read_csv(csv_path)
-                skus = set()
-                
-                # Find URL column
-                url_column = None
-                for col in df.columns:
-                    if 'url' in col.lower() or 'link' in col.lower():
-                        url_column = col
-                        break
-                
-                if url_column:
-                    for _, row in df.iterrows():
-                        url = str(row[url_column])
-                        if pd.notna(url) and url != 'nan':
-                            sku = extract_sku_from_url(url)
-                            if sku:
-                                skus.add(sku)
-                
-                return skus
-            except Exception as e:
-                print(f'Error processing {csv_path}: {e}')
-                return set()
-        
-        # Process CSV files if they exist
-        au_skus = set()
-        nz_skus = set()
-        
-        try:
-            au_skus = process_csv_file('latest AU.csv', 'AU')
-            print(f'Found {len(au_skus)} AU SKUs')
-        except:
-            print('AU CSV not found or error processing')
-        
-        try:
-            nz_skus = process_csv_file('latest_nz.csv', 'NZ')
-            print(f'Found {len(nz_skus)} NZ SKUs')
-        except:
-            print('NZ CSV not found or error processing')
-        
-        # Update database
-        conn = sqlite3.connect('product_availability.db')
-        cursor = conn.cursor()
-        
-        total_added = 0
-        for region, skus in [('AU', au_skus), ('NZ', nz_skus)]:
-            for sku in skus:
-                cursor.execute('SELECT SKU FROM \"products-in-links\" WHERE SKU = ?', (sku,))
-                if not cursor.fetchone():
-                    details = {
-                        'sku': sku,
-                        'region': region,
-                        'source': 'workflow_csv_import',
-                        'status': 'pending_fetch',
-                        'import_timestamp': datetime.now().isoformat()
-                    }
-                    cursor.execute(
-                        'INSERT INTO \"products-in-links\" (SKU, DETAILS) VALUES (?, ?)',
-                        (sku, json.dumps(details))
-                    )
-                    total_added += 1
-        
-        conn.commit()
-        conn.close()
-        print(f'Added {total_added} new SKUs to database')
-        "
+    # Database update step disabled - database already contains SKUs
+    - name: Update database with SKUs from CSV files (DISABLED)
+      run: echo "Skipping database update - database already populated with SKUs"
         
     - name: Run product data fetch
       env:
