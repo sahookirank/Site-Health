@@ -956,9 +956,9 @@ def _create_sample_historical_data(conn: sqlite3.Connection, current_data: pd.Da
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'broken_links_%'")
     existing_tables = [row[0] for row in cursor.fetchall()]
 
-    # Only create sample data if we have less than 2 tables (need historical comparison)
-    if len(existing_tables) < 2:
-        print("Debug: Creating sample historical data for change detection demonstration")
+    # Only create sample data if we have NO historical tables (complete fallback)
+    if len(existing_tables) == 0:
+        print("Debug: No historical data found, creating minimal sample data for change detection")
 
         # Create yesterday's data (remove some links, add some different ones)
         yesterday_date = (date.today() - timedelta(days=1)).strftime('%Y_%m_%d')
@@ -1218,7 +1218,8 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
         # Merge for storage to avoid two passes
         merged_err_df = pd.concat([au_error_df, nz_error_df], ignore_index=True)
 
-        # Note: Historical data already exists in database for change detection
+        # Create sample historical data if needed for demonstration (fallback only)
+        _create_sample_historical_data(conn, merged_err_df)
         print(f"Debug: Merged error dataframe has {len(merged_err_df)} rows")
         
         # Ensure required columns exist
