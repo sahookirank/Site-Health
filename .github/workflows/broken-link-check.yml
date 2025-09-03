@@ -328,6 +328,10 @@ jobs:
           done < skus_to_process.txt
 
           echo "Product data fetch completed!"
+        env:
+          COMMERCETOOL_AUTH_TOKEN: ${{ secrets.COMMERCETOOL_AUTH_TOKEN }}
+          COMMERCETOOL_API_KEY: ${{ secrets.COMMERCETOOL_API_KEY }}
+          COMMERCETOOL_PROJECT_KEY: ${{ secrets.COMMERCETOOL_PROJECT_KEY }}
 
       - name: Generate Product Data CSV
         run: |
