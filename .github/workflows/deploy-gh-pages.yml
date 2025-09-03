@@ -202,141 +202,152 @@ jobs:
             exit 1
           }
 
-          # Run HTML generation with error handling
-          python3 -c "
-          import pandas as pd
-          import json
-          from datetime import datetime
-          import os
+          # Create Python script for HTML generation
+          cat > generate_report.py << 'EOF'
+import pandas as pd
+import json
+from datetime import datetime
+import os
 
-          # Read CSV files
-          csv_files = {}
+# Read CSV files without any limits
+csv_files = {}
 
-          # Read AU broken links
-          if os.path.exists('au_broken_links.csv'):
-              csv_files['au_broken_links'] = pd.read_csv('au_broken_links.csv')
-          else:
-              csv_files['au_broken_links'] = pd.DataFrame(columns=['URL', 'Status', 'Response_Time', 'Error'])
+# Read AU broken links (no record limits)
+if os.path.exists('au_broken_links.csv'):
+    csv_files['au_broken_links'] = pd.read_csv('au_broken_links.csv')
+else:
+    csv_files['au_broken_links'] = pd.DataFrame(columns=['URL', 'Status', 'Response_Time', 'Error'])
 
-          # Read NZ broken links
-          if os.path.exists('nz_broken_links.csv'):
-              csv_files['nz_broken_links'] = pd.read_csv('nz_broken_links.csv')
-          else:
-              csv_files['nz_broken_links'] = pd.DataFrame(columns=['URL', 'Status', 'Response_Time', 'Error'])
+# Read NZ broken links (no record limits)
+if os.path.exists('nz_broken_links.csv'):
+    csv_files['nz_broken_links'] = pd.read_csv('nz_broken_links.csv')
+else:
+    csv_files['nz_broken_links'] = pd.DataFrame(columns=['URL', 'Status', 'Response_Time', 'Error'])
 
-          # Read product export (find the actual file)
-          product_files = [f for f in os.listdir('.') if f.startswith('product_export') and f.endswith('.csv')]
-          if product_files:
-              csv_files['product_export'] = pd.read_csv(product_files[0])
-          else:
-              csv_files['product_export'] = pd.DataFrame(columns=['SKU', 'ID', 'DETAIL'])
+# Read product export (find the actual file, no record limits)
+product_files = [f for f in os.listdir('.') if f.startswith('product_export') and f.endswith('.csv')]
+if product_files:
+    csv_files['product_export'] = pd.read_csv(product_files[0])
+else:
+    csv_files['product_export'] = pd.DataFrame(columns=['SKU', 'ID', 'DETAIL'])
 
-          print(f'Loaded CSV files: {list(csv_files.keys())}')
-          for name, df in csv_files.items():
-              print(f'  {name}: {len(df)} rows')
+print(f'Loaded CSV files: {list(csv_files.keys())}')
+for name, df in csv_files.items():
+    print(f'  {name}: {len(df)} rows')
 
-          # Generate HTML report using exact template from report_generator.py
-          # The template file should be available in the repository
-          try:
-              with open('adapted_template.html', 'r', encoding='utf-8') as f:
-                  html_template = f.read()
-              print("✅ Loaded adapted template from repository")
-          except FileNotFoundError:
-              print("❌ Template file not found, using fallback")
-              # Simple fallback template
-              html_template = '''<!DOCTYPE html>
-              <html><head><title>Report</title></head>
-              <body><h1>Report Generation Failed</h1>
-              <p>Template file not found. Please check repository.</p></body></html>'''
+# Generate HTML report using exact template from report_generator.py
+# The template file should be available in the repository
+try:
+    with open('adapted_template.html', 'r', encoding='utf-8') as f:
+        html_template = f.read()
+    print("✅ Loaded adapted template from repository")
+except FileNotFoundError:
+    print("❌ Template file not found, using fallback")
+    # Simple fallback template
+    html_template = '''<!DOCTYPE html>
+    <html><head><title>Report</title></head>
+    <body><h1>Report Generation Failed</h1>
+    <p>Template file not found. Please check repository.</p></body></html>'''
 
+# Generate table rows for broken links (no record limits)
+def generate_link_table_rows(df, columns):
+    rows = []
+    for _, row in df.iterrows():
+        row_html = '<tr>'
+        for col in columns:
+            value = str(row.get(col, '')) if col in row else ''
+            # Escape HTML characters
+            value = value.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+            row_html += f'<td>{value}</td>'
+        row_html += '</tr>'
+        rows.append(row_html)
+    return '\\n'.join(rows)
 
-          # Generate table rows for broken links
-          def generate_link_table_rows(df, columns):
-              rows = []
-              for _, row in df.iterrows():
-                  row_html = '<tr>'
-                  for col in columns:
-                      value = str(row.get(col, '')) if col in row else ''
-                      # Escape HTML characters
-                      value = value.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-                      row_html += f'<td>{value}</td>'
-                  row_html += '</tr>'
-                  rows.append(row_html)
-              return '\\n'.join(rows)
+# Generate table rows for products (no record limits)
+def generate_product_table_rows(df, columns):
+    rows = []
+    for i, row in df.iterrows():
+        sku = str(row.get('SKU', 'N/A'))
+        product_id = str(row.get('ID', 'N/A'))
+        detail = str(row.get('DETAIL', 'N/A'))
 
-          # Generate table rows for products
-          def generate_product_table_rows(df, columns):
-              rows = []
-              for i, row in df.iterrows():
-                  sku = str(row.get('SKU', 'N/A'))
-                  product_id = str(row.get('ID', 'N/A'))
-                  detail = str(row.get('DETAIL', 'N/A'))
+        # Escape HTML characters
+        sku = sku.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+        product_id = product_id.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+        detail = detail.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
 
-                  # Escape HTML characters
-                  sku = sku.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-                  product_id = product_id.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-                  detail = detail.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-
-                  row_html = f'''                <tr class=\"product-row\" onclick=\"toggleProductDetails('product_{i}')\">
+        row_html = f'''                <tr class="product-row" onclick="toggleProductDetails('product_{i}')">
                     <td><strong>{sku}</strong></td>
                     <td>{detail}</td>
                     <td>
-                        <span class=\"product-type-badge available\">AVAILABLE</span>
+                        <span class="product-type-badge available">AVAILABLE</span>
                     </td>
                     <td>
-                        <span class=\"toggle-icon\" id=\"product_{i}_toggle\">▼</span>
+                        <span class="toggle-icon" id="product_{i}_toggle">▼</span>
                     </td>
                 </tr>
-                <tr id=\"product_{i}_details\" class=\"product-details-row\" style=\"display: none;\">
-                    <td colspan=\"4\">
-                        <div class=\"product-details-content\">
+                <tr id="product_{i}_details" class="product-details-row" style="display: none;">
+                    <td colspan="4">
+                        <div class="product-details-content">
                             <h4>Product Details (SKU: {sku})</h4>
-                            <div class=\"attributes-section\">
+                            <div class="attributes-section">
                                 <div class='attributes-container'><div class='attribute-item'><span class='attr-name'><strong>SKU:</strong></span> <span class='attr-value'>{sku}</span></div><div class='attribute-item'><span class='attr-name'><strong>Product ID:</strong></span> <span class='attr-value'>{product_id}</span></div><div class='attribute-item'><span class='attr-name'><strong>Description:</strong></span> <span class='attr-value'>{detail}</span></div></div>
                             </div>
                         </div>
                     </td>
                 </tr>'''
-                  rows.append(row_html)
-              return '\\n'.join(rows)
+        rows.append(row_html)
+    return '\\n'.join(rows)
 
-          # Generate content
-          au_rows = generate_link_table_rows(csv_files['au_broken_links'], ['Timestamp', 'URL', 'Status', 'Path', 'Visible'])
-          nz_rows = generate_link_table_rows(csv_files['nz_broken_links'], ['Timestamp', 'URL', 'Status', 'Path', 'Visible'])
-          product_rows = generate_product_table_rows(csv_files['product_export'], ['SKU', 'ID', 'DETAIL'])
+# Add missing columns if needed
+for region in ['au_broken_links', 'nz_broken_links']:
+    if 'Timestamp' not in csv_files[region].columns:
+        csv_files[region]['Timestamp'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    if 'Path' not in csv_files[region].columns:
+        csv_files[region]['Path'] = 'N/A'
+    if 'Visible' not in csv_files[region].columns:
+        csv_files[region]['Visible'] = 'No'
 
-          # Calculate totals for summary
-          au_broken_count = len(csv_files['au_broken_links'])
-          nz_broken_count = len(csv_files['nz_broken_links'])
+# Generate content (process ALL records, no limits)
+au_rows = generate_link_table_rows(csv_files['au_broken_links'], ['Timestamp', 'URL', 'Status', 'Path', 'Visible'])
+nz_rows = generate_link_table_rows(csv_files['nz_broken_links'], ['Timestamp', 'URL', 'Status', 'Path', 'Visible'])
+product_rows = generate_product_table_rows(csv_files['product_export'], ['SKU', 'ID', 'DETAIL'])
 
-          # Estimate total links (broken links are typically 5-10% of total)
-          au_total_estimate = max(au_broken_count * 10, au_broken_count + 1000)
-          nz_total_estimate = max(nz_broken_count * 10, nz_broken_count + 500)
+# Calculate totals for summary
+au_broken_count = len(csv_files['au_broken_links'])
+nz_broken_count = len(csv_files['nz_broken_links'])
 
-          au_valid_count = au_total_estimate - au_broken_count
-          nz_valid_count = nz_total_estimate - nz_broken_count
+# Estimate total links (broken links are typically 5-10% of total)
+au_total_estimate = max(au_broken_count * 10, au_broken_count + 1000)
+nz_total_estimate = max(nz_broken_count * 10, nz_broken_count + 500)
 
-          # Fill template
-          html_content = html_template.format(
-              au_count=au_broken_count,
-              nz_count=nz_broken_count,
-              au_total_count=au_total_estimate,
-              nz_total_count=nz_total_estimate,
-              au_valid_count=au_valid_count,
-              nz_valid_count=nz_valid_count,
-              product_count=len(csv_files['product_export']),
-              timestamp=datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC'),
-              au_table_rows=au_rows,
-              nz_table_rows=nz_rows,
-              product_table_rows=product_rows
-          )
+au_valid_count = au_total_estimate - au_broken_count
+nz_valid_count = nz_total_estimate - nz_broken_count
 
-          # Write HTML file
-          with open('index.html', 'w', encoding='utf-8') as f:
-              f.write(html_content)
+# Fill template
+html_content = html_template.format(
+    au_count=au_broken_count,
+    nz_count=nz_broken_count,
+    au_total_count=au_total_estimate,
+    nz_total_count=nz_total_estimate,
+    au_valid_count=au_valid_count,
+    nz_valid_count=nz_valid_count,
+    product_count=len(csv_files['product_export']),
+    timestamp=datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC'),
+    au_table_rows=au_rows,
+    nz_table_rows=nz_rows,
+    product_table_rows=product_rows
+)
 
-          print('✅ Generated comprehensive HTML report: index.html')
-          "
+# Write HTML file
+with open('index.html', 'w', encoding='utf-8') as f:
+    f.write(html_content)
+
+print('✅ Generated comprehensive HTML report: index.html')
+EOF
+
+          # Run the Python script
+          python3 generate_report.py
 
       - name: Prepare deployment directory with validation
         run: |
