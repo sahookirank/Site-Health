@@ -1,5 +1,5 @@
-# Ignore local SQLite database
-broken_links.db
+# Note: broken_links.db now included for historical change detection
+# broken_links.db
 
 # Python bytecode/cache
 __pycache__/
