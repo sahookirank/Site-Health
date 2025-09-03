@@ -190,12 +190,12 @@ jobs:
           # Check for existing database, create if needed
           if [ ! -f "product_availability.db" ]; then
             echo "No existing database found, creating new one"
-            python -c "
+            cat > init_db.py << 'EOF'
 import sqlite3
 conn = sqlite3.connect('product_availability.db')
 cursor = conn.cursor()
 cursor.execute('''
-    CREATE TABLE IF NOT EXISTS \"products-in-links\" (
+    CREATE TABLE IF NOT EXISTS "products-in-links" (
         ID INTEGER PRIMARY KEY AUTOINCREMENT,
         SKU TEXT UNIQUE NOT NULL,
         DETAILS TEXT NOT NULL,
@@ -203,11 +203,13 @@ cursor.execute('''
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
 ''')
-cursor.execute('CREATE INDEX IF NOT EXISTS idx_sku ON \"products-in-links\" (SKU)')
+cursor.execute('CREATE INDEX IF NOT EXISTS idx_sku ON "products-in-links" (SKU)')
 conn.commit()
 conn.close()
 print('Database initialized')
-            "
+EOF
+            python init_db.py
+            rm init_db.py
           else
             echo "Using existing product database"
           fi
