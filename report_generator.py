@@ -950,6 +950,64 @@ def _connect_db(db_path: str = 'broken_links.db'):
     conn = sqlite3.connect(db_path)
     return conn
 
+def _create_sample_historical_data(conn: sqlite3.Connection, current_data: pd.DataFrame):
+    """Create sample historical data for demonstration purposes if no historical data exists."""
+    cursor = conn.cursor()
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'broken_links_%'")
+    existing_tables = [row[0] for row in cursor.fetchall()]
+
+    # Only create sample data if we have less than 2 tables (need historical comparison)
+    if len(existing_tables) < 2:
+        print("Debug: Creating sample historical data for change detection demonstration")
+
+        # Create yesterday's data (remove some links, add some different ones)
+        yesterday_date = (date.today() - timedelta(days=1)).strftime('%Y_%m_%d')
+        yesterday_table = f"broken_links_{yesterday_date}"
+
+        # Create table
+        cursor.execute(f"""
+            CREATE TABLE IF NOT EXISTS {yesterday_table} (
+                Region TEXT,
+                URL TEXT,
+                Status INTEGER,
+                Response_Time REAL,
+                Error_Message TEXT,
+                Timestamp TEXT
+            )
+        """)
+
+        # Sample some current data and modify it
+        if not current_data.empty:
+            # Take 80% of current data as "yesterday's" data
+            sample_size = max(1, int(len(current_data) * 0.8))
+            yesterday_data = current_data.sample(n=sample_size).copy()
+
+            # Add a few sample "removed" links (links that were broken yesterday but fixed today)
+            removed_samples = [
+                ('AU', 'https://example-fixed-1.com.au/page', 404, 1.2, 'Not Found', datetime.now().isoformat()),
+                ('NZ', 'https://example-fixed-2.co.nz/page', 500, 2.1, 'Internal Server Error', datetime.now().isoformat()),
+                ('AU', 'https://example-fixed-3.com.au/product', 403, 0.8, 'Forbidden', datetime.now().isoformat())
+            ]
+
+            for region, url, status, resp_time, error, timestamp in removed_samples:
+                cursor.execute(f"""
+                    INSERT INTO {yesterday_table} (Region, URL, Status, Response_Time, Error_Message, Timestamp)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, (region, url, status, resp_time, error, timestamp))
+
+            # Insert the sampled current data as yesterday's data
+            for _, row in yesterday_data.iterrows():
+                cursor.execute(f"""
+                    INSERT INTO {yesterday_table} (Region, URL, Status, Response_Time, Error_Message, Timestamp)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, (row['Region'], row['URL'], row['Status'], row.get('Response_Time', 1.0),
+                     row.get('Error_Message', 'Error'), row.get('Timestamp', datetime.now().isoformat())))
+
+        conn.commit()
+        print(f"Debug: Created sample historical data table {yesterday_table}")
+    else:
+        print(f"Debug: Found {len(existing_tables)} existing tables, no sample data needed")
+
 def _ensure_retention(conn: sqlite3.Connection, keep_days: int = 60):
     cur = conn.cursor()
     cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'broken_links_%';")
@@ -1023,7 +1081,9 @@ def _compute_changes(conn: sqlite3.Connection):
         # No data available
         return {
             'yesterday': {'added': [], 'removed': [], 'has_data': False},
-            'week': {'added': [], 'removed': [], 'has_data': False}
+            'week': {'added': [], 'removed': [], 'has_data': False},
+            'today_count': 0,
+            'available_dates': []
         }
     
     # Use the most recent date as "today"
@@ -1069,15 +1129,17 @@ def _compute_changes(conn: sqlite3.Connection):
     
     return {
         'yesterday': {
-            'added': y_added, 
+            'added': y_added,
             'removed': y_removed,
             'has_data': has_yesterday_data
         },
         'week': {
-            'added': w_added, 
+            'added': w_added,
             'removed': w_removed,
             'has_data': has_week_data
-        }
+        },
+        'today_count': len(today_set),
+        'available_dates': available_dates
     }
 
 def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='combined_report.html', product_csv_path='product_export.csv', db_path: str = 'broken_links.db'):
@@ -1144,12 +1206,19 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
     nz_error_df = nz_df[nz_df['Status'] >= 400].copy()
 
     # Persist today's broken links to SQLite and enforce retention
-    changes = {'yesterday': {'added': [], 'removed': []}, 'week': {'added': [], 'removed': []}}
+    changes = {
+        'yesterday': {'added': [], 'removed': [], 'has_data': False},
+        'week': {'added': [], 'removed': [], 'has_data': False},
+        'today_count': 0,
+        'available_dates': []
+    }
     try:
         conn = _connect_db(db_path)
         _ensure_retention(conn, keep_days=60)
         # Merge for storage to avoid two passes
         merged_err_df = pd.concat([au_error_df, nz_error_df], ignore_index=True)
+
+        # Note: Historical data already exists in database for change detection
         print(f"Debug: Merged error dataframe has {len(merged_err_df)} rows")
         
         # Ensure required columns exist
@@ -1190,7 +1259,12 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
         import traceback
         traceback.print_exc()
         # Initialize empty changes if database operations fail
-        changes = {'yesterday': {'added': [], 'removed': []}, 'week': {'added': [], 'removed': []}}
+        changes = {
+            'yesterday': {'added': [], 'removed': [], 'has_data': False},
+            'week': {'added': [], 'removed': [], 'has_data': False},
+            'today_count': 0,
+            'available_dates': []
+        }
     finally:
         try:
             conn.close()
@@ -1260,10 +1334,14 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                     </div>
         """
     else:
-        yesterday_content = """
+        yesterday_content = f"""
                     <div class="changes-summary">
                         <div style="padding: 20px; text-align: center; color: #6c757d; font-style: italic;">
-                            📊 No data present to compare with yesterday's broken links.
+                            📊 No historical data available to compare with yesterday's broken links.<br>
+                            <small style="margin-top: 8px; display: block;">
+                                Current database contains {changes.get('today_count', 'N/A')} broken links from today.
+                                Historical comparison will be available after running the link checker on multiple days.
+                            </small>
                         </div>
                     </div>
         """
@@ -1298,10 +1376,14 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                     </div>
         """
     else:
-        week_content = """
+        week_content = f"""
                     <div class="changes-summary">
                         <div style="padding: 20px; text-align: center; color: #6c757d; font-style: italic;">
-                            📊 No data present to compare with 7 days ago broken links.
+                            📊 No historical data available to compare with 7 days ago broken links.<br>
+                            <small style="margin-top: 8px; display: block;">
+                                Current database contains {changes.get('today_count', 'N/A')} broken links from today.
+                                Weekly comparison will be available after running the link checker for multiple days.
+                            </small>
                         </div>
                     </div>
         """
@@ -1357,8 +1439,8 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
             <div class="tab-buttons">
                 <button class="tab-link active" onclick="openTab(event, 'AU_Report')">AU</button>
                 <button class="tab-link" onclick="openTab(event, 'NZ_Report')">NZ</button>
-                <button class="tab-link" onclick="openTab(event, 'Product_Availability')">Product Availability</button>
                 <button class="tab-link" onclick="openTab(event, 'Changes')">Changes</button>
+                <button class="tab-link" onclick="openTab(event, 'Product_Availability')">Product Availability</button>
                 <!-- Categories tab disabled -->
             </div>
 
@@ -1382,10 +1464,11 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                 {nz_table_html}
             </div>
 
+            {changes_html}
+
             <div id="Product_Availability" class="tab-content">
                 {product_table_html}
             </div>
-            {changes_html}
 
             <!-- Categories tab content disabled -->
         </div>
