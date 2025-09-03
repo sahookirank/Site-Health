@@ -1387,7 +1387,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Generate a combined HTML report for AU and NZ link checks.')
     parser.add_argument('--au-csv', default='au_link_check_results.csv', help='Path to the AU link check results CSV file.')
     parser.add_argument('--nz-csv', default='nz_link_check_results.csv', help='Path to the NZ link check results CSV file.')
+    parser.add_argument('--product-csv', default='product_export.csv', help='Path to the product export CSV file.')
     parser.add_argument('--output-html', default='combined_report.html', help='Path to save the combined HTML report.')
     args = parser.parse_args()
 
+    # For now, we'll just pass the product CSV path but not use it in the report generation
+    # This maintains backward compatibility while allowing the workflow to pass the parameter
     generate_combined_html_report(args.au_csv, args.nz_csv, args.output_html)
