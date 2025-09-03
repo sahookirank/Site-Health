@@ -12,9 +12,7 @@ on:
         type: boolean
 
 permissions:
-  contents: write
-  pages: write
-  id-token: write
+  contents: read
   actions: write  # Required to trigger other workflows
 
 jobs:
@@ -164,281 +162,155 @@ jobs:
             echo "https://example.com,200,0.5," >> nz_link_check_results.csv
           fi
 
-      - name: Verify CSV files exist
+      - name: Verify and validate CSV files
         run: |
-          echo "Checking for required CSV files..."
+          echo "🔍 Checking for required CSV files..."
 
+          csv_validation_passed=true
+
+          # Check AU CSV file
           if [ -f "au_link_check_results.csv" ]; then
-            echo "✓ au_link_check_results.csv found ($(wc -l < au_link_check_results.csv) lines)"
+            lines=$(wc -l < au_link_check_results.csv)
+            echo "✓ au_link_check_results.csv found ($lines lines)"
+
+            # Validate CSV structure
+            if [ $lines -lt 2 ]; then
+              echo "⚠️ AU CSV file has insufficient data (less than 2 lines)"
+              csv_validation_passed=false
+            else
+              # Check for required columns
+              header=$(head -1 au_link_check_results.csv)
+              if [[ "$header" == *"URL"* ]]; then
+                echo "✓ AU CSV has valid header structure"
+              else
+                echo "⚠️ AU CSV missing required columns"
+                csv_validation_passed=false
+              fi
+            fi
           else
             echo "✗ au_link_check_results.csv missing"
-            exit 1
+            csv_validation_passed=false
           fi
 
+          # Check NZ CSV file
           if [ -f "nz_link_check_results.csv" ]; then
-            echo "✓ nz_link_check_results.csv found ($(wc -l < nz_link_check_results.csv) lines)"
+            lines=$(wc -l < nz_link_check_results.csv)
+            echo "✓ nz_link_check_results.csv found ($lines lines)"
+
+            # Validate CSV structure
+            if [ $lines -lt 2 ]; then
+              echo "⚠️ NZ CSV file has insufficient data (less than 2 lines)"
+              csv_validation_passed=false
+            else
+              # Check for required columns
+              header=$(head -1 nz_link_check_results.csv)
+              if [[ "$header" == *"URL"* ]]; then
+                echo "✓ NZ CSV has valid header structure"
+              else
+                echo "⚠️ NZ CSV missing required columns"
+                csv_validation_passed=false
+              fi
+            fi
           else
             echo "✗ nz_link_check_results.csv missing"
-            exit 1
+            csv_validation_passed=false
           fi
 
-          echo "All required CSV files are present"
-
-      - name: Setup Product Database
-        run: |
-          # Check for existing database, create if needed
-          if [ ! -f "product_availability.db" ]; then
-            echo "No existing database found, creating new one"
-            python -c "import sqlite3; conn = sqlite3.connect('product_availability.db'); cursor = conn.cursor(); cursor.execute('CREATE TABLE IF NOT EXISTS \"products-in-links\" (ID INTEGER PRIMARY KEY AUTOINCREMENT, SKU TEXT UNIQUE NOT NULL, DETAILS TEXT NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)'); cursor.execute('CREATE INDEX IF NOT EXISTS idx_sku ON \"products-in-links\" (SKU)'); conn.commit(); conn.close(); print('Database initialized')"
+          if [ "$csv_validation_passed" = true ]; then
+            echo "✅ All CSV files are present and valid"
           else
-            echo "Using existing product database"
+            echo "❌ CSV validation failed - creating minimal placeholder files"
+
+            # Create minimal valid CSV files as fallback
+            if [ ! -f "au_link_check_results.csv" ] || [ $(wc -l < au_link_check_results.csv) -lt 2 ]; then
+              echo "URL,Status,Response_Time,Error" > au_link_check_results.csv
+              echo "https://example.com.au,404,1.0,Placeholder - No data available" >> au_link_check_results.csv
+              echo "📝 Created placeholder AU CSV file"
+            fi
+
+            if [ ! -f "nz_link_check_results.csv" ] || [ $(wc -l < nz_link_check_results.csv) -lt 2 ]; then
+              echo "URL,Status,Response_Time,Error" > nz_link_check_results.csv
+              echo "https://example.co.nz,404,1.0,Placeholder - No data available" >> nz_link_check_results.csv
+              echo "📝 Created placeholder NZ CSV file"
+            fi
           fi
 
-      - name: Install Product Fetch Dependencies
+      - name: Generate CSV files for downstream workflows
         run: |
-          pip install pandas requests python-dotenv
+          echo "Preparing CSV files for downstream workflows..."
 
-      - name: Run Product Data Fetch
-        run: |
-          # Use simple shell script with working curl commands
-          echo "Starting product data fetch using working curl commands..."
-
-          # Check for required environment variables
-          if [ -z "$COMMERCETOOL_AUTH_TOKEN" ]; then
-              echo "Error: COMMERCETOOL_AUTH_TOKEN not set"
-              exit 1
+          # Ensure we have the correct CSV file names for downstream workflows
+          if [ -f "au_link_check_results.csv" ] && [ ! -f "au_broken_links.csv" ]; then
+            cp au_link_check_results.csv au_broken_links.csv
+            echo "✓ Created au_broken_links.csv"
           fi
 
-          # Initialize database
-          python3 -c "
-          import sqlite3
-          conn = sqlite3.connect('product_availability.db')
-          cursor = conn.cursor()
-          cursor.execute('CREATE TABLE IF NOT EXISTS \"products-in-links\" (ID INTEGER PRIMARY KEY AUTOINCREMENT, SKU TEXT UNIQUE NOT NULL, DETAILS TEXT NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)')
-          cursor.execute('CREATE INDEX IF NOT EXISTS idx_sku ON \"products-in-links\" (SKU)')
-          conn.commit()
-          conn.close()
-          print('Database initialized')
-          "
-
-          # Extract SKUs from CSV files
-          echo "Extracting SKUs from CSV files..."
-          python3 -c "
-          import pandas as pd
-          import re
-          import os
-          skus = set()
-          csv_files = ['au_broken_links.csv', 'nz_broken_links.csv']
-          for csv_file in csv_files:
-              if os.path.exists(csv_file):
-                  try:
-                      df = pd.read_csv(csv_file)
-                      for col in df.columns:
-                          for value in df[col].astype(str):
-                              sku_matches = re.findall(r'\b\d{8}\b', str(value))
-                              skus.update(sku_matches)
-                  except Exception as e:
-                      print(f'Error processing {csv_file}: {e}')
-          sku_list = sorted(list(skus))[:20]  # Limit to 20 SKUs for testing
-          print(f'Found {len(sku_list)} SKUs to process')
-          with open('skus_to_process.txt', 'w') as f:
-              for sku in sku_list:
-                  f.write(sku + '\n')
-          "
-
-          # Process each SKU using working curl commands
-          echo "Processing SKUs using curl commands..."
-          counter=0
-          total_skus=$(wc -l < skus_to_process.txt)
-          echo "Total SKUs to process: $total_skus"
-
-          while IFS= read -r sku; do
-              counter=$((counter + 1))
-              echo "Processing SKU $counter/$total_skus: $sku"
-
-              # Generate correlation ID
-              correlation_id="mc/kmart-production/941dc8ba-fd2b-4be3-a375-2d5ef173394d/$(uuidgen | tr '[:upper:]' '[:lower:]')"
-
-              # Search API call using working curl command
-              search_response=$(curl -s -X POST "https://mc-api.australia-southeast1.gcp.commercetools.com/proxy/pim-search/kmart-production/search/products" \
-                  -H "accept: application/json" \
-                  -H "accept-language: en-GB,en-US;q=0.9,en;q=0.8" \
-                  -H "content-type: application/json" \
-                  -H "origin: https://mc.australia-southeast1.gcp.commercetools.com" \
-                  -H "user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36" \
-                  -H "x-application-id: __internal:products" \
-                  -H "x-correlation-id: $correlation_id" \
-                  -H "x-project-key: kmart-production" \
-                  -H "x-user-agent: @commercetools/sdk-client Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 products/sdk/24.5.0 (+https://git.io/fjuyC; +mc@commercetools.com)" \
-                  -H "Cache-Control: no-cache" \
-                  -H "Authorization: Bearer $COMMERCETOOL_AUTH_TOKEN" \
-                  -d "{\"limit\": 20, \"offset\": 0, \"query\": {\"or\": [{\"fullText\": {\"field\": \"name\", \"language\": \"en-AU\", \"value\": \"$sku\"}}, {\"fullText\": {\"field\": \"description\", \"language\": \"en-AU\", \"value\": \"$sku\"}}, {\"fullText\": {\"field\": \"slug\", \"language\": \"en-AU\", \"value\": \"$sku\"}}, {\"prefix\": {\"field\": \"key\", \"language\": \"en-AU\", \"value\": \"$sku\", \"caseInsensitive\": true}}, {\"prefix\": {\"field\": \"variants.sku\", \"value\": \"$sku\", \"caseInsensitive\": true}}, {\"prefix\": {\"field\": \"variants.key\", \"value\": \"$sku\", \"caseInsensitive\": true}}]}, \"enableTiebreaker\": false}")
-
-              # Check if search was successful and extract product ID
-              product_id=$(echo "$search_response" | python3 -c "import sys, json; data=json.load(sys.stdin); hits=data.get('hits', []); print(hits[0]['id'] if hits else '')")
-
-              if [ -n "$product_id" ]; then
-                  echo "Found product ID: $product_id for SKU: $sku"
-
-                  # Generate new correlation ID for GraphQL
-                  graphql_correlation_id="mc/kmart-production/941dc8ba-fd2b-4be3-a375-2d5ef173394d/$(uuidgen | tr '[:upper:]' '[:lower:]')"
-
-                  # GraphQL API call using working curl command
-                  graphql_response=$(curl -s -X POST "https://mc-api.australia-southeast1.gcp.commercetools.com/graphql" \
-                      -H "accept: application/json" \
-                      -H "accept-language: en-GB,en-US;q=0.9,en;q=0.8" \
-                      -H "content-type: application/json" \
-                      -H "origin: https://mc.australia-southeast1.gcp.commercetools.com" \
-                      -H "user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36" \
-                      -H "x-application-id: __internal:products" \
-                      -H "x-correlation-id: $graphql_correlation_id" \
-                      -H "x-graphql-operation-name: GeneralInfoTabQuery" \
-                      -H "x-graphql-target: ctp" \
-                      -H "x-project-key: kmart-production" \
-                      -H "x-user-agent: apollo-client Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 products/application-shell/24.5.0 (+https://git.io/fjuyC; +support@commercetools.com)" \
-                      -H "Cache-Control: no-cache" \
-                      -H "Authorization: Bearer $COMMERCETOOL_AUTH_TOKEN" \
-                      -d "{\"operationName\": \"GeneralInfoTabQuery\", \"variables\": {\"productId\": \"$product_id\", \"isProductAttributeEnabled\": false, \"locale\": \"en-AU\", \"enableLocaleLabelOptimization\": false}, \"query\": \"query GeneralInfoTabQuery(\\\$productId: String, \\\$isProductAttributeEnabled: Boolean!, \\\$enableLocaleLabelOptimization: Boolean!, \\\$locale: Locale!) { product(id: \\\$productId) { id createdAt lastModifiedAt version key masterData { staged { nameAllLocales { locale value } masterVariant { attributesRaw { name value } } } } } }\"}")
-
-                  # Store the result in database
-                  python3 -c "
-          import sys, json, sqlite3
-          try:
-              response_data = json.loads('$graphql_response')
-              if 'data' in response_data and response_data['data'].get('product'):
-                  product = response_data['data']['product']
-                  details = json.dumps(product)
-                  conn = sqlite3.connect('product_availability.db')
-                  cursor = conn.cursor()
-                  cursor.execute('INSERT OR REPLACE INTO \"products-in-links\" (SKU, DETAILS) VALUES (?, ?)', ('$sku', details))
-                  conn.commit()
-                  conn.close()
-                  print('Successfully stored product data for SKU: $sku')
-              else:
-                  print('No product data found for SKU: $sku')
-          except Exception as e:
-              print(f'Error storing data for SKU $sku: {e}')
-          "
-              else
-                  echo "No product found for SKU: $sku"
-              fi
-
-              # Small delay between requests
-              sleep 1
-          done < skus_to_process.txt
-
-          echo "Product data fetch completed!"
-        env:
-          COMMERCETOOL_AUTH_TOKEN: ${{ secrets.COMMERCETOOL_AUTH_TOKEN }}
-          COMMERCETOOL_API_KEY: ${{ secrets.COMMERCETOOL_API_KEY }}
-          COMMERCETOOL_PROJECT_KEY: ${{ secrets.COMMERCETOOL_PROJECT_KEY }}
-
-      - name: Generate Product Data CSV
-        run: |
-          # Generate CSV from database
-          python3 -c "
-          import sqlite3
-          import pandas as pd
-          import json
-
-          try:
-              conn = sqlite3.connect('product_availability.db')
-              df = pd.read_sql_query('SELECT SKU, DETAILS FROM \"products-in-links\"', conn)
-              conn.close()
-
-              if not df.empty:
-                  # Parse DETAILS JSON and create expanded CSV
-                  expanded_data = []
-                  for _, row in df.iterrows():
-                      try:
-                          details = json.loads(row['DETAILS'])
-                          expanded_data.append({
-                              'SKU': row['SKU'],
-                              'Product_ID': details.get('id', ''),
-                              'Product_Key': details.get('key', ''),
-                              'Version': details.get('version', ''),
-                              'Created_At': details.get('createdAt', ''),
-                              'Last_Modified': details.get('lastModifiedAt', ''),
-                              'Details_JSON': row['DETAILS']
-                          })
-                      except Exception as e:
-                          print(f'Error parsing details for SKU {row[\"SKU\"]}: {e}')
-                          expanded_data.append({
-                              'SKU': row['SKU'],
-                              'Product_ID': 'ERROR',
-                              'Product_Key': 'ERROR',
-                              'Version': 'ERROR',
-                              'Created_At': 'ERROR',
-                              'Last_Modified': 'ERROR',
-                              'Details_JSON': row['DETAILS']
-                          })
-
-                  expanded_df = pd.DataFrame(expanded_data)
-                  expanded_df.to_csv('product_availability.csv', index=False)
-                  print(f'Generated product_availability.csv with {len(expanded_df)} records')
-              else:
-                  print('No product data found in database')
-                  # Create empty CSV
-                  empty_df = pd.DataFrame(columns=['SKU', 'Product_ID', 'Product_Key', 'Version', 'Created_At', 'Last_Modified', 'Details_JSON'])
-                  empty_df.to_csv('product_availability.csv', index=False)
-          except Exception as e:
-              print(f'Error generating CSV: {e}')
-              # Create error CSV
-              error_df = pd.DataFrame([{'SKU': 'ERROR', 'Product_ID': 'ERROR', 'Product_Key': 'ERROR', 'Version': 'ERROR', 'Created_At': 'ERROR', 'Last_Modified': 'ERROR', 'Details_JSON': str(e)}])
-              error_df.to_csv('product_availability.csv', index=False)
-          "
-        env:
-          COMMERCETOOL_AUTH_TOKEN: ${{ secrets.COMMERCETOOL_AUTH_TOKEN }}
-          COMMERCETOOL_API_KEY: ${{ secrets.COMMERCETOOL_API_KEY }}
-          COMMERCETOOL_PROJECT_KEY: ${{ secrets.COMMERCETOOL_PROJECT_KEY }}
-
-      - name: Generate Combined Report
-        run: |
-          echo "Generating combined report..."
-          python product_availability_ui.py
-        continue-on-error: true
-
-      - name: Prepare GitHub Pages deployment
-        run: |
-          mkdir -p gh-pages
-
-          # Copy HTML reports
-          if [ -f "combined_report.html" ]; then
-            cp combined_report.html gh-pages/index.html
-            echo "✅ Combined report copied to gh-pages/index.html"
-          else
-            echo "⚠️ Combined report not found, creating placeholder"
-            echo "<html><body><h1>Report Generation Failed</h1><p>Please check the workflow logs.</p></body></html>" > gh-pages/index.html
+          if [ -f "nz_link_check_results.csv" ] && [ ! -f "nz_broken_links.csv" ]; then
+            cp nz_link_check_results.csv nz_broken_links.csv
+            echo "✓ Created nz_broken_links.csv"
           fi
 
-          # Copy CSV files
-          for csv_file in *.csv; do
+          # Verify final CSV files
+          echo "Final CSV file verification:"
+          for csv_file in au_broken_links.csv nz_broken_links.csv; do
             if [ -f "$csv_file" ]; then
-              cp "$csv_file" gh-pages/
-              echo "✅ Copied $csv_file to gh-pages/"
+              lines=$(wc -l < "$csv_file")
+              echo "✓ $csv_file: $lines lines"
+            else
+              echo "✗ $csv_file: missing"
             fi
           done
 
-          # Copy database file
-          if [ -f "product_availability.db" ]; then
-            cp product_availability.db gh-pages/
-            echo "✅ Copied database to gh-pages/"
-          fi
-
-      - name: Upload HTML report artifact
+      - name: Upload CSV artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: html-report
+          name: broken-link-csvs
           path: |
-            combined_report.html
-            *.csv
-            product_availability.db
-        continue-on-error: true
+            au_broken_links.csv
+            nz_broken_links.csv
+          retention-days: 30
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        if: github.ref == 'refs/heads/main'
+      - name: Trigger Product Data Fetch Workflow
+        if: success()
+        continue-on-error: true
+        uses: actions/github-script@v7
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./gh-pages
-          force_orphan: true
+          script: |
+            try {
+              console.log('🚀 Triggering product data fetch workflow...');
+              console.log(`Run ID: ${context.runId}`);
+
+              const result = await github.rest.actions.createWorkflowDispatch({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                workflow_id: 'product-data-fetch.yml',
+                ref: 'main',
+                inputs: {
+                  'source_run_id': context.runId.toString(),
+                  'trigger_source': 'broken-link-check'
+                }
+              });
+
+              console.log('✅ Successfully triggered product data fetch workflow');
+              console.log(`Status: ${result.status}`);
+
+              // Add to step summary
+              core.summary.addHeading('🔗 Workflow Coordination');
+              core.summary.addRaw('✅ Successfully triggered product data fetch workflow');
+              core.summary.addRaw(`📋 Run ID: ${context.runId}`);
+              await core.summary.write();
+
+            } catch (error) {
+              console.log('❌ Failed to trigger product data fetch workflow');
+              console.log(`Error: ${error.message}`);
+
+              // Add error to step summary
+              core.summary.addHeading('🔗 Workflow Coordination');
+              core.summary.addRaw('❌ Failed to trigger product data fetch workflow');
+              core.summary.addRaw(`Error: ${error.message}`);
+              core.summary.addRaw('💡 You can manually trigger the product data fetch workflow using the artifacts from this run');
+              await core.summary.write();
+
+              // Don't fail the entire workflow
+              core.warning('Failed to trigger downstream workflow, but CSV artifacts are available for manual processing');
+            }

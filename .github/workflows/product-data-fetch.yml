@@ -1,12 +1,17 @@
 name: Product Data Fetch and Export
 
 on:
-  schedule:
-    # Run daily at 2 AM UTC
-    - cron: '0 2 * * *'
   workflow_dispatch:
-    # Allow manual triggering
     inputs:
+      source_run_id:
+        description: 'Run ID of the source workflow that generated CSV files'
+        required: false
+        type: string
+      trigger_source:
+        description: 'Source workflow that triggered this run'
+        required: false
+        default: 'manual'
+        type: string
       max_products:
         description: 'Maximum number of products to process (default: 100)'
         required: false
@@ -22,23 +27,137 @@ on:
           - AU
           - NZ
 
+permissions:
+  contents: read
+  actions: read
+
 jobs:
   fetch-product-data:
     runs-on: ubuntu-latest
+    timeout-minutes: 120  # 2 hour timeout for long-running product fetches
     
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-      
+
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
-        
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install pandas requests python-dotenv
+
+    - name: Retrieve CSV artifacts from broken link check
+      id: retrieve-csvs
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          let sourceRunId = '${{ inputs.source_run_id }}';
+          let artifactFound = false;
+
+          console.log(`Attempting to retrieve CSV artifacts...`);
+          console.log(`Source run ID: ${sourceRunId}`);
+          console.log(`Trigger source: ${{ inputs.trigger_source }}`);
+
+          // Function to download and extract artifacts from a specific run
+          async function downloadArtifactsFromRun(runId) {
+            try {
+              const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                run_id: runId
+              });
+
+              console.log(`Found ${artifacts.data.artifacts.length} artifacts in run ${runId}`);
+
+              const csvArtifact = artifacts.data.artifacts.find(
+                artifact => artifact.name === 'broken-link-csvs' && !artifact.expired
+              );
+
+              if (csvArtifact) {
+                console.log(`Found broken-link-csvs artifact: ${csvArtifact.id}`);
+
+                const download = await github.rest.actions.downloadArtifact({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  artifact_id: csvArtifact.id,
+                  archive_format: 'zip'
+                });
+
+                fs.writeFileSync('csvs.zip', Buffer.from(download.data));
+                console.log('Downloaded CSV artifact successfully');
+                return true;
+              }
+              return false;
+            } catch (error) {
+              console.log(`Error downloading from run ${runId}: ${error.message}`);
+              return false;
+            }
+          }
+
+          // Try to download from the specified source run first
+          if (sourceRunId) {
+            artifactFound = await downloadArtifactsFromRun(sourceRunId);
+          }
+
+          // If no artifact found, try recent successful broken-link-check runs
+          if (!artifactFound) {
+            console.log('No artifact from source run, searching recent successful runs...');
+
+            const runs = await github.rest.actions.listWorkflowRuns({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'broken-link-check.yml',
+              status: 'completed',
+              conclusion: 'success',
+              per_page: 10
+            });
+
+            for (const run of runs.data.workflow_runs) {
+              console.log(`Trying run ${run.id} from ${run.created_at}`);
+              artifactFound = await downloadArtifactsFromRun(run.id);
+              if (artifactFound) break;
+            }
+          }
+
+          if (!artifactFound) {
+            console.log('No CSV artifacts found in any recent runs');
+            core.setOutput('artifacts_found', 'false');
+          } else {
+            console.log('CSV artifacts retrieved successfully');
+            core.setOutput('artifacts_found', 'true');
+          }
+
+    - name: Extract and validate CSV files
+      if: steps.retrieve-csvs.outputs.artifacts_found == 'true'
+      run: |
+        echo "Extracting CSV files..."
+        unzip -o csvs.zip
+
+        echo "Verifying extracted files:"
+        csv_files_found=0
+        for csv_file in au_broken_links.csv nz_broken_links.csv; do
+          if [ -f "$csv_file" ]; then
+            lines=$(wc -l < "$csv_file")
+            echo "✓ $csv_file: $lines lines"
+            csv_files_found=$((csv_files_found + 1))
+          else
+            echo "✗ $csv_file: missing"
+          fi
+        done
+
+        if [ $csv_files_found -eq 0 ]; then
+          echo "❌ No CSV files found, cannot proceed"
+          exit 1
+        else
+          echo "✅ Found $csv_files_found CSV files, proceeding with product data fetch"
+        fi
+
+        rm -f csvs.zip
         
     - name: Create workflow script
       run: |
@@ -129,38 +248,45 @@ jobs:
                 try:
                     conn = sqlite3.connect(self.db_path)
                     cursor = conn.cursor()
-                    
-                    if region_filter == "ALL":
-                        query = 'SELECT ID, SKU, DETAILS FROM "products-in-links" LIMIT ?'
-                        cursor.execute(query, (max_products,))
+
+                    # Read SKUs from the file generated by the extract step
+                    skus_to_process = []
+                    if os.path.exists('skus_to_process.txt'):
+                        with open('skus_to_process.txt', 'r') as f:
+                            skus_to_process = [line.strip() for line in f if line.strip()]
+                        logger.info(f"Found {len(skus_to_process)} SKUs to process from file")
                     else:
-                        query = '''
-                            SELECT ID, SKU, DETAILS 
-                            FROM "products-in-links" 
-                            WHERE json_extract(DETAILS, '$.region') = ? 
-                            LIMIT ?
-                        '''
-                        cursor.execute(query, (region_filter, max_products))
-                    
-                    rows = cursor.fetchall()
+                        # Fallback to database query
+                        if region_filter == "ALL":
+                            query = 'SELECT ID, SKU, DETAILS FROM "products-in-links" LIMIT ?'
+                            cursor.execute(query, (max_products,))
+                        else:
+                            query = '''
+                                SELECT ID, SKU, DETAILS
+                                FROM "products-in-links"
+                                WHERE json_extract(DETAILS, '$.region') = ?
+                                LIMIT ?
+                            '''
+                            cursor.execute(query, (region_filter, max_products))
+
+                        rows = cursor.fetchall()
+                        skus_to_process = [row[1] for row in rows[:max_products]]
+                        logger.info(f"Retrieved {len(skus_to_process)} SKUs from database fallback")
+
                     conn.close()
-                    
+
+                    # Convert SKUs to product format
                     products = []
-                    for row in rows:
-                        try:
-                            details = json.loads(row[2]) if row[2] else {}
-                        except json.JSONDecodeError:
-                            details = {"error": "Invalid JSON data"}
-                        
+                    for i, sku in enumerate(skus_to_process[:max_products]):
                         products.append({
-                            "id": row[0],
-                            "sku": row[1],
-                            "details": details
+                            "id": i + 1,
+                            "sku": sku,
+                            "details": {"source": "csv_extraction"}
                         })
-                    
-                    logger.info(f"Retrieved {len(products)} products from database")
+
+                    logger.info(f"Prepared {len(products)} products for processing")
                     return products
-                    
+
                 except Exception as e:
                     logger.error(f"Error retrieving products from database: {e}")
                     return []
@@ -549,6 +675,34 @@ jobs:
                 
                 return results
         
+            def save_to_database_with_date(self, results: List[Dict]):
+                """Save results to enhanced database with date tracking."""
+                try:
+                    from datetime import datetime
+                    today = datetime.now().strftime('%Y-%m-%d')
+
+                    conn = sqlite3.connect(self.db_path)
+                    cursor = conn.cursor()
+
+                    saved_count = 0
+                    for result in results:
+                        try:
+                            cursor.execute('''
+                                INSERT OR REPLACE INTO products_with_dates
+                                (SKU, DETAILS, fetch_date) VALUES (?, ?, ?)
+                            ''', (result['SKU'], result['DETAIL'], today))
+                            saved_count += 1
+                        except Exception as e:
+                            logger.warning(f"Error saving SKU {result['SKU']}: {e}")
+
+                    conn.commit()
+                    conn.close()
+                    logger.info(f"Saved {saved_count} records to database with date {today}")
+                    return True
+                except Exception as e:
+                    logger.error(f"Error saving to database: {e}")
+                    return False
+
             def save_to_csv(self, results: List[Dict], filename: str = "product_export.csv"):
                 """Save results to CSV file."""
                 try:
@@ -576,19 +730,22 @@ jobs:
             results = fetcher.process_products(region_filter, max_products)
             
             if results:
+                # Save to enhanced database with date tracking
+                fetcher.save_to_database_with_date(results)
+
                 # Save to CSV
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 filename = f"product_export_{timestamp}.csv"
-                
+
                 if fetcher.save_to_csv(results, filename):
                     logger.info(f"Workflow completed successfully. Generated {filename}")
-                    
+
                     # Print summary
                     print(f"\n=== WORKFLOW SUMMARY ===")
                     print(f"Total products processed: {len(results)}")
                     print(f"Region filter: {region_filter}")
                     print(f"Output file: {filename}")
-                    
+
                     # Count successful vs failed
                     successful = sum(1 for r in results if r['ID'] != 'NOT_FOUND' and 'Failed to fetch' not in r['DETAIL'])
                     print(f"Successful fetches: {successful}/{len(results)}")
@@ -603,17 +760,17 @@ jobs:
             main()
         EOF
         
-    - name: Download existing database (if available)
-      continue-on-error: true
+    - name: Initialize enhanced database with date tracking
       run: |
-        # Try to download database from previous workflow runs
-        echo "Checking for existing database..."
-        if [ ! -f "product_availability.db" ]; then
-          echo "No existing database found, will create new one"
-          python -c "
+        echo "Initializing enhanced database with date tracking..."
+        python -c "
         import sqlite3
+        from datetime import datetime
+
         conn = sqlite3.connect('product_availability.db')
         cursor = conn.cursor()
+
+        # Create legacy table for backward compatibility
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS \"products-in-links\" (
                 ID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -624,17 +781,126 @@ jobs:
             )
         ''')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_sku ON \"products-in-links\" (SKU)')
+
+        # Create enhanced table with date tracking
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS products_with_dates (
+                ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                SKU TEXT NOT NULL,
+                DETAILS TEXT NOT NULL,
+                fetch_date DATE NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(SKU, fetch_date)
+            )
+        ''')
+
+        # Create indexes for efficient querying
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_sku_date ON products_with_dates (SKU, fetch_date)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_fetch_date ON products_with_dates (fetch_date)')
+
         conn.commit()
         conn.close()
-        print('Database initialized')
-          "
+        print('Enhanced database schema initialized with date tracking')
+        "
+
+    - name: Extract SKUs and check existing data
+      id: extract-skus
+      if: steps.retrieve-csvs.outputs.artifacts_found == 'true'
+      run: |
+        echo "Extracting SKUs from CSV files and checking existing data..."
+        python -c "
+        import pandas as pd
+        import re
+        import os
+        import sqlite3
+        from datetime import datetime
+
+        # Get today's date
+        today = datetime.now().strftime('%Y-%m-%d')
+        print(f'Processing for date: {today}')
+
+        # Extract SKUs from CSV files
+        skus = set()
+        csv_files = ['au_broken_links.csv', 'nz_broken_links.csv']
+
+        for csv_file in csv_files:
+            if os.path.exists(csv_file):
+                try:
+                    df = pd.read_csv(csv_file)
+                    for col in df.columns:
+                        for value in df[col].astype(str):
+                            sku_matches = re.findall(r'\b\d{8}\b', str(value))
+                            skus.update(sku_matches)
+                except Exception as e:
+                    print(f'Error processing {csv_file}: {e}')
+
+        all_skus = sorted(list(skus))
+        max_products = min(len(all_skus), int('${{ inputs.max_products }}'))
+        sku_list = all_skus[:max_products]
+
+        print(f'Found {len(all_skus)} total SKUs, processing {len(sku_list)} SKUs')
+
+        # Check which SKUs already have data for today
+        conn = sqlite3.connect('product_availability.db')
+        cursor = conn.cursor()
+
+        existing_skus = set()
+        if sku_list:
+            placeholders = ','.join(['?' for _ in sku_list])
+            cursor.execute(f'''
+                SELECT DISTINCT SKU FROM products_with_dates
+                WHERE fetch_date = ? AND SKU IN ({placeholders})
+            ''', [today] + sku_list)
+            existing_skus = {row[0] for row in cursor.fetchall()}
+
+        # Also populate legacy table with new SKUs for backward compatibility
+        new_skus = [sku for sku in sku_list if sku not in existing_skus]
+        for sku in new_skus:
+            try:
+                cursor.execute('''
+                    INSERT OR IGNORE INTO \"products-in-links\" (SKU, DETAILS)
+                    VALUES (?, ?)
+                ''', (sku, json.dumps({'sku': sku, 'source': 'csv_extraction', 'date': today})))
+            except:
+                pass  # Ignore duplicates
+
+        conn.commit()
+        conn.close()
+
+        print(f'SKUs already processed today: {len(existing_skus)}')
+        print(f'New SKUs to process: {len(new_skus)}')
+
+        # Write SKUs to process to file
+        with open('skus_to_process.txt', 'w') as f:
+            for sku in new_skus:
+                f.write(sku + '\n')
+
+        # Set output for next step
+        with open('sku_summary.txt', 'w') as f:
+            f.write(f'total_skus={len(all_skus)}\n')
+            f.write(f'existing_skus={len(existing_skus)}\n')
+            f.write(f'new_skus={len(new_skus)}\n')
+        "
+
+        # Read summary for GitHub Actions
+        if [ -f "sku_summary.txt" ]; then
+          source sku_summary.txt
+          echo "total_skus=$total_skus" >> $GITHUB_OUTPUT
+          echo "existing_skus=$existing_skus" >> $GITHUB_OUTPUT
+          echo "new_skus=$new_skus" >> $GITHUB_OUTPUT
+
+          echo "📊 SKU Processing Summary:"
+          echo "  Total SKUs found: $total_skus"
+          echo "  Already processed today: $existing_skus"
+          echo "  New SKUs to process: $new_skus"
         fi
         
     # Database update step disabled - database already contains SKUs
     - name: Update database with SKUs from CSV files (DISABLED)
       run: echo "Skipping database update - database already populated with SKUs"
         
-    - name: Run product data fetch
+    - name: Run product data fetch with error handling
       env:
         COMMERCETOOL_AUTH_TOKEN: ${{ secrets.COMMERCETOOL_AUTH_TOKEN }}
         COMMERCETOOL_API_KEY: ${{ secrets.COMMERCETOOL_API_KEY }}
@@ -642,7 +908,46 @@ jobs:
         INPUT_MAX_PRODUCTS: ${{ github.event.inputs.max_products || '100' }}
         INPUT_REGION_FILTER: ${{ github.event.inputs.region_filter || 'ALL' }}
       run: |
-        python workflow_script.py
+        echo "🚀 Starting product data fetch with comprehensive error handling..."
+
+        # Validate environment variables
+        if [ -z "$COMMERCETOOL_AUTH_TOKEN" ]; then
+          echo "❌ COMMERCETOOL_AUTH_TOKEN is not set"
+          echo "Please ensure the secret is configured in repository settings"
+          exit 1
+        fi
+
+        # Check if we have SKUs to process
+        if [ ! -f "skus_to_process.txt" ]; then
+          echo "⚠️ No SKUs file found, checking if we should skip processing..."
+          if [ "${{ steps.extract-skus.outputs.new_skus }}" = "0" ]; then
+            echo "✅ No new SKUs to process (all already processed today)"
+            # Create empty CSV for consistency
+            echo "SKU,ID,DETAIL" > product_export_$(date +%Y%m%d_%H%M%S).csv
+            echo "No new products to process today" >> product_export_$(date +%Y%m%d_%H%M%S).csv
+            exit 0
+          else
+            echo "❌ Expected SKUs file but none found"
+            exit 1
+          fi
+        fi
+
+        # Run the product fetch with timeout and error handling
+        timeout 7200 python workflow_script.py || {
+          exit_code=$?
+          if [ $exit_code -eq 124 ]; then
+            echo "❌ Product fetch timed out after 2 hours"
+            echo "This may indicate API rate limiting or network issues"
+          else
+            echo "❌ Product fetch failed with exit code $exit_code"
+          fi
+
+          # Create error CSV file
+          echo "SKU,ID,DETAIL" > product_export_error_$(date +%Y%m%d_%H%M%S).csv
+          echo "ERROR,TIMEOUT_OR_FAILURE,Product fetch failed or timed out" >> product_export_error_$(date +%Y%m%d_%H%M%S).csv
+
+          exit $exit_code
+        }
         
     - name: Upload CSV artifact
       uses: actions/upload-artifact@v4
@@ -682,3 +987,51 @@ jobs:
         else
           echo "❌ No CSV file was generated" >> $GITHUB_STEP_SUMMARY
         fi
+
+    - name: Trigger GitHub Pages deployment
+      if: success()
+      continue-on-error: true
+      uses: actions/github-script@v7
+      with:
+        script: |
+          try {
+            console.log('🚀 Triggering GitHub Pages deployment...');
+            console.log(`Product Data Run ID: ${context.runId}`);
+            console.log(`Broken Link Run ID: ${{ inputs.source_run_id }}`);
+
+            const result = await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'deploy-gh-pages.yml',
+              ref: 'main',
+              inputs: {
+                'product_data_run_id': context.runId.toString(),
+                'broken_link_run_id': '${{ inputs.source_run_id }}' || '',
+                'trigger_source': 'product-data-fetch'
+              }
+            });
+
+            console.log('✅ Successfully triggered GitHub Pages deployment');
+            console.log(`Status: ${result.status}`);
+
+            // Add to step summary
+            core.summary.addHeading('🌐 GitHub Pages Deployment');
+            core.summary.addRaw('✅ Successfully triggered GitHub Pages deployment workflow');
+            core.summary.addRaw(`📋 Product Data Run ID: ${context.runId}`);
+            core.summary.addRaw(`📋 Broken Link Run ID: ${{ inputs.source_run_id }}`);
+            await core.summary.write();
+
+          } catch (error) {
+            console.log('❌ Failed to trigger GitHub Pages deployment');
+            console.log(`Error: ${error.message}`);
+
+            // Add error to step summary
+            core.summary.addHeading('🌐 GitHub Pages Deployment');
+            core.summary.addRaw('❌ Failed to trigger GitHub Pages deployment workflow');
+            core.summary.addRaw(`Error: ${error.message}`);
+            core.summary.addRaw('💡 You can manually trigger the GitHub Pages deployment using the artifacts from this run');
+            await core.summary.write();
+
+            // Don't fail the entire workflow
+            core.warning('Failed to trigger GitHub Pages deployment, but product data artifacts are available for manual processing');
+          }

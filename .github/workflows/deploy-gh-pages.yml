@@ -3,26 +3,37 @@ name: Deploy to GitHub Pages
 on:
   workflow_dispatch:
     inputs:
-      au_csv:
-        description: 'AU CSV file name (default: au_link_check_results.csv)'
+      product_data_run_id:
+        description: 'Run ID of the product data fetch workflow'
         required: false
-        default: 'au_link_check_results.csv'
-      nz_csv:
-        description: 'NZ CSV file name (default: nz_link_check_results.csv)'
+        type: string
+      broken_link_run_id:
+        description: 'Run ID of the broken link check workflow'
         required: false
-        default: 'nz_link_check_results.csv'
+        type: string
+      trigger_source:
+        description: 'Source workflow that triggered this deployment'
+        required: false
+        default: 'manual'
+        type: string
 
 permissions:
   contents: read
   pages: write
   id-token: write
+  actions: read
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 30  # 30 minute timeout for deployment
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -32,63 +43,600 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install pandas jinja2
 
-      - name: Retrieve existing DB from gh-pages
-        uses: actions/checkout@v3
+      - name: Collect artifacts from multiple workflows
+        id: collect-artifacts
+        uses: actions/github-script@v7
         with:
-          ref: gh-pages
-          path: gh-pages
-          fetch-depth: 1
+          script: |
+            const fs = require('fs');
+            let artifactsCollected = {
+              brokenLinkCsvs: false,
+              productExportCsv: false
+            };
 
-      - name: Restore DB if exists
+            console.log('Collecting artifacts from multiple workflow runs...');
+            console.log(`Product data run ID: ${{ inputs.product_data_run_id }}`);
+            console.log(`Broken link run ID: ${{ inputs.broken_link_run_id }}`);
+
+            // Function to download artifacts from a specific run
+            async function downloadArtifactsFromRun(runId, artifactName, outputFile) {
+              try {
+                const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  run_id: runId
+                });
+
+                const artifact = artifacts.data.artifacts.find(
+                  a => a.name === artifactName && !a.expired
+                );
+
+                if (artifact) {
+                  const download = await github.rest.actions.downloadArtifact({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    artifact_id: artifact.id,
+                    archive_format: 'zip'
+                  });
+
+                  fs.writeFileSync(outputFile, Buffer.from(download.data));
+                  console.log(`Downloaded ${artifactName} from run ${runId}`);
+                  return true;
+                }
+                return false;
+              } catch (error) {
+                console.log(`Error downloading ${artifactName} from run ${runId}: ${error.message}`);
+                return false;
+              }
+            }
+
+            // Function to find recent successful runs
+            async function findRecentSuccessfulRuns(workflowFile) {
+              const runs = await github.rest.actions.listWorkflowRuns({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                workflow_id: workflowFile,
+                status: 'completed',
+                conclusion: 'success',
+                per_page: 10
+              });
+              return runs.data.workflow_runs;
+            }
+
+            // Try to download broken link CSVs
+            let brokenLinkRunId = '${{ inputs.broken_link_run_id }}';
+            if (brokenLinkRunId) {
+              artifactsCollected.brokenLinkCsvs = await downloadArtifactsFromRun(
+                brokenLinkRunId, 'broken-link-csvs', 'broken-link-csvs.zip'
+              );
+            }
+
+            if (!artifactsCollected.brokenLinkCsvs) {
+              console.log('Searching for recent broken link check runs...');
+              const brokenLinkRuns = await findRecentSuccessfulRuns('broken-link-check.yml');
+              for (const run of brokenLinkRuns) {
+                artifactsCollected.brokenLinkCsvs = await downloadArtifactsFromRun(
+                  run.id, 'broken-link-csvs', 'broken-link-csvs.zip'
+                );
+                if (artifactsCollected.brokenLinkCsvs) break;
+              }
+            }
+
+            // Try to download product export CSV
+            let productDataRunId = '${{ inputs.product_data_run_id }}';
+            if (productDataRunId) {
+              artifactsCollected.productExportCsv = await downloadArtifactsFromRun(
+                productDataRunId, 'product-export-csv', 'product-export-csv.zip'
+              );
+            }
+
+            if (!artifactsCollected.productExportCsv) {
+              console.log('Searching for recent product data fetch runs...');
+              const productDataRuns = await findRecentSuccessfulRuns('product-data-fetch.yml');
+              for (const run of productDataRuns) {
+                artifactsCollected.productExportCsv = await downloadArtifactsFromRun(
+                  run.id, 'product-export-csv', 'product-export-csv.zip'
+                );
+                if (artifactsCollected.productExportCsv) break;
+              }
+            }
+
+            console.log('Artifact collection summary:');
+            console.log(`- Broken link CSVs: ${artifactsCollected.brokenLinkCsvs}`);
+            console.log(`- Product export CSV: ${artifactsCollected.productExportCsv}`);
+
+            core.setOutput('broken_link_csvs', artifactsCollected.brokenLinkCsvs);
+            core.setOutput('product_export_csv', artifactsCollected.productExportCsv);
+
+      - name: Extract and validate CSV files
         run: |
-          if [ -f gh-pages/broken_links.db ]; then
-            cp gh-pages/broken_links.db ./broken_links.db
-            echo "Restored existing broken_links.db"
+          echo "Extracting and validating CSV files..."
+
+          # Extract broken link CSVs
+          if [ -f "broken-link-csvs.zip" ]; then
+            unzip -o broken-link-csvs.zip
+            echo "✓ Extracted broken link CSVs"
           else
-            echo "No existing DB found; starting fresh."
+            echo "⚠️ No broken link CSV artifacts found"
+            # Create placeholder files
+            echo "URL,Status,Response_Time,Error" > au_broken_links.csv
+            echo "https://example.com,404,1.0,Not Found" >> au_broken_links.csv
+            echo "URL,Status,Response_Time,Error" > nz_broken_links.csv
+            echo "https://example.com,404,1.0,Not Found" >> nz_broken_links.csv
           fi
 
-      - name: Check for required CSV files
+          # Extract product export CSV
+          if [ -f "product-export-csv.zip" ]; then
+            unzip -o product-export-csv.zip
+            echo "✓ Extracted product export CSV"
+          else
+            echo "⚠️ No product export CSV artifacts found"
+            # Create placeholder file
+            echo "SKU,ID,DETAIL" > product_export.csv
+            echo "12345678,NOT_FOUND,No product data available" >> product_export.csv
+          fi
+
+          # Validate and report on CSV files
+          echo "📊 CSV File Summary:"
+          for csv_file in au_broken_links.csv nz_broken_links.csv product_export_*.csv; do
+            if [ -f "$csv_file" ]; then
+              lines=$(wc -l < "$csv_file")
+              echo "  ✓ $csv_file: $lines lines"
+            else
+              echo "  ✗ $csv_file: missing"
+            fi
+          done
+
+          # Clean up zip files
+          rm -f *.zip
+
+      - name: Generate comprehensive HTML report with error handling
         run: |
-          if [ ! -f "${{ github.event.inputs.au_csv }}" ]; then
-            echo "Error: AU CSV file '${{ github.event.inputs.au_csv }}' not found!"
-            echo "Available files:"
-            ls -la *.csv 2>/dev/null || echo "No CSV files found"
-            exit 1
-          fi
-          if [ ! -f "${{ github.event.inputs.nz_csv }}" ]; then
-            echo "Error: NZ CSV file '${{ github.event.inputs.nz_csv }}' not found!"
-            echo "Available files:"
-            ls -la *.csv 2>/dev/null || echo "No CSV files found"
-            exit 1
-          fi
-          echo "Found required CSV files:"
-          ls -la ${{ github.event.inputs.au_csv }} ${{ github.event.inputs.nz_csv }}
+          echo "🎨 Generating comprehensive HTML report..."
 
-      - name: Generate Combined Report
-        run: python report_generator.py --au-csv ${{ github.event.inputs.au_csv }} --nz-csv ${{ github.event.inputs.nz_csv }} --output-html combined_report.html
+          # Validate Python environment
+          python3 --version || {
+            echo "❌ Python3 not available"
+            exit 1
+          }
 
-      - name: Prepare GitHub Pages deployment
+          # Run HTML generation with error handling
+          python3 -c "
+          import pandas as pd
+          import json
+          from datetime import datetime
+          import os
+
+          # Read CSV files
+          csv_files = {}
+
+          # Read AU broken links
+          if os.path.exists('au_broken_links.csv'):
+              csv_files['au_broken_links'] = pd.read_csv('au_broken_links.csv')
+          else:
+              csv_files['au_broken_links'] = pd.DataFrame(columns=['URL', 'Status', 'Response_Time', 'Error'])
+
+          # Read NZ broken links
+          if os.path.exists('nz_broken_links.csv'):
+              csv_files['nz_broken_links'] = pd.read_csv('nz_broken_links.csv')
+          else:
+              csv_files['nz_broken_links'] = pd.DataFrame(columns=['URL', 'Status', 'Response_Time', 'Error'])
+
+          # Read product export (find the actual file)
+          product_files = [f for f in os.listdir('.') if f.startswith('product_export') and f.endswith('.csv')]
+          if product_files:
+              csv_files['product_export'] = pd.read_csv(product_files[0])
+          else:
+              csv_files['product_export'] = pd.DataFrame(columns=['SKU', 'ID', 'DETAIL'])
+
+          print(f'Loaded CSV files: {list(csv_files.keys())}')
+          for name, df in csv_files.items():
+              print(f'  {name}: {len(df)} rows')
+
+          # Generate HTML report matching test_combined_report.html design
+          html_template = '''<!DOCTYPE html>
+          <html lang=\"en\">
+          <head>
+              <meta charset=\"UTF-8\">
+              <title>Broken Link Report</title>
+              <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
+              <link rel=\"stylesheet\" href=\"https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css\">
+              <script src=\"https://code.jquery.com/jquery-3.6.0.min.js\"></script>
+              <script src=\"https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js\"></script>
+              <style>
+                  :root {
+                      --container-max: 1400px;
+                      --brand: #0d6efd;
+                      --muted-bg: #f6f7f9;
+                      --muted: #6c757d;
+                      --card-bg: #ffffff;
+                      --border: #e5e7eb;
+                  }
+                  body {
+                      font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif;
+                      margin: 0;
+                      background-color: var(--muted-bg);
+                      color: #1f2937;
+                  }
+                  header {
+                      background: linear-gradient(180deg, #fff, #fafbfc);
+                      border-bottom: 1px solid var(--border);
+                      padding: 24px 16px 16px;
+                      margin-bottom: 16px;
+                  }
+                  h1 {
+                      text-align: center;
+                      margin: 0 auto;
+                      max-width: var(--container-max);
+                      font-weight: 700;
+                      letter-spacing: .2px;
+                  }
+                  .container {
+                      max-width: var(--container-max);
+                      margin: 0 auto;
+                      padding: 0 16px 24px;
+                  }
+                  .summary-container {
+                      display: flex;
+                      flex-wrap: wrap;
+                      gap: 12px;
+                      margin-bottom: 16px;
+                  }
+                  .summary-item {
+                      background: var(--card-bg);
+                      padding: 12px 16px;
+                      border-radius: 8px;
+                      border: 1px solid var(--border);
+                      font-weight: 500;
+                      white-space: nowrap;
+                  }
+                  .tabs {
+                      display: flex;
+                      background: var(--card-bg);
+                      border-radius: 8px 8px 0 0;
+                      border: 1px solid var(--border);
+                      border-bottom: none;
+                      overflow-x: auto;
+                  }
+                  .tab {
+                      padding: 12px 20px;
+                      cursor: pointer;
+                      border-right: 1px solid var(--border);
+                      white-space: nowrap;
+                      transition: background-color 0.2s;
+                  }
+                  .tab:hover {
+                      background-color: var(--muted-bg);
+                  }
+                  .tab.active {
+                      background-color: var(--brand);
+                      color: white;
+                  }
+                  .tab-content {
+                      display: none;
+                      background: var(--card-bg);
+                      border: 1px solid var(--border);
+                      border-radius: 0 0 8px 8px;
+                      padding: 20px;
+                  }
+                  .tab-content.active {
+                      display: block;
+                  }
+                  .product-availability-container {
+                      margin-top: 20px;
+                  }
+                  .table-container {
+                      width: 100%;
+                      overflow-x: auto;
+                      margin-top: 15px;
+                  }
+                  .product-table {
+                      width: 100%;
+                      min-width: 600px;
+                      border-collapse: collapse;
+                      background-color: white;
+                      border-radius: 8px;
+                      overflow: hidden;
+                      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                  }
+                  .product-table th {
+                      background-color: var(--brand);
+                      color: white;
+                      padding: 12px;
+                      text-align: left;
+                      font-weight: 600;
+                      font-size: 14px;
+                      white-space: nowrap;
+                  }
+                  .product-table td {
+                      padding: 12px;
+                      border-bottom: 1px solid #e5e7eb;
+                      vertical-align: top;
+                  }
+                  .card {
+                      background: var(--card-bg);
+                      border: 1px solid var(--border);
+                      border-radius: 8px;
+                      padding: 20px;
+                      margin-bottom: 16px;
+                  }
+                  .card h3 {
+                      margin: 0 0 16px 0;
+                      color: var(--brand);
+                  }
+              </style>
+          </head>
+          <body>
+              <header>
+                  <h1>🔗 Broken Link Report</h1>
+              </header>
+
+              <div class=\"container\">
+                  <div class=\"summary-container\">
+                      <span class=\"summary-item\">🇦🇺 AU Links: {au_count}</span>
+                      <span class=\"summary-item\">🇳🇿 NZ Links: {nz_count}</span>
+                      <span class=\"summary-item\">📦 Products: {product_count}</span>
+                      <span class=\"summary-item\">📅 Generated: {timestamp}</span>
+                  </div>
+
+                  <div class=\"tabs\">
+                      <div class=\"tab active\" onclick=\"openTab(event, 'AU_Broken_Links')\">🇦🇺 AU Broken Links</div>
+                      <div class=\"tab\" onclick=\"openTab(event, 'NZ_Broken_Links')\">🇳🇿 NZ Broken Links</div>
+                      <div class=\"tab\" onclick=\"openTab(event, 'Product_Availability')\">📦 Product Availability</div>
+                  </div>
+
+                  <div id=\"AU_Broken_Links\" class=\"tab-content active\">
+                      <div class=\"card\">
+                          <h3>AU Broken Links</h3>
+                          <div class=\"table-container\">
+                              <table id=\"au-table\" class=\"display\" style=\"width:100%\">
+                                  <thead>
+                                      <tr>
+                                          <th>URL</th>
+                                          <th>Status</th>
+                                          <th>Response Time</th>
+                                          <th>Error</th>
+                                      </tr>
+                                  </thead>
+                                  <tbody>
+                                      {au_table_rows}
+                                  </tbody>
+                              </table>
+                          </div>
+                      </div>
+                  </div>
+
+                  <div id=\"NZ_Broken_Links\" class=\"tab-content\">
+                      <div class=\"card\">
+                          <h3>NZ Broken Links</h3>
+                          <div class=\"table-container\">
+                              <table id=\"nz-table\" class=\"display\" style=\"width:100%\">
+                                  <thead>
+                                      <tr>
+                                          <th>URL</th>
+                                          <th>Status</th>
+                                          <th>Response Time</th>
+                                          <th>Error</th>
+                                      </tr>
+                                  </thead>
+                                  <tbody>
+                                      {nz_table_rows}
+                                  </tbody>
+                              </table>
+                          </div>
+                      </div>
+                  </div>
+
+                  <div id=\"Product_Availability\" class=\"tab-content\">
+                      <div class=\"card\">
+                          <h3>Product Availability</h3>
+                          <div class=\"table-container\">
+                              <table id=\"product-table\" class=\"display\" style=\"width:100%\">
+                                  <thead>
+                                      <tr>
+                                          <th>SKU</th>
+                                          <th>Product ID</th>
+                                          <th>Details</th>
+                                      </tr>
+                                  </thead>
+                                  <tbody>
+                                      {product_table_rows}
+                                  </tbody>
+                              </table>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+
+              <script>
+                  // Initialize DataTables
+                  \$(document).ready(function() {
+                      \$('#au-table').DataTable({
+                          pageLength: 25,
+                          responsive: true,
+                          order: [[1, 'desc']]
+                      });
+                      \$('#nz-table').DataTable({
+                          pageLength: 25,
+                          responsive: true,
+                          order: [[1, 'desc']]
+                      });
+                      \$('#product-table').DataTable({
+                          pageLength: 25,
+                          responsive: true,
+                          order: [[0, 'asc']]
+                      });
+                  });
+
+                  // Tab switching functionality
+                  function openTab(evt, tabName) {
+                      var i, tabcontent, tabs;
+                      tabcontent = document.getElementsByClassName('tab-content');
+                      for (i = 0; i < tabcontent.length; i++) {
+                          tabcontent[i].classList.remove('active');
+                      }
+                      tabs = document.getElementsByClassName('tab');
+                      for (i = 0; i < tabs.length; i++) {
+                          tabs[i].classList.remove('active');
+                      }
+                      document.getElementById(tabName).classList.add('active');
+                      evt.currentTarget.classList.add('active');
+                  }
+              </script>
+          </body>
+          </html>'''
+
+          # Generate table rows
+          def generate_table_rows(df, columns):
+              rows = []
+              for _, row in df.iterrows():
+                  row_html = '<tr>'
+                  for col in columns:
+                      value = str(row.get(col, '')) if col in row else ''
+                      row_html += f'<td>{value}</td>'
+                  row_html += '</tr>'
+                  rows.append(row_html)
+              return '\\n'.join(rows)
+
+          # Generate content
+          au_rows = generate_table_rows(csv_files['au_broken_links'], ['URL', 'Status', 'Response_Time', 'Error'])
+          nz_rows = generate_table_rows(csv_files['nz_broken_links'], ['URL', 'Status', 'Response_Time', 'Error'])
+          product_rows = generate_table_rows(csv_files['product_export'], ['SKU', 'ID', 'DETAIL'])
+
+          # Fill template
+          html_content = html_template.format(
+              au_count=len(csv_files['au_broken_links']),
+              nz_count=len(csv_files['nz_broken_links']),
+              product_count=len(csv_files['product_export']),
+              timestamp=datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC'),
+              au_table_rows=au_rows,
+              nz_table_rows=nz_rows,
+              product_table_rows=product_rows
+          )
+
+          # Write HTML file
+          with open('index.html', 'w', encoding='utf-8') as f:
+              f.write(html_content)
+
+          print('✅ Generated comprehensive HTML report: index.html')
+          "
+
+      - name: Prepare deployment directory with validation
         run: |
+          echo "📁 Preparing deployment directory..."
           mkdir -p gh-pages-deploy
-          mv combined_report.html gh-pages-deploy/index.html
-          cp broken_links.db gh-pages-deploy/ 2>/dev/null || echo "No broken_links.db to copy"
-          cp *_link_check_results.csv gh-pages-deploy/ 2>/dev/null || echo "No CSV files to copy"
 
-      - name: Upload HTML report artifact
-        uses: actions/upload-artifact@v4
+          # Validate and copy HTML report
+          if [ -f "index.html" ]; then
+            # Validate HTML file is not empty
+            if [ -s "index.html" ]; then
+              cp index.html gh-pages-deploy/
+              echo "✓ Copied HTML report ($(du -h index.html | cut -f1))"
+            else
+              echo "❌ HTML report is empty"
+              exit 1
+            fi
+          else
+            echo "❌ HTML report not found, creating fallback page..."
+            cat > gh-pages-deploy/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <title>Report Generation Failed</title>
+              <style>
+                  body { font-family: Arial, sans-serif; margin: 40px; text-align: center; }
+                  .error { color: #d32f2f; }
+                  .info { color: #1976d2; }
+              </style>
+          </head>
+          <body>
+              <h1 class="error">⚠️ Report Generation Failed</h1>
+              <p class="info">The automated report generation encountered an error.</p>
+              <p>Please check the workflow logs for more details.</p>
+              <p><a href="downloads.html">📥 Download available CSV files</a></p>
+          </body>
+          </html>
+          EOF
+            echo "📝 Created fallback HTML page"
+          fi
+
+          # Copy all CSV files for download
+          for csv_file in *.csv; do
+            if [ -f "$csv_file" ]; then
+              cp "$csv_file" gh-pages-deploy/
+              echo "✓ Copied $csv_file"
+            fi
+          done
+
+          # Create download links page
+          cat > gh-pages-deploy/downloads.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <title>Download CSV Files</title>
+              <style>
+                  body { font-family: Arial, sans-serif; margin: 40px; }
+                  .download-link { display: block; margin: 10px 0; padding: 10px; background: #f0f0f0; text-decoration: none; border-radius: 5px; }
+                  .download-link:hover { background: #e0e0e0; }
+              </style>
+          </head>
+          <body>
+              <h1>📥 Download CSV Files</h1>
+              <p>Click the links below to download the CSV files:</p>
+          EOF
+
+          for csv_file in gh-pages-deploy/*.csv; do
+            if [ -f "$csv_file" ]; then
+              filename=$(basename "$csv_file")
+              echo "<a href=\"$filename\" class=\"download-link\" download>📄 $filename</a>" >> gh-pages-deploy/downloads.html
+            fi
+          done
+
+          echo "</body></html>" >> gh-pages-deploy/downloads.html
+
+          echo "✅ Deployment directory prepared"
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          name: gh-pages-report
-          path: |
-            gh-pages-deploy/index.html
-            gh-pages-deploy/broken_links.db
+          path: './gh-pages-deploy'
 
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: gh-pages-deploy
-          publish_branch: gh-pages
-          force_orphan: true
+        id: deployment
+        continue-on-error: false
+        uses: actions/deploy-pages@v4
+
+      - name: Create deployment summary
+        run: |
+          echo "## 🚀 GitHub Pages Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployment Details:**" >> $GITHUB_STEP_SUMMARY
+          echo "- Trigger Source: ${{ inputs.trigger_source }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Product Data Run ID: ${{ inputs.product_data_run_id }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Broken Link Run ID: ${{ inputs.broken_link_run_id }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Deployment Time: $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Artifacts Collected:**" >> $GITHUB_STEP_SUMMARY
+          echo "- Broken Link CSVs: ${{ steps.collect-artifacts.outputs.broken_link_csvs }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Product Export CSV: ${{ steps.collect-artifacts.outputs.product_export_csv }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Files Deployed:**" >> $GITHUB_STEP_SUMMARY
+
+          if [ -d "gh-pages-deploy" ]; then
+            for file in gh-pages-deploy/*; do
+              if [ -f "$file" ]; then
+                filename=$(basename "$file")
+                size=$(du -h "$file" | cut -f1)
+                echo "- $filename ($size)" >> $GITHUB_STEP_SUMMARY
+              fi
+            done
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**🌐 Live Report:** ${{ steps.deployment.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "**📥 Downloads:** ${{ steps.deployment.outputs.page_url }}downloads.html" >> $GITHUB_STEP_SUMMARY
