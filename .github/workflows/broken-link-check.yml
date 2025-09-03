@@ -337,43 +337,112 @@ jobs:
           echo '        """Get detailed product information via GraphQL API."""' >> product_fetch_script.py
           echo '        if not self.auth_token:' >> product_fetch_script.py
           echo '            return None' >> product_fetch_script.py
-          echo '        # Use a simplified GraphQL query without fragments to avoid 500 errors' >> product_fetch_script.py
-          echo '        graphql_query = """query GeneralInfoTabQuery($productId: String!) {' >> product_fetch_script.py
+          echo '        # Use the exact working GraphQL query with fragments from the working example' >> product_fetch_script.py
+          echo '        graphql_query = """query GeneralInfoTabQuery($productId: String, $isProductAttributeEnabled: Boolean!, $enableLocaleLabelOptimization: Boolean!, $locale: Locale!) {' >> product_fetch_script.py
           echo '  product(id: $productId) {' >> product_fetch_script.py
           echo '    id' >> product_fetch_script.py
-          echo '    key' >> product_fetch_script.py
-          echo '    version' >> product_fetch_script.py
+          echo '    ...ProductTypeFragment' >> product_fetch_script.py
           echo '    createdAt' >> product_fetch_script.py
           echo '    lastModifiedAt' >> product_fetch_script.py
-          echo '    productType {' >> product_fetch_script.py
+          echo '    version' >> product_fetch_script.py
+          echo '    key' >> product_fetch_script.py
+          echo '    priceMode' >> product_fetch_script.py
+          echo '    taxCategory {' >> product_fetch_script.py
           echo '      id' >> product_fetch_script.py
           echo '      name' >> product_fetch_script.py
+          echo '      key' >> product_fetch_script.py
+          echo '      __typename' >> product_fetch_script.py
           echo '    }' >> product_fetch_script.py
           echo '    masterData {' >> product_fetch_script.py
           echo '      staged {' >> product_fetch_script.py
-          echo '        name(locale: "en-AU")' >> product_fetch_script.py
-          echo '        description(locale: "en-AU")' >> product_fetch_script.py
-          echo '        slug(locale: "en-AU")' >> product_fetch_script.py
+          echo '        nameAllLocales {' >> product_fetch_script.py
+          echo '          locale' >> product_fetch_script.py
+          echo '          value' >> product_fetch_script.py
+          echo '          __typename' >> product_fetch_script.py
+          echo '        }' >> product_fetch_script.py
+          echo '        descriptionAllLocales {' >> product_fetch_script.py
+          echo '          locale' >> product_fetch_script.py
+          echo '          value' >> product_fetch_script.py
+          echo '          __typename' >> product_fetch_script.py
+          echo '        }' >> product_fetch_script.py
+          echo '        categories {' >> product_fetch_script.py
+          echo '          ...CurrentCategoryFragment' >> product_fetch_script.py
+          echo '          ancestors {' >> product_fetch_script.py
+          echo '            ...CurrentCategoryFragment' >> product_fetch_script.py
+          echo '            __typename' >> product_fetch_script.py
+          echo '          }' >> product_fetch_script.py
+          echo '          __typename' >> product_fetch_script.py
+          echo '        }' >> product_fetch_script.py
           echo '        masterVariant {' >> product_fetch_script.py
-          echo '          id' >> product_fetch_script.py
-          echo '          sku' >> product_fetch_script.py
-          echo '          key' >> product_fetch_script.py
-          echo '          attributes {' >> product_fetch_script.py
+          echo '          attributesRaw {' >> product_fetch_script.py
           echo '            name' >> product_fetch_script.py
           echo '            value' >> product_fetch_script.py
+          echo '            __typename' >> product_fetch_script.py
           echo '          }' >> product_fetch_script.py
+          echo '          __typename' >> product_fetch_script.py
           echo '        }' >> product_fetch_script.py
-          echo '        variants {' >> product_fetch_script.py
-          echo '          id' >> product_fetch_script.py
-          echo '          sku' >> product_fetch_script.py
-          echo '          key' >> product_fetch_script.py
+          echo '        attributesRaw {' >> product_fetch_script.py
+          echo '          name' >> product_fetch_script.py
+          echo '          value' >> product_fetch_script.py
+          echo '          __typename' >> product_fetch_script.py
           echo '        }' >> product_fetch_script.py
+          echo '        __typename' >> product_fetch_script.py
           echo '      }' >> product_fetch_script.py
+          echo '      __typename' >> product_fetch_script.py
           echo '    }' >> product_fetch_script.py
+          echo '    __typename' >> product_fetch_script.py
           echo '  }' >> product_fetch_script.py
+          echo '' >> product_fetch_script.py
+          echo 'fragment ProductTypeFragment on Product {' >> product_fetch_script.py
+          echo '  productType {' >> product_fetch_script.py
+          echo '    id' >> product_fetch_script.py
+          echo '    name' >> product_fetch_script.py
+          echo '    attributeDefinitions {' >> product_fetch_script.py
+          echo '      results {' >> product_fetch_script.py
+          echo '        attributeConstraint' >> product_fetch_script.py
+          echo '        level @include(if: $isProductAttributeEnabled)' >> product_fetch_script.py
+          echo '        isSearchable' >> product_fetch_script.py
+          echo '        labelByLocale: label(locale: $locale) @include(if: $enableLocaleLabelOptimization)' >> product_fetch_script.py
+          echo '        labelAllLocales @skip(if: $enableLocaleLabelOptimization) {' >> product_fetch_script.py
+          echo '          locale' >> product_fetch_script.py
+          echo '          value' >> product_fetch_script.py
+          echo '          __typename' >> product_fetch_script.py
+          echo '        }' >> product_fetch_script.py
+          echo '        inputHint' >> product_fetch_script.py
+          echo '        inputTipAllLocales {' >> product_fetch_script.py
+          echo '          locale' >> product_fetch_script.py
+          echo '          value' >> product_fetch_script.py
+          echo '          __typename' >> product_fetch_script.py
+          echo '        }' >> product_fetch_script.py
+          echo '        isRequired' >> product_fetch_script.py
+          echo '        name' >> product_fetch_script.py
+          echo '        type {' >> product_fetch_script.py
+          echo '          name' >> product_fetch_script.py
+          echo '          __typename' >> product_fetch_script.py
+          echo '        }' >> product_fetch_script.py
+          echo '        __typename' >> product_fetch_script.py
+          echo '      }' >> product_fetch_script.py
+          echo '      __typename' >> product_fetch_script.py
+          echo '    }' >> product_fetch_script.py
+          echo '    __typename' >> product_fetch_script.py
+          echo '  }' >> product_fetch_script.py
+          echo '  __typename' >> product_fetch_script.py
+          echo '}' >> product_fetch_script.py
+          echo '' >> product_fetch_script.py
+          echo 'fragment CurrentCategoryFragment on Category {' >> product_fetch_script.py
+          echo '  id' >> product_fetch_script.py
+          echo '  nameAllLocales {' >> product_fetch_script.py
+          echo '    locale' >> product_fetch_script.py
+          echo '    value' >> product_fetch_script.py
+          echo '    __typename' >> product_fetch_script.py
+          echo '  }' >> product_fetch_script.py
+          echo '  __typename' >> product_fetch_script.py
           echo '}"""' >> product_fetch_script.py
           echo '        variables = {' >> product_fetch_script.py
-          echo '            "productId": product_id' >> product_fetch_script.py
+          echo '            "productId": product_id,' >> product_fetch_script.py
+          echo '            "isProductAttributeEnabled": False,' >> product_fetch_script.py
+          echo '            "locale": "en-AU",' >> product_fetch_script.py
+          echo '            "enableLocaleLabelOptimization": False' >> product_fetch_script.py
           echo '        }' >> product_fetch_script.py
           echo '        payload = {"operationName": "GeneralInfoTabQuery", "variables": variables, "query": graphql_query}' >> product_fetch_script.py
           echo '        try:' >> product_fetch_script.py
@@ -413,28 +482,44 @@ jobs:
           echo '                product_data = details["data"]["product"]' >> product_fetch_script.py
           echo '                master_data = product_data.get("masterData", {}).get("staged", {})' >> product_fetch_script.py
           echo '                master_variant = master_data.get("masterVariant", {})' >> product_fetch_script.py
-          echo '                attributes = master_variant.get("attributes", [])' >> product_fetch_script.py
-          echo '                attributes_dict = {attr["name"]: attr["value"] for attr in attributes}' >> product_fetch_script.py
-          echo '                # Get product name directly from staged data' >> product_fetch_script.py
-          echo '                product_name = master_data.get("name", "Unknown Product")' >> product_fetch_script.py
-          echo '                product_description = master_data.get("description", "")' >> product_fetch_script.py
-          echo '                product_slug = master_data.get("slug", "")' >> product_fetch_script.py
-          echo '                master_sku = master_variant.get("sku", "")' >> product_fetch_script.py
-          echo '                # Get all variant SKUs' >> product_fetch_script.py
-          echo '                variants = master_data.get("variants", [])' >> product_fetch_script.py
-          echo '                all_skus = [master_sku] + [v.get("sku", "") for v in variants if v.get("sku")]' >> product_fetch_script.py
+          echo '                # Get attributes from attributesRaw (new structure)' >> product_fetch_script.py
+          echo '                attributes_raw = master_variant.get("attributesRaw", [])' >> product_fetch_script.py
+          echo '                attributes_dict = {attr["name"]: attr["value"] for attr in attributes_raw}' >> product_fetch_script.py
+          echo '                # Get product name from nameAllLocales' >> product_fetch_script.py
+          echo '                name_locales = master_data.get("nameAllLocales", [])' >> product_fetch_script.py
+          echo '                product_name = "Unknown Product"' >> product_fetch_script.py
+          echo '                for name_locale in name_locales:' >> product_fetch_script.py
+          echo '                    if name_locale.get("locale") == "en-AU":' >> product_fetch_script.py
+          echo '                        product_name = name_locale.get("value", "Unknown Product")' >> product_fetch_script.py
+          echo '                        break' >> product_fetch_script.py
+          echo '                # Get product description from descriptionAllLocales' >> product_fetch_script.py
+          echo '                desc_locales = master_data.get("descriptionAllLocales", [])' >> product_fetch_script.py
+          echo '                product_description = ""' >> product_fetch_script.py
+          echo '                for desc_locale in desc_locales:' >> product_fetch_script.py
+          echo '                    if desc_locale.get("locale") == "en-AU":' >> product_fetch_script.py
+          echo '                        product_description = desc_locale.get("value", "")' >> product_fetch_script.py
+          echo '                        break' >> product_fetch_script.py
+          echo '                # Get categories' >> product_fetch_script.py
+          echo '                categories = master_data.get("categories", [])' >> product_fetch_script.py
+          echo '                category_names = []' >> product_fetch_script.py
+          echo '                for category in categories:' >> product_fetch_script.py
+          echo '                    cat_names = category.get("nameAllLocales", [])' >> product_fetch_script.py
+          echo '                    for cat_name in cat_names:' >> product_fetch_script.py
+          echo '                        if cat_name.get("locale") == "en-AU":' >> product_fetch_script.py
+          echo '                            category_names.append(cat_name.get("value", ""))' >> product_fetch_script.py
+          echo '                            break' >> product_fetch_script.py
           echo '                detail_info = {' >> product_fetch_script.py
           echo '                    "name": product_name,' >> product_fetch_script.py
           echo '                    "description": product_description,' >> product_fetch_script.py
-          echo '                    "slug": product_slug,' >> product_fetch_script.py
+          echo '                    "categories": category_names,' >> product_fetch_script.py
           echo '                    "product_type": product_data.get("productType", {}).get("name", "Unknown Type"),' >> product_fetch_script.py
-          echo '                    "master_sku": master_sku,' >> product_fetch_script.py
-          echo '                    "all_skus": all_skus,' >> product_fetch_script.py
           echo '                    "attributes": attributes_dict,' >> product_fetch_script.py
           echo '                    "created_at": product_data.get("createdAt"),' >> product_fetch_script.py
           echo '                    "last_modified_at": product_data.get("lastModifiedAt"),' >> product_fetch_script.py
           echo '                    "version": product_data.get("version"),' >> product_fetch_script.py
-          echo '                    "key": product_data.get("key")' >> product_fetch_script.py
+          echo '                    "key": product_data.get("key"),' >> product_fetch_script.py
+          echo '                    "price_mode": product_data.get("priceMode"),' >> product_fetch_script.py
+          echo '                    "tax_category": product_data.get("taxCategory", {}).get("name", "")' >> product_fetch_script.py
           echo '                }' >> product_fetch_script.py
           echo '                results.append({"SKU": sku, "ID": product_id, "DETAIL": json.dumps(detail_info)})' >> product_fetch_script.py
           echo '                logger.info(f"Successfully processed SKU {sku} -> ID {product_id}")' >> product_fetch_script.py
