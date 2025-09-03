@@ -200,22 +200,69 @@ jobs:
 
       - name: Create Product Fetch Script
         run: |
-          # Create a simple product fetch script without heredoc
+          # Create a proper product fetch script using echo commands
           echo 'import os, sys, sqlite3, json, pandas as pd, logging' > product_fetch_script.py
           echo 'from datetime import datetime' >> product_fetch_script.py
           echo 'logging.basicConfig(level=logging.INFO)' >> product_fetch_script.py
           echo 'logger = logging.getLogger(__name__)' >> product_fetch_script.py
+          echo '' >> product_fetch_script.py
           echo 'def create_fallback_data():' >> product_fetch_script.py
+          echo '    logger.info("Creating fallback product data")' >> product_fetch_script.py
           echo '    return [{"SKU": "FALLBACK001", "ID": "fallback-id-1", "DETAIL": json.dumps({"name": "Fallback Product", "attributes": {}})}]' >> product_fetch_script.py
+          echo '' >> product_fetch_script.py
+          echo 'def get_products_from_database(max_products=100):' >> product_fetch_script.py
+          echo '    db_path = "product_availability.db"' >> product_fetch_script.py
+          echo '    try:' >> product_fetch_script.py
+          echo '        conn = sqlite3.connect(db_path)' >> product_fetch_script.py
+          echo '        cursor = conn.cursor()' >> product_fetch_script.py
+          echo '        query = '\''SELECT ID, SKU, DETAILS FROM "products-in-links" LIMIT ?'\''' >> product_fetch_script.py
+          echo '        cursor.execute(query, (max_products,))' >> product_fetch_script.py
+          echo '        rows = cursor.fetchall()' >> product_fetch_script.py
+          echo '        conn.close()' >> product_fetch_script.py
+          echo '        products = []' >> product_fetch_script.py
+          echo '        for row in rows:' >> product_fetch_script.py
+          echo '            try:' >> product_fetch_script.py
+          echo '                details = json.loads(row[2]) if row[2] else {}' >> product_fetch_script.py
+          echo '            except json.JSONDecodeError:' >> product_fetch_script.py
+          echo '                details = {"error": "Invalid JSON data"}' >> product_fetch_script.py
+          echo '            products.append({"SKU": row[1], "ID": row[0], "DETAIL": json.dumps(details)})' >> product_fetch_script.py
+          echo '        logger.info(f"Retrieved {len(products)} products from database")' >> product_fetch_script.py
+          echo '        return products' >> product_fetch_script.py
+          echo '    except Exception as e:' >> product_fetch_script.py
+          echo '        logger.error(f"Error retrieving products from database: {e}")' >> product_fetch_script.py
+          echo '        return []' >> product_fetch_script.py
+          echo '' >> product_fetch_script.py
           echo 'def save_to_csv(results):' >> product_fetch_script.py
           echo '    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")' >> product_fetch_script.py
           echo '    filename = f"product_export_{timestamp}.csv"' >> product_fetch_script.py
-          echo '    df = pd.DataFrame(results)' >> product_fetch_script.py
-          echo '    df.to_csv(filename, index=False)' >> product_fetch_script.py
-          echo '    return filename' >> product_fetch_script.py
-          echo 'results = create_fallback_data()' >> product_fetch_script.py
+          echo '    try:' >> product_fetch_script.py
+          echo '        df = pd.DataFrame(results)' >> product_fetch_script.py
+          echo '        df.to_csv(filename, index=False)' >> product_fetch_script.py
+          echo '        df.to_csv("product_export.csv", index=False)' >> product_fetch_script.py
+          echo '        logger.info(f"Saved {len(results)} records to {filename} and product_export.csv")' >> product_fetch_script.py
+          echo '        return filename' >> product_fetch_script.py
+          echo '    except Exception as e:' >> product_fetch_script.py
+          echo '        logger.error(f"Error saving to CSV: {e}")' >> product_fetch_script.py
+          echo '        return None' >> product_fetch_script.py
+          echo '' >> product_fetch_script.py
+          echo 'max_products = int(os.getenv("MAX_PRODUCTS", "100"))' >> product_fetch_script.py
+          echo 'auth_token = os.getenv("COMMERCETOOL_AUTH_TOKEN")' >> product_fetch_script.py
+          echo 'if not auth_token:' >> product_fetch_script.py
+          echo '    logger.info("No auth token available, creating fallback data")' >> product_fetch_script.py
+          echo '    results = create_fallback_data()' >> product_fetch_script.py
+          echo 'else:' >> product_fetch_script.py
+          echo '    products = get_products_from_database(max_products)' >> product_fetch_script.py
+          echo '    if not products:' >> product_fetch_script.py
+          echo '        logger.warning("No products found in database, creating fallback data")' >> product_fetch_script.py
+          echo '        results = create_fallback_data()' >> product_fetch_script.py
+          echo '    else:' >> product_fetch_script.py
+          echo '        logger.info(f"Using {len(products)} products from database")' >> product_fetch_script.py
+          echo '        results = products' >> product_fetch_script.py
           echo 'filename = save_to_csv(results)' >> product_fetch_script.py
-          echo 'print(f"Product export completed: {filename}")' >> product_fetch_script.py
+          echo 'if filename:' >> product_fetch_script.py
+          echo '    print(f"Product export completed: {filename}")' >> product_fetch_script.py
+          echo 'else:' >> product_fetch_script.py
+          echo '    print("Product export failed")' >> product_fetch_script.py
 
 
       - name: Run Product Data Fetch
@@ -228,11 +275,14 @@ jobs:
           echo "Starting product data fetch..."
           python product_fetch_script.py
 
-          # Ensure we have a product export file for the report
-          if [ ! -f product_export_*.csv ]; then
-            echo "No product export file generated, creating minimal fallback"
-            echo 'SKU,ID,DETAIL' > product_export_fallback.csv
-            echo 'FALLBACK001,fallback-id-1,"{""name"": ""Fallback Product"", ""attributes"": {}}"' >> product_export_fallback.csv
+          # Verify the product export file was created
+          if [ -f product_export.csv ]; then
+            echo "✅ Product export file created successfully"
+            wc -l product_export.csv
+          else
+            echo "❌ Product export file not found, creating emergency fallback"
+            echo 'SKU,ID,DETAIL' > product_export.csv
+            echo 'FALLBACK001,fallback-id-1,"{""name"": ""Emergency Fallback Product"", ""attributes"": {}}"' >> product_export.csv
           fi
 
           echo "Product data fetch completed"
@@ -240,7 +290,7 @@ jobs:
 
 
       - name: Generate Combined Report
-        run: python report_generator.py --au-csv au_link_check_results.csv --nz-csv nz_link_check_results.csv --output-html combined_report.html
+        run: python report_generator.py --au-csv au_link_check_results.csv --nz-csv nz_link_check_results.csv --product-csv product_export.csv --output-html combined_report.html
 
       - name: Prepare GitHub Pages deployment
         run: |

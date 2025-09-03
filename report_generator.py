@@ -916,7 +916,7 @@ def _compute_changes(conn: sqlite3.Connection):
         }
     }
 
-def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='combined_report.html', db_path: str = 'broken_links.db'):
+def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='combined_report.html', product_csv_path='product_export.csv', db_path: str = 'broken_links.db'):
     """Generates a combined HTML report with tabs for AU and NZ link check results."""
     try:
         au_df = pd.read_csv(au_csv_path)
@@ -941,6 +941,17 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
     except Exception as e:
         print(f"Error reading NZ CSV {nz_csv_path}: {e}")
         nz_df = pd.DataFrame(columns=['URL', 'Status', 'Response_Time', 'Error_Message'])
+
+    # Load product data
+    try:
+        product_df = pd.read_csv(product_csv_path)
+        print(f"✅ Loaded {len(product_df)} product records from {product_csv_path}")
+    except FileNotFoundError:
+        print(f"⚠️ Product CSV file not found: {product_csv_path}, creating empty dataframe")
+        product_df = pd.DataFrame(columns=['SKU', 'ID', 'DETAIL'])
+    except Exception as e:
+        print(f"⚠️ Error loading product CSV: {e}, creating empty dataframe")
+        product_df = pd.DataFrame(columns=['SKU', 'ID', 'DETAIL'])
 
     # Add region column before combining
     au_df['Region'] = 'AU'
@@ -1026,6 +1037,9 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
     # Drop 'Region' for individual table view; errors='ignore' handles cases where 'Region' might not exist (e.g., empty df)
     au_table_html = generate_html_table_from_df(au_error_df.drop(columns=['Region'], errors='ignore'), 'auLinkTable')
     nz_table_html = generate_html_table_from_df(nz_error_df.drop(columns=['Region'], errors='ignore'), 'nzLinkTable')
+
+    # Generate product table HTML
+    product_table_html = generate_html_table_from_df(product_df, 'productTable')
 
     # Build Changes tab HTML
     def render_changes_section(title: str, items: list[tuple[str,str]], change_type: str):
@@ -1178,6 +1192,7 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
             <div class="tab-buttons">
                 <button class="tab-link active" onclick="openTab(event, 'AU_Report')">AU</button>
                 <button class="tab-link" onclick="openTab(event, 'NZ_Report')">NZ</button>
+                <button class="tab-link" onclick="openTab(event, 'Product_Availability')">Product Availability</button>
                 <button class="tab-link" onclick="openTab(event, 'Changes')">Changes</button>
                 <!-- Categories tab disabled -->
             </div>
@@ -1201,6 +1216,14 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                 </div>
                 {nz_table_html}
             </div>
+
+            <div id="Product_Availability" class="tab-content">
+                <div class="summary-container">
+                    <span class="summary-item">📦 Total Products: {len(product_df)}</span>
+                    <span class="summary-item"><a href="product_export.csv" download class="download-tab-button">Download Product CSV</a></span>
+                </div>
+                {product_table_html}
+            </div>
             {changes_html}
 
             <!-- Categories tab content disabled -->
@@ -1223,7 +1246,7 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
             }}
 
             $(document).ready(function() {{
-                ['#auLinkTable', '#nzLinkTable'].forEach(function(tableId) {{
+                ['#auLinkTable', '#nzLinkTable', '#productTable'].forEach(function(tableId) {{
                     if (!$(tableId).length) return; // If table doesn't exist, skip
 
                     var table = $(tableId).DataTable({{
@@ -1387,7 +1410,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Generate a combined HTML report for AU and NZ link checks.')
     parser.add_argument('--au-csv', default='au_link_check_results.csv', help='Path to the AU link check results CSV file.')
     parser.add_argument('--nz-csv', default='nz_link_check_results.csv', help='Path to the NZ link check results CSV file.')
+    parser.add_argument('--product-csv', default='product_export.csv', help='Path to the product data CSV file.')
     parser.add_argument('--output-html', default='combined_report.html', help='Path to save the combined HTML report.')
     args = parser.parse_args()
 
-    generate_combined_html_report(args.au_csv, args.nz_csv, args.output_html)
+    generate_combined_html_report(args.au_csv, args.nz_csv, args.output_html, args.product_csv)
