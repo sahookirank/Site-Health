@@ -196,74 +196,214 @@ jobs:
 
       - name: Install Product Fetch Dependencies
         run: |
-          pip install requests python-dotenv
+          pip install pandas requests python-dotenv
 
       - name: Create Product Fetch Script
         run: |
-          # Create a proper product fetch script using echo commands
-          echo 'import os, sys, sqlite3, json, pandas as pd, logging' > product_fetch_script.py
+          # Create a comprehensive product fetch script that makes actual API calls
+          echo 'import os, sys, sqlite3, json, pandas as pd, logging, requests, time' > product_fetch_script.py
           echo 'from datetime import datetime' >> product_fetch_script.py
-          echo 'logging.basicConfig(level=logging.INFO)' >> product_fetch_script.py
+          echo 'from typing import List, Dict, Optional' >> product_fetch_script.py
+          echo '' >> product_fetch_script.py
+          echo 'logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")' >> product_fetch_script.py
           echo 'logger = logging.getLogger(__name__)' >> product_fetch_script.py
           echo '' >> product_fetch_script.py
+          echo 'class ProductFetcher:' >> product_fetch_script.py
+          echo '    def __init__(self):' >> product_fetch_script.py
+          echo '        self.base_url = "https://mc-api.australia-southeast1.gcp.commercetools.com"' >> product_fetch_script.py
+          echo '        self.search_endpoint = f"{self.base_url}/proxy/pim-search/kmart-production/search/products"' >> product_fetch_script.py
+          echo '        self.graphql_endpoint = f"{self.base_url}/graphql"' >> product_fetch_script.py
+          echo '        self.auth_token = os.getenv("COMMERCETOOL_AUTH_TOKEN")' >> product_fetch_script.py
+          echo '        self.api_key = os.getenv("COMMERCETOOL_API_KEY")' >> product_fetch_script.py
+          echo '        self.project_key = os.getenv("COMMERCETOOL_PROJECT_KEY", "kmart-production")' >> product_fetch_script.py
+          echo '        self.setup_headers()' >> product_fetch_script.py
+          echo '' >> product_fetch_script.py
+          echo '    def setup_headers(self):' >> product_fetch_script.py
+          echo '        self.search_headers = {' >> product_fetch_script.py
+          echo '            "accept": "application/json",' >> product_fetch_script.py
+          echo '            "content-type": "application/json",' >> product_fetch_script.py
+          echo '            "x-application-id": "__internal:products",' >> product_fetch_script.py
+          echo '            "x-project-key": self.project_key' >> product_fetch_script.py
+          echo '        }' >> product_fetch_script.py
+          echo '        self.graphql_headers = {' >> product_fetch_script.py
+          echo '            "accept": "application/json",' >> product_fetch_script.py
+          echo '            "content-type": "application/json",' >> product_fetch_script.py
+          echo '            "x-application-id": "__internal:products",' >> product_fetch_script.py
+          echo '            "x-project-key": self.project_key' >> product_fetch_script.py
+          echo '        }' >> product_fetch_script.py
+          echo '        if self.auth_token:' >> product_fetch_script.py
+          echo '            self.search_headers["authorization"] = f"Bearer {self.auth_token}"' >> product_fetch_script.py
+          echo '            self.graphql_headers["authorization"] = f"Bearer {self.auth_token}"' >> product_fetch_script.py
+          echo '' >> product_fetch_script.py
+          echo '    def get_products_from_database(self, max_products=100):' >> product_fetch_script.py
+          echo '        """Get SKUs from database to fetch fresh data for."""' >> product_fetch_script.py
+          echo '        db_path = "product_availability.db"' >> product_fetch_script.py
+          echo '        try:' >> product_fetch_script.py
+          echo '            conn = sqlite3.connect(db_path)' >> product_fetch_script.py
+          echo '            cursor = conn.cursor()' >> product_fetch_script.py
+          echo '            query = '\''SELECT DISTINCT SKU FROM "products-in-links" LIMIT ?'\''' >> product_fetch_script.py
+          echo '            cursor.execute(query, (max_products,))' >> product_fetch_script.py
+          echo '            rows = cursor.fetchall()' >> product_fetch_script.py
+          echo '            conn.close()' >> product_fetch_script.py
+          echo '            skus = [row[0] for row in rows]' >> product_fetch_script.py
+          echo '            logger.info(f"Retrieved {len(skus)} SKUs from database for API fetching")' >> product_fetch_script.py
+          echo '            return skus' >> product_fetch_script.py
+          echo '        except Exception as e:' >> product_fetch_script.py
+          echo '            logger.error(f"Error retrieving SKUs from database: {e}")' >> product_fetch_script.py
+          echo '            return []' >> product_fetch_script.py
+          echo '' >> product_fetch_script.py
+          echo '    def search_product_by_sku(self, sku):' >> product_fetch_script.py
+          echo '        """Search for product ID using SKU via CommerceTools API."""' >> product_fetch_script.py
+          echo '        if not self.auth_token:' >> product_fetch_script.py
+          echo '            logger.warning("No auth token available for API calls")' >> product_fetch_script.py
+          echo '            return None' >> product_fetch_script.py
+          echo '        payload = {"query": {"bool": {"must": [{"term": {"masterVariant.sku": sku}}]}}}' >> product_fetch_script.py
+          echo '        try:' >> product_fetch_script.py
+          echo '            response = requests.post(self.search_endpoint, headers=self.search_headers, json=payload, timeout=30)' >> product_fetch_script.py
+          echo '            if response.status_code == 200:' >> product_fetch_script.py
+          echo '                data = response.json()' >> product_fetch_script.py
+          echo '                hits = data.get("hits", {}).get("hits", [])' >> product_fetch_script.py
+          echo '                if hits:' >> product_fetch_script.py
+          echo '                    return hits[0]["_source"]["id"]' >> product_fetch_script.py
+          echo '            else:' >> product_fetch_script.py
+          echo '                logger.warning(f"Search API returned status {response.status_code} for SKU {sku}")' >> product_fetch_script.py
+          echo '        except Exception as e:' >> product_fetch_script.py
+          echo '            logger.error(f"Error searching for SKU {sku}: {e}")' >> product_fetch_script.py
+          echo '        return None' >> product_fetch_script.py
+          echo '' >> product_fetch_script.py
+          echo '    def get_product_details(self, product_id):' >> product_fetch_script.py
+          echo '        """Get detailed product information via GraphQL API."""' >> product_fetch_script.py
+          echo '        if not self.auth_token:' >> product_fetch_script.py
+          echo '            return None' >> product_fetch_script.py
+          echo '        graphql_query = """' >> product_fetch_script.py
+          echo '        query GeneralInfoTabQuery($productId: String!) {' >> product_fetch_script.py
+          echo '          product(id: $productId) {' >> product_fetch_script.py
+          echo '            id' >> product_fetch_script.py
+          echo '            key' >> product_fetch_script.py
+          echo '            productType { name }' >> product_fetch_script.py
+          echo '            masterData {' >> product_fetch_script.py
+          echo '              current {' >> product_fetch_script.py
+          echo '                name(locale: "en-AU")' >> product_fetch_script.py
+          echo '                masterVariant {' >> product_fetch_script.py
+          echo '                  sku' >> product_fetch_script.py
+          echo '                  attributes {' >> product_fetch_script.py
+          echo '                    name' >> product_fetch_script.py
+          echo '                    value' >> product_fetch_script.py
+          echo '                  }' >> product_fetch_script.py
+          echo '                }' >> product_fetch_script.py
+          echo '              }' >> product_fetch_script.py
+          echo '            }' >> product_fetch_script.py
+          echo '          }' >> product_fetch_script.py
+          echo '        }"""' >> product_fetch_script.py
+          echo '        variables = {"productId": product_id}' >> product_fetch_script.py
+          echo '        payload = {"operationName": "GeneralInfoTabQuery", "variables": variables, "query": graphql_query}' >> product_fetch_script.py
+          echo '        try:' >> product_fetch_script.py
+          echo '            response = requests.post(self.graphql_endpoint, headers=self.graphql_headers, json=payload, timeout=30)' >> product_fetch_script.py
+          echo '            if response.status_code == 200:' >> product_fetch_script.py
+          echo '                return response.json()' >> product_fetch_script.py
+          echo '            else:' >> product_fetch_script.py
+          echo '                logger.warning(f"GraphQL API returned status {response.status_code} for product ID {product_id}")' >> product_fetch_script.py
+          echo '        except Exception as e:' >> product_fetch_script.py
+          echo '            logger.error(f"Error getting product details for {product_id}: {e}")' >> product_fetch_script.py
+          echo '        return None' >> product_fetch_script.py
+          echo '' >> product_fetch_script.py
+          echo '    def process_products(self, max_products=100):' >> product_fetch_script.py
+          echo '        """Process products by making fresh API calls."""' >> product_fetch_script.py
+          echo '        skus = self.get_products_from_database(max_products)' >> product_fetch_script.py
+          echo '        if not skus:' >> product_fetch_script.py
+          echo '            logger.warning("No SKUs found in database")' >> product_fetch_script.py
+          echo '            return []' >> product_fetch_script.py
+          echo '        results = []' >> product_fetch_script.py
+          echo '        for i, sku in enumerate(skus, 1):' >> product_fetch_script.py
+          echo '            logger.info(f"Processing SKU {i}/{len(skus)}: {sku}")' >> product_fetch_script.py
+          echo '            product_id = self.search_product_by_sku(sku)' >> product_fetch_script.py
+          echo '            if not product_id:' >> product_fetch_script.py
+          echo '                logger.warning(f"Could not find product ID for SKU {sku}")' >> product_fetch_script.py
+          echo '                results.append({"SKU": sku, "ID": "NOT_FOUND", "DETAIL": "Product ID not found via search API"})' >> product_fetch_script.py
+          echo '                continue' >> product_fetch_script.py
+          echo '            details = self.get_product_details(product_id)' >> product_fetch_script.py
+          echo '            if details and details.get("data", {}).get("product"):' >> product_fetch_script.py
+          echo '                product_data = details["data"]["product"]' >> product_fetch_script.py
+          echo '                master_data = product_data.get("masterData", {}).get("current", {})' >> product_fetch_script.py
+          echo '                master_variant = master_data.get("masterVariant", {})' >> product_fetch_script.py
+          echo '                attributes_raw = master_variant.get("attributes", [])' >> product_fetch_script.py
+          echo '                attributes = {attr["name"]: attr["value"] for attr in attributes_raw}' >> product_fetch_script.py
+          echo '                detail_info = {' >> product_fetch_script.py
+          echo '                    "name": master_data.get("name", "Unknown Product"),' >> product_fetch_script.py
+          echo '                    "product_type": product_data.get("productType", {}).get("name", "Unknown Type"),' >> product_fetch_script.py
+          echo '                    "attributes": attributes' >> product_fetch_script.py
+          echo '                }' >> product_fetch_script.py
+          echo '                results.append({"SKU": sku, "ID": product_id, "DETAIL": json.dumps(detail_info)})' >> product_fetch_script.py
+          echo '                logger.info(f"Successfully processed SKU {sku} -> ID {product_id}")' >> product_fetch_script.py
+          echo '            else:' >> product_fetch_script.py
+          echo '                logger.warning(f"Could not get details for product ID {product_id}")' >> product_fetch_script.py
+          echo '                results.append({"SKU": sku, "ID": product_id, "DETAIL": "Failed to fetch product details"})' >> product_fetch_script.py
+          echo '            time.sleep(2)' >> product_fetch_script.py
+          echo '        return results' >> product_fetch_script.py
+          echo '' >> product_fetch_script.py
+          echo '    def update_database(self, results):' >> product_fetch_script.py
+          echo '        """Update database with fresh API data."""' >> product_fetch_script.py
+          echo '        db_path = "product_availability.db"' >> product_fetch_script.py
+          echo '        try:' >> product_fetch_script.py
+          echo '            conn = sqlite3.connect(db_path)' >> product_fetch_script.py
+          echo '            cursor = conn.cursor()' >> product_fetch_script.py
+          echo '            for result in results:' >> product_fetch_script.py
+          echo '                cursor.execute(' >> product_fetch_script.py
+          echo '                    '\''UPDATE "products-in-links" SET ID = ?, DETAILS = ?, updated_at = ? WHERE SKU = ?'\'',' >> product_fetch_script.py
+          echo '                    (result["ID"], result["DETAIL"], datetime.now().isoformat(), result["SKU"])' >> product_fetch_script.py
+          echo '                )' >> product_fetch_script.py
+          echo '            conn.commit()' >> product_fetch_script.py
+          echo '            conn.close()' >> product_fetch_script.py
+          echo '            logger.info(f"Updated database with {len(results)} product records")' >> product_fetch_script.py
+          echo '        except Exception as e:' >> product_fetch_script.py
+          echo '            logger.error(f"Error updating database: {e}")' >> product_fetch_script.py
+          echo '' >> product_fetch_script.py
+          echo '    def save_to_csv(self, results):' >> product_fetch_script.py
+          echo '        """Save results to CSV file."""' >> product_fetch_script.py
+          echo '        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")' >> product_fetch_script.py
+          echo '        filename = f"product_export_{timestamp}.csv"' >> product_fetch_script.py
+          echo '        try:' >> product_fetch_script.py
+          echo '            df = pd.DataFrame(results)' >> product_fetch_script.py
+          echo '            df.to_csv(filename, index=False)' >> product_fetch_script.py
+          echo '            df.to_csv("product_export.csv", index=False)' >> product_fetch_script.py
+          echo '            logger.info(f"Saved {len(results)} records to {filename} and product_export.csv")' >> product_fetch_script.py
+          echo '            return filename' >> product_fetch_script.py
+          echo '        except Exception as e:' >> product_fetch_script.py
+          echo '            logger.error(f"Error saving to CSV: {e}")' >> product_fetch_script.py
+          echo '            return None' >> product_fetch_script.py
+          echo '' >> product_fetch_script.py
           echo 'def create_fallback_data():' >> product_fetch_script.py
+          echo '    """Create fallback data when API is not available."""' >> product_fetch_script.py
           echo '    logger.info("Creating fallback product data")' >> product_fetch_script.py
           echo '    return [{"SKU": "FALLBACK001", "ID": "fallback-id-1", "DETAIL": json.dumps({"name": "Fallback Product", "attributes": {}})}]' >> product_fetch_script.py
           echo '' >> product_fetch_script.py
-          echo 'def get_products_from_database(max_products=100):' >> product_fetch_script.py
-          echo '    db_path = "product_availability.db"' >> product_fetch_script.py
-          echo '    try:' >> product_fetch_script.py
-          echo '        conn = sqlite3.connect(db_path)' >> product_fetch_script.py
-          echo '        cursor = conn.cursor()' >> product_fetch_script.py
-          echo '        query = '\''SELECT ID, SKU, DETAILS FROM "products-in-links" LIMIT ?'\''' >> product_fetch_script.py
-          echo '        cursor.execute(query, (max_products,))' >> product_fetch_script.py
-          echo '        rows = cursor.fetchall()' >> product_fetch_script.py
-          echo '        conn.close()' >> product_fetch_script.py
-          echo '        products = []' >> product_fetch_script.py
-          echo '        for row in rows:' >> product_fetch_script.py
-          echo '            try:' >> product_fetch_script.py
-          echo '                details = json.loads(row[2]) if row[2] else {}' >> product_fetch_script.py
-          echo '            except json.JSONDecodeError:' >> product_fetch_script.py
-          echo '                details = {"error": "Invalid JSON data"}' >> product_fetch_script.py
-          echo '            products.append({"SKU": row[1], "ID": row[0], "DETAIL": json.dumps(details)})' >> product_fetch_script.py
-          echo '        logger.info(f"Retrieved {len(products)} products from database")' >> product_fetch_script.py
-          echo '        return products' >> product_fetch_script.py
-          echo '    except Exception as e:' >> product_fetch_script.py
-          echo '        logger.error(f"Error retrieving products from database: {e}")' >> product_fetch_script.py
-          echo '        return []' >> product_fetch_script.py
-          echo '' >> product_fetch_script.py
-          echo 'def save_to_csv(results):' >> product_fetch_script.py
-          echo '    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")' >> product_fetch_script.py
-          echo '    filename = f"product_export_{timestamp}.csv"' >> product_fetch_script.py
-          echo '    try:' >> product_fetch_script.py
-          echo '        df = pd.DataFrame(results)' >> product_fetch_script.py
-          echo '        df.to_csv(filename, index=False)' >> product_fetch_script.py
-          echo '        df.to_csv("product_export.csv", index=False)' >> product_fetch_script.py
-          echo '        logger.info(f"Saved {len(results)} records to {filename} and product_export.csv")' >> product_fetch_script.py
-          echo '        return filename' >> product_fetch_script.py
-          echo '    except Exception as e:' >> product_fetch_script.py
-          echo '        logger.error(f"Error saving to CSV: {e}")' >> product_fetch_script.py
-          echo '        return None' >> product_fetch_script.py
-          echo '' >> product_fetch_script.py
-          echo 'max_products = int(os.getenv("MAX_PRODUCTS", "100"))' >> product_fetch_script.py
-          echo 'auth_token = os.getenv("COMMERCETOOL_AUTH_TOKEN")' >> product_fetch_script.py
-          echo 'if not auth_token:' >> product_fetch_script.py
-          echo '    logger.info("No auth token available, creating fallback data")' >> product_fetch_script.py
-          echo '    results = create_fallback_data()' >> product_fetch_script.py
-          echo 'else:' >> product_fetch_script.py
-          echo '    products = get_products_from_database(max_products)' >> product_fetch_script.py
-          echo '    if not products:' >> product_fetch_script.py
-          echo '        logger.warning("No products found in database, creating fallback data")' >> product_fetch_script.py
+          echo 'def main():' >> product_fetch_script.py
+          echo '    """Main execution function."""' >> product_fetch_script.py
+          echo '    max_products = int(os.getenv("MAX_PRODUCTS", "100"))' >> product_fetch_script.py
+          echo '    fetcher = ProductFetcher()' >> product_fetch_script.py
+          echo '    if not fetcher.auth_token:' >> product_fetch_script.py
+          echo '        logger.info("No auth token available, creating fallback data")' >> product_fetch_script.py
           echo '        results = create_fallback_data()' >> product_fetch_script.py
           echo '    else:' >> product_fetch_script.py
-          echo '        logger.info(f"Using {len(products)} products from database")' >> product_fetch_script.py
-          echo '        results = products' >> product_fetch_script.py
-          echo 'filename = save_to_csv(results)' >> product_fetch_script.py
-          echo 'if filename:' >> product_fetch_script.py
+          echo '        logger.info("Making fresh API calls to CommerceTools")' >> product_fetch_script.py
+          echo '        results = fetcher.process_products(max_products)' >> product_fetch_script.py
+          echo '        if not results:' >> product_fetch_script.py
+          echo '            logger.warning("No products processed via API, creating fallback data")' >> product_fetch_script.py
+          echo '            results = create_fallback_data()' >> product_fetch_script.py
+          echo '        else:' >> product_fetch_script.py
+          echo '            fetcher.update_database(results)' >> product_fetch_script.py
+          echo '    filename = fetcher.save_to_csv(results) if fetcher.auth_token else None' >> product_fetch_script.py
+          echo '    if not filename:' >> product_fetch_script.py
+          echo '        import pandas as pd' >> product_fetch_script.py
+          echo '        df = pd.DataFrame(results)' >> product_fetch_script.py
+          echo '        df.to_csv("product_export.csv", index=False)' >> product_fetch_script.py
+          echo '        filename = "product_export.csv"' >> product_fetch_script.py
           echo '    print(f"Product export completed: {filename}")' >> product_fetch_script.py
-          echo 'else:' >> product_fetch_script.py
-          echo '    print("Product export failed")' >> product_fetch_script.py
-
+          echo '    return True' >> product_fetch_script.py
+          echo '' >> product_fetch_script.py
+          echo 'if __name__ == "__main__":' >> product_fetch_script.py
+          echo '    success = main()' >> product_fetch_script.py
+          echo '    sys.exit(0 if success else 1)' >> product_fetch_script.py
 
       - name: Run Product Data Fetch
         env:

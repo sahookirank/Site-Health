@@ -335,6 +335,170 @@ STYLE_DEFINITIONS = """
             .category-content.active {
                 display: block;
             }
+
+            /* Product Availability Styles */
+            .product-availability-container {
+                margin-top: 20px;
+            }
+            /* Table container for responsive design */
+            .table-container {
+                width: 100%;
+                overflow-x: auto;
+                margin-top: 15px;
+            }
+
+            .product-table {
+                width: 100%;
+                min-width: 600px;
+                border-collapse: collapse;
+                background-color: white;
+                border-radius: 8px;
+                overflow: hidden;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .product-table th {
+                background-color: var(--brand);
+                color: white;
+                padding: 12px;
+                text-align: left;
+                font-weight: 600;
+                font-size: 14px;
+                white-space: nowrap;
+            }
+            .product-table td {
+                padding: 12px;
+                border-bottom: 1px solid #e5e7eb;
+                vertical-align: top;
+                word-wrap: break-word;
+                max-width: 300px;
+            }
+            .product-row {
+                cursor: pointer;
+                transition: background-color 0.2s ease;
+            }
+            .product-row:hover {
+                background-color: #f9fafb;
+            }
+            .product-details-row {
+                background-color: #f8fafc;
+            }
+            .product-details-content {
+                padding: 16px;
+                border-left: 4px solid var(--brand);
+                background-color: #fff;
+                border-radius: 8px;
+                margin: 8px;
+            }
+            .product-details-content h4 {
+                margin: 0 0 12px 0;
+                color: var(--brand);
+                font-size: 16px;
+            }
+            .json-display {
+                background-color: #f8fafc;
+                border: 1px solid #e5e7eb;
+                border-radius: 6px;
+                padding: 12px;
+                font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+                font-size: 12px;
+                line-height: 1.4;
+                overflow-x: auto;
+                white-space: pre-wrap;
+                word-wrap: break-word;
+                max-height: 400px;
+                overflow-y: auto;
+            }
+
+            /* Product Attribute Styles */
+            .attributes-section {
+                margin-bottom: 20px;
+            }
+            .attributes-container {
+                background-color: #f8f9fa;
+                border: 1px solid #e9ecef;
+                border-radius: 8px;
+                padding: 16px;
+                max-height: 400px;
+                overflow-y: auto;
+            }
+            .attribute-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 8px 12px;
+                margin-bottom: 4px;
+                background-color: #ffffff;
+                border: 1px solid #e9ecef;
+                border-radius: 4px;
+                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            }
+            .attribute-item:last-child {
+                margin-bottom: 0;
+            }
+            .attr-name {
+                color: #495057;
+                min-width: 180px;
+                flex-shrink: 0;
+                margin-right: 12px;
+            }
+            .attr-value {
+                color: #6c757d;
+                text-align: right;
+                word-break: break-word;
+                flex-grow: 1;
+            }
+            .no-attributes {
+                text-align: center;
+                color: #6c757d;
+                font-style: italic;
+                padding: 20px;
+            }
+
+            /* Visual Indicators */
+            .past-date {
+                background-color: #fee2e2 !important;
+                border-left: 4px solid #dc2626 !important;
+                padding-left: 8px !important;
+            }
+            .past-date .attribute-value {
+                color: #dc2626 !important;
+                font-weight: 600 !important;
+            }
+            .discontinued-indicator {
+                background-color: #dc2626;
+                color: white;
+                padding: 8px 12px;
+                border-radius: 4px;
+                font-weight: 600;
+                text-align: center;
+                margin-bottom: 12px;
+                font-size: 14px;
+            }
+            .product-type-badge.discontinued {
+                background-color: #dc2626 !important;
+                color: white !important;
+                font-weight: 600 !important;
+            }
+            .product-type-badge {
+                display: inline-block;
+                padding: 4px 8px;
+                background-color: #e0f2fe;
+                color: #0369a1;
+                border-radius: 12px;
+                font-size: 11px;
+                font-weight: 600;
+                text-transform: uppercase;
+                margin-left: 8px;
+            }
+            .toggle-icon {
+                font-size: 14px;
+                margin-right: 8px;
+                transition: transform 0.3s ease;
+                display: inline-block;
+            }
+            .toggle-icon.rotated {
+                transform: rotate(180deg);
+            }
 """
 
 def extract_category_hierarchy(df, region):
@@ -1038,8 +1202,9 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
     au_table_html = generate_html_table_from_df(au_error_df.drop(columns=['Region'], errors='ignore'), 'auLinkTable')
     nz_table_html = generate_html_table_from_df(nz_error_df.drop(columns=['Region'], errors='ignore'), 'nzLinkTable')
 
-    # Generate product table HTML
-    product_table_html = generate_html_table_from_df(product_df, 'productTable')
+    # Generate product table HTML using the specialized UI generator
+    from product_availability_ui import generate_product_availability_html, get_product_availability_styles
+    product_table_html = generate_product_availability_html(product_csv_path)
 
     # Build Changes tab HTML
     def render_changes_section(title: str, items: list[tuple[str,str]], change_type: str):
@@ -1218,10 +1383,6 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
             </div>
 
             <div id="Product_Availability" class="tab-content">
-                <div class="summary-container">
-                    <span class="summary-item">📦 Total Products: {len(product_df)}</span>
-                    <span class="summary-item"><a href="product_export.csv" download class="download-tab-button">Download Product CSV</a></span>
-                </div>
                 {product_table_html}
             </div>
             {changes_html}
@@ -1246,7 +1407,7 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
             }}
 
             $(document).ready(function() {{
-                ['#auLinkTable', '#nzLinkTable', '#productTable'].forEach(function(tableId) {{
+                ['#auLinkTable', '#nzLinkTable'].forEach(function(tableId) {{
                     if (!$(tableId).length) return; // If table doesn't exist, skip
 
                     var table = $(tableId).DataTable({{
@@ -1396,6 +1557,22 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                 }}
                 document.getElementById(categoryName).classList.add('active');
                 evt.currentTarget.classList.add('active');
+            }};
+
+            // Product Availability JavaScript Functions
+            window.toggleProductDetails = function(rowId) {{
+                var detailsRow = document.getElementById(rowId + '_details');
+                var toggleIcon = document.getElementById(rowId + '_toggle');
+
+                if (detailsRow.style.display === 'none' || detailsRow.style.display === '') {{
+                    detailsRow.style.display = 'table-row';
+                    toggleIcon.textContent = '▲';
+                    toggleIcon.classList.add('rotated');
+                }} else {{
+                    detailsRow.style.display = 'none';
+                    toggleIcon.textContent = '▼';
+                    toggleIcon.classList.remove('rotated');
+                }}
             }};
         </script>
     </body>

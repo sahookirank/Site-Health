@@ -66,13 +66,21 @@ def format_product_attributes(attributes_raw, is_discontinued=False, has_past_en
     
     return "<div class='attributes-container'>" + "".join(formatted_attrs) + "</div>"
 
-def load_product_csv_data():
+def load_product_csv_data(csv_path=None):
     """Load product data from CSV file."""
+    if csv_path and os.path.exists(csv_path):
+        try:
+            df = pd.read_csv(csv_path)
+            return df
+        except Exception as e:
+            print(f"Error reading {csv_path}: {e}")
+
+    # Fallback to default files
     csv_files = [
         'product_export_20250902_055919.csv',
         'product_export.csv'
     ]
-    
+
     for csv_file in csv_files:
         if os.path.exists(csv_file):
             try:
@@ -81,14 +89,14 @@ def load_product_csv_data():
             except Exception as e:
                 print(f"Error reading {csv_file}: {e}")
                 continue
-    
+
     return None
 
-def generate_product_availability_html():
+def generate_product_availability_html(csv_path=None):
     """Generate HTML content for the Product Availability tab."""
     try:
         # Load CSV data instead of database data
-        df = load_product_csv_data()
+        df = load_product_csv_data(csv_path)
         
         if df is None or df.empty:
             return """
