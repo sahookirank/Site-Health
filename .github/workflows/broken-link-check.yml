@@ -221,19 +221,51 @@ jobs:
           echo '    def setup_headers(self):' >> product_fetch_script.py
           echo '        self.search_headers = {' >> product_fetch_script.py
           echo '            "accept": "application/json",' >> product_fetch_script.py
+          echo '            "accept-language": "en-GB,en-US;q=0.9,en;q=0.8",' >> product_fetch_script.py
           echo '            "content-type": "application/json",' >> product_fetch_script.py
+          echo '            "origin": "https://mc.australia-southeast1.gcp.commercetools.com",' >> product_fetch_script.py
+          echo '            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",' >> product_fetch_script.py
           echo '            "x-application-id": "__internal:products",' >> product_fetch_script.py
-          echo '            "x-project-key": self.project_key' >> product_fetch_script.py
+          echo '            "x-project-key": self.project_key,' >> product_fetch_script.py
+          echo '            "x-user-agent": "@commercetools/sdk-client Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 products/sdk/24.5.0 (+https://git.io/fjuyC; +mc@commercetools.com)"' >> product_fetch_script.py
           echo '        }' >> product_fetch_script.py
           echo '        self.graphql_headers = {' >> product_fetch_script.py
           echo '            "accept": "application/json",' >> product_fetch_script.py
+          echo '            "accept-language": "en-GB,en-US;q=0.9,en;q=0.8",' >> product_fetch_script.py
           echo '            "content-type": "application/json",' >> product_fetch_script.py
+          echo '            "origin": "https://mc.australia-southeast1.gcp.commercetools.com",' >> product_fetch_script.py
+          echo '            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",' >> product_fetch_script.py
           echo '            "x-application-id": "__internal:products",' >> product_fetch_script.py
-          echo '            "x-project-key": self.project_key' >> product_fetch_script.py
+          echo '            "x-graphql-operation-name": "GeneralInfoTabQuery",' >> product_fetch_script.py
+          echo '            "x-graphql-target": "ctp",' >> product_fetch_script.py
+          echo '            "x-project-key": self.project_key,' >> product_fetch_script.py
+          echo '            "x-user-agent": "apollo-client Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 products/application-shell/24.5.0 (+https://git.io/fjuyC; +support@commercetools.com)"' >> product_fetch_script.py
           echo '        }' >> product_fetch_script.py
           echo '        if self.auth_token:' >> product_fetch_script.py
-          echo '            self.search_headers["authorization"] = f"Bearer {self.auth_token}"' >> product_fetch_script.py
-          echo '            self.graphql_headers["authorization"] = f"Bearer {self.auth_token}"' >> product_fetch_script.py
+          echo '            # Use Cookie-based authentication as shown in Postman collection' >> product_fetch_script.py
+          echo '            self.search_headers["Cookie"] = f"mcAccessToken={self.auth_token}"' >> product_fetch_script.py
+          echo '            self.graphql_headers["Cookie"] = f"mcAccessToken={self.auth_token}"' >> product_fetch_script.py
+          echo '' >> product_fetch_script.py
+          echo '    def extract_skus_from_csv_files(self, max_products=100):' >> product_fetch_script.py
+          echo '        """Extract SKUs from broken link CSV files."""' >> product_fetch_script.py
+          echo '        import re' >> product_fetch_script.py
+          echo '        skus = set()' >> product_fetch_script.py
+          echo '        csv_files = ["au_broken_links.csv", "nz_broken_links.csv"]' >> product_fetch_script.py
+          echo '        for csv_file in csv_files:' >> product_fetch_script.py
+          echo '            if os.path.exists(csv_file):' >> product_fetch_script.py
+          echo '                try:' >> product_fetch_script.py
+          echo '                    df = pd.read_csv(csv_file)' >> product_fetch_script.py
+          echo '                    if "URL" in df.columns:' >> product_fetch_script.py
+          echo '                        for url in df["URL"]:' >> product_fetch_script.py
+          echo '                            # Extract SKU patterns from URLs' >> product_fetch_script.py
+          echo '                            sku_matches = re.findall(r"/product/[^/]*-(\d+)/", str(url))' >> product_fetch_script.py
+          echo '                            skus.update(sku_matches)' >> product_fetch_script.py
+          echo '                    logger.info(f"Extracted {len(skus)} unique SKUs from {csv_file}")' >> product_fetch_script.py
+          echo '                except Exception as e:' >> product_fetch_script.py
+          echo '                    logger.error(f"Error reading {csv_file}: {e}")' >> product_fetch_script.py
+          echo '        sku_list = list(skus)[:max_products]' >> product_fetch_script.py
+          echo '        logger.info(f"Total unique SKUs extracted from CSV files: {len(sku_list)}")' >> product_fetch_script.py
+          echo '        return sku_list' >> product_fetch_script.py
           echo '' >> product_fetch_script.py
           echo '    def get_products_from_database(self, max_products=100):' >> product_fetch_script.py
           echo '        """Get SKUs from database to fetch fresh data for."""' >> product_fetch_script.py
@@ -257,16 +289,38 @@ jobs:
           echo '        if not self.auth_token:' >> product_fetch_script.py
           echo '            logger.warning("No auth token available for API calls")' >> product_fetch_script.py
           echo '            return None' >> product_fetch_script.py
-          echo '        payload = {"query": {"bool": {"must": [{"term": {"masterVariant.sku": sku}}]}}}' >> product_fetch_script.py
+          echo '        # Use the correct payload format from Postman collection' >> product_fetch_script.py
+          echo '        payload = {' >> product_fetch_script.py
+          echo '            "limit": 20,' >> product_fetch_script.py
+          echo '            "offset": 0,' >> product_fetch_script.py
+          echo '            "query": {' >> product_fetch_script.py
+          echo '                "or": [' >> product_fetch_script.py
+          echo '                    {"fullText": {"field": "name", "language": "en-AU", "value": sku}},' >> product_fetch_script.py
+          echo '                    {"fullText": {"field": "description", "language": "en-AU", "value": sku}},' >> product_fetch_script.py
+          echo '                    {"fullText": {"field": "slug", "language": "en-AU", "value": sku}},' >> product_fetch_script.py
+          echo '                    {"prefix": {"field": "key", "language": "en-AU", "value": sku, "caseInsensitive": True}},' >> product_fetch_script.py
+          echo '                    {"prefix": {"field": "variants.sku", "value": sku, "caseInsensitive": True}},' >> product_fetch_script.py
+          echo '                    {"prefix": {"field": "variants.key", "value": sku, "caseInsensitive": True}}' >> product_fetch_script.py
+          echo '                ]' >> product_fetch_script.py
+          echo '            },' >> product_fetch_script.py
+          echo '            "enableTiebreaker": False' >> product_fetch_script.py
+          echo '        }' >> product_fetch_script.py
           echo '        try:' >> product_fetch_script.py
+          echo '            logger.info(f"Searching for SKU {sku} with payload: {json.dumps(payload)}")' >> product_fetch_script.py
           echo '            response = requests.post(self.search_endpoint, headers=self.search_headers, json=payload, timeout=30)' >> product_fetch_script.py
+          echo '            logger.info(f"Search API response status: {response.status_code}")' >> product_fetch_script.py
           echo '            if response.status_code == 200:' >> product_fetch_script.py
           echo '                data = response.json()' >> product_fetch_script.py
-          echo '                hits = data.get("hits", {}).get("hits", [])' >> product_fetch_script.py
+          echo '                logger.info(f"Search API response data: {json.dumps(data)}")' >> product_fetch_script.py
+          echo '                hits = data.get("hits", [])' >> product_fetch_script.py
           echo '                if hits:' >> product_fetch_script.py
-          echo '                    return hits[0]["_source"]["id"]' >> product_fetch_script.py
+          echo '                    product_id = hits[0]["id"]' >> product_fetch_script.py
+          echo '                    logger.info(f"Found product ID {product_id} for SKU {sku}")' >> product_fetch_script.py
+          echo '                    return product_id' >> product_fetch_script.py
+          echo '                else:' >> product_fetch_script.py
+          echo '                    logger.warning(f"No hits found for SKU {sku}")' >> product_fetch_script.py
           echo '            else:' >> product_fetch_script.py
-          echo '                logger.warning(f"Search API returned status {response.status_code} for SKU {sku}")' >> product_fetch_script.py
+          echo '                logger.error(f"Search API returned status {response.status_code} for SKU {sku}. Response: {response.text}")' >> product_fetch_script.py
           echo '        except Exception as e:' >> product_fetch_script.py
           echo '            logger.error(f"Error searching for SKU {sku}: {e}")' >> product_fetch_script.py
           echo '        return None' >> product_fetch_script.py
@@ -275,43 +329,71 @@ jobs:
           echo '        """Get detailed product information via GraphQL API."""' >> product_fetch_script.py
           echo '        if not self.auth_token:' >> product_fetch_script.py
           echo '            return None' >> product_fetch_script.py
-          echo '        graphql_query = """' >> product_fetch_script.py
-          echo '        query GeneralInfoTabQuery($productId: String!) {' >> product_fetch_script.py
-          echo '          product(id: $productId) {' >> product_fetch_script.py
-          echo '            id' >> product_fetch_script.py
-          echo '            key' >> product_fetch_script.py
-          echo '            productType { name }' >> product_fetch_script.py
-          echo '            masterData {' >> product_fetch_script.py
-          echo '              current {' >> product_fetch_script.py
-          echo '                name(locale: "en-AU")' >> product_fetch_script.py
-          echo '                masterVariant {' >> product_fetch_script.py
-          echo '                  sku' >> product_fetch_script.py
-          echo '                  attributes {' >> product_fetch_script.py
-          echo '                    name' >> product_fetch_script.py
-          echo '                    value' >> product_fetch_script.py
-          echo '                  }' >> product_fetch_script.py
-          echo '                }' >> product_fetch_script.py
-          echo '              }' >> product_fetch_script.py
-          echo '            }' >> product_fetch_script.py
+          echo '        # Use the exact GraphQL query structure from Postman collection' >> product_fetch_script.py
+          echo '        graphql_query = """query GeneralInfoTabQuery($productId: String, $isProductAttributeEnabled: Boolean!, $enableLocaleLabelOptimization: Boolean!, $locale: Locale!) {' >> product_fetch_script.py
+          echo '  product(id: $productId) {' >> product_fetch_script.py
+          echo '    id' >> product_fetch_script.py
+          echo '    productType {' >> product_fetch_script.py
+          echo '      id' >> product_fetch_script.py
+          echo '      name' >> product_fetch_script.py
+          echo '      __typename' >> product_fetch_script.py
+          echo '    }' >> product_fetch_script.py
+          echo '    createdAt' >> product_fetch_script.py
+          echo '    lastModifiedAt' >> product_fetch_script.py
+          echo '    version' >> product_fetch_script.py
+          echo '    key' >> product_fetch_script.py
+          echo '    masterData {' >> product_fetch_script.py
+          echo '      staged {' >> product_fetch_script.py
+          echo '        nameAllLocales {' >> product_fetch_script.py
+          echo '          locale' >> product_fetch_script.py
+          echo '          value' >> product_fetch_script.py
+          echo '          __typename' >> product_fetch_script.py
+          echo '        }' >> product_fetch_script.py
+          echo '        masterVariant {' >> product_fetch_script.py
+          echo '          attributesRaw {' >> product_fetch_script.py
+          echo '            name' >> product_fetch_script.py
+          echo '            value' >> product_fetch_script.py
+          echo '            __typename' >> product_fetch_script.py
           echo '          }' >> product_fetch_script.py
-          echo '        }"""' >> product_fetch_script.py
-          echo '        variables = {"productId": product_id}' >> product_fetch_script.py
+          echo '          __typename' >> product_fetch_script.py
+          echo '        }' >> product_fetch_script.py
+          echo '        __typename' >> product_fetch_script.py
+          echo '      }' >> product_fetch_script.py
+          echo '      __typename' >> product_fetch_script.py
+          echo '    }' >> product_fetch_script.py
+          echo '    __typename' >> product_fetch_script.py
+          echo '  }' >> product_fetch_script.py
+          echo '}"""' >> product_fetch_script.py
+          echo '        variables = {' >> product_fetch_script.py
+          echo '            "productId": product_id,' >> product_fetch_script.py
+          echo '            "isProductAttributeEnabled": True,' >> product_fetch_script.py
+          echo '            "locale": "en-AU",' >> product_fetch_script.py
+          echo '            "enableLocaleLabelOptimization": False' >> product_fetch_script.py
+          echo '        }' >> product_fetch_script.py
           echo '        payload = {"operationName": "GeneralInfoTabQuery", "variables": variables, "query": graphql_query}' >> product_fetch_script.py
           echo '        try:' >> product_fetch_script.py
+          echo '            logger.info(f"Getting product details for ID {product_id}")' >> product_fetch_script.py
           echo '            response = requests.post(self.graphql_endpoint, headers=self.graphql_headers, json=payload, timeout=30)' >> product_fetch_script.py
+          echo '            logger.info(f"GraphQL API response status: {response.status_code}")' >> product_fetch_script.py
           echo '            if response.status_code == 200:' >> product_fetch_script.py
-          echo '                return response.json()' >> product_fetch_script.py
+          echo '                data = response.json()' >> product_fetch_script.py
+          echo '                logger.info(f"GraphQL API response data keys: {list(data.keys()) if data else None}")' >> product_fetch_script.py
+          echo '                return data' >> product_fetch_script.py
           echo '            else:' >> product_fetch_script.py
-          echo '                logger.warning(f"GraphQL API returned status {response.status_code} for product ID {product_id}")' >> product_fetch_script.py
+          echo '                logger.error(f"GraphQL API returned status {response.status_code} for product ID {product_id}. Response: {response.text}")' >> product_fetch_script.py
           echo '        except Exception as e:' >> product_fetch_script.py
           echo '            logger.error(f"Error getting product details for {product_id}: {e}")' >> product_fetch_script.py
           echo '        return None' >> product_fetch_script.py
           echo '' >> product_fetch_script.py
           echo '    def process_products(self, max_products=100):' >> product_fetch_script.py
           echo '        """Process products by making fresh API calls."""' >> product_fetch_script.py
-          echo '        skus = self.get_products_from_database(max_products)' >> product_fetch_script.py
+          echo '        # First try to extract SKUs from broken link CSV files' >> product_fetch_script.py
+          echo '        skus = self.extract_skus_from_csv_files(max_products)' >> product_fetch_script.py
           echo '        if not skus:' >> product_fetch_script.py
-          echo '            logger.warning("No SKUs found in database")' >> product_fetch_script.py
+          echo '            logger.info("No SKUs found in CSV files, trying database")' >> product_fetch_script.py
+          echo '            skus = self.get_products_from_database(max_products)' >> product_fetch_script.py
+          echo '        if not skus:' >> product_fetch_script.py
+          echo '            logger.warning("No SKUs found in CSV files or database")' >> product_fetch_script.py
           echo '            return []' >> product_fetch_script.py
           echo '        results = []' >> product_fetch_script.py
           echo '        for i, sku in enumerate(skus, 1):' >> product_fetch_script.py
@@ -324,14 +406,25 @@ jobs:
           echo '            details = self.get_product_details(product_id)' >> product_fetch_script.py
           echo '            if details and details.get("data", {}).get("product"):' >> product_fetch_script.py
           echo '                product_data = details["data"]["product"]' >> product_fetch_script.py
-          echo '                master_data = product_data.get("masterData", {}).get("current", {})' >> product_fetch_script.py
+          echo '                master_data = product_data.get("masterData", {}).get("staged", {})' >> product_fetch_script.py
           echo '                master_variant = master_data.get("masterVariant", {})' >> product_fetch_script.py
-          echo '                attributes_raw = master_variant.get("attributes", [])' >> product_fetch_script.py
+          echo '                attributes_raw = master_variant.get("attributesRaw", [])' >> product_fetch_script.py
           echo '                attributes = {attr["name"]: attr["value"] for attr in attributes_raw}' >> product_fetch_script.py
+          echo '                # Get product name from nameAllLocales' >> product_fetch_script.py
+          echo '                name_locales = master_data.get("nameAllLocales", [])' >> product_fetch_script.py
+          echo '                product_name = "Unknown Product"' >> product_fetch_script.py
+          echo '                for name_locale in name_locales:' >> product_fetch_script.py
+          echo '                    if name_locale.get("locale") == "en-AU":' >> product_fetch_script.py
+          echo '                        product_name = name_locale.get("value", "Unknown Product")' >> product_fetch_script.py
+          echo '                        break' >> product_fetch_script.py
           echo '                detail_info = {' >> product_fetch_script.py
-          echo '                    "name": master_data.get("name", "Unknown Product"),' >> product_fetch_script.py
+          echo '                    "name": product_name,' >> product_fetch_script.py
           echo '                    "product_type": product_data.get("productType", {}).get("name", "Unknown Type"),' >> product_fetch_script.py
-          echo '                    "attributes": attributes' >> product_fetch_script.py
+          echo '                    "attributes": attributes,' >> product_fetch_script.py
+          echo '                    "created_at": product_data.get("createdAt"),' >> product_fetch_script.py
+          echo '                    "last_modified_at": product_data.get("lastModifiedAt"),' >> product_fetch_script.py
+          echo '                    "version": product_data.get("version"),' >> product_fetch_script.py
+          echo '                    "key": product_data.get("key")' >> product_fetch_script.py
           echo '                }' >> product_fetch_script.py
           echo '                results.append({"SKU": sku, "ID": product_id, "DETAIL": json.dumps(detail_info)})' >> product_fetch_script.py
           echo '                logger.info(f"Successfully processed SKU {sku} -> ID {product_id}")' >> product_fetch_script.py
