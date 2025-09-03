@@ -185,7 +185,6 @@ jobs:
           echo "All required CSV files are present"
 
       - name: Setup Product Database
-        if: ${{ github.event_name == 'schedule' || !inputs.skip_link_checks }}
         run: |
           # Check for existing database, create if needed
           if [ ! -f "product_availability.db" ]; then
@@ -196,12 +195,10 @@ jobs:
           fi
 
       - name: Install Product Fetch Dependencies
-        if: ${{ github.event_name == 'schedule' || !inputs.skip_link_checks }}
         run: |
           pip install requests python-dotenv
 
       - name: Create Product Fetch Script
-        if: ${{ github.event_name == 'schedule' || !inputs.skip_link_checks }}
         run: |
           # Create a simple product fetch script without heredoc
           echo 'import os, sys, sqlite3, json, pandas as pd, logging' > product_fetch_script.py
@@ -222,7 +219,6 @@ jobs:
 
 
       - name: Run Product Data Fetch
-        if: ${{ github.event_name == 'schedule' || !inputs.skip_link_checks }}
         env:
           COMMERCETOOL_AUTH_TOKEN: ${{ secrets.COMMERCETOOL_AUTH_TOKEN }}
           COMMERCETOOL_API_KEY: ${{ secrets.COMMERCETOOL_API_KEY }}
@@ -241,21 +237,7 @@ jobs:
 
           echo "Product data fetch completed"
 
-      - name: Fetch Product Data Fallback
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.skip_link_checks }}
-        run: |
-          # When skipping link checks, also skip product fetch and use existing data
-          echo "Skipping product data fetch, looking for existing product export files..."
 
-          # Try to use existing product export file first
-          if [ -f "product_export_20250902_055919.csv" ]; then
-            echo "Using existing product export file"
-            cp product_export_20250902_055919.csv product_export.csv
-          else
-            echo "Creating minimal fallback data"
-            echo 'SKU,ID,DETAIL' > product_export.csv
-            echo 'FALLBACK001,fallback-id-1,"{""name"": ""Fallback Product"", ""attributes"": {}}"' >> product_export.csv
-          fi
 
       - name: Generate Combined Report
         run: python report_generator.py --au-csv au_link_check_results.csv --nz-csv nz_link_check_results.csv --output-html combined_report.html
