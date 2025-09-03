@@ -211,24 +211,18 @@ jobs:
           # Check if product export file exists, if not create a fallback
           if [ ! -f "product_export_*.csv" ]; then
             echo "No product export file found, creating fallback data..."
-            python -c "
-import pandas as pd
-import json
 
-# Use existing product export file as fallback
-try:
-    df = pd.read_csv('product_export_20250902_055919.csv')
-    print('Using existing product export file')
-except FileNotFoundError:
-    print('Creating minimal fallback data')
-    sample_data = {
-        'SKU': ['FALLBACK001'],
-        'ID': ['fallback-id-1'],
-        'DETAIL': [json.dumps({'name': 'Fallback Product', 'attributes': {}})]
-    }
-    df = pd.DataFrame(sample_data)
-    df.to_csv('product_export.csv', index=False)
-"
+            # Try to use existing product export file first
+            if [ -f "product_export_20250902_055919.csv" ]; then
+              echo "Using existing product export file"
+              cp product_export_20250902_055919.csv product_export.csv
+            else
+              echo "Creating minimal fallback data"
+              cat > product_export.csv << 'EOF'
+          SKU,ID,DETAIL
+          FALLBACK001,fallback-id-1,"{""name"": ""Fallback Product"", ""attributes"": {}}"
+          EOF
+            fi
           else
             echo "Product export file found, using existing data."
           fi
