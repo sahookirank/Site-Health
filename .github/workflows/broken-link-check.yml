@@ -201,7 +201,7 @@ jobs:
       - name: Create Product Fetch Script
         run: |
           # Create a comprehensive product fetch script that makes actual API calls
-          echo 'import os, sys, sqlite3, json, pandas as pd, logging, requests, time' > product_fetch_script.py
+          echo 'import os, sys, sqlite3, json, pandas as pd, logging, requests, time, uuid' > product_fetch_script.py
           echo 'from datetime import datetime' >> product_fetch_script.py
           echo 'from typing import List, Dict, Optional' >> product_fetch_script.py
           echo '' >> product_fetch_script.py
@@ -219,6 +219,8 @@ jobs:
           echo '        self.setup_headers()' >> product_fetch_script.py
           echo '' >> product_fetch_script.py
           echo '    def setup_headers(self):' >> product_fetch_script.py
+          echo '        # Generate correlation ID for search API' >> product_fetch_script.py
+          echo '        search_correlation_id = f"mc/{self.project_key}/941dc8ba-fd2b-4be3-a375-2d5ef173394d/{uuid.uuid4()}"' >> product_fetch_script.py
           echo '        self.search_headers = {' >> product_fetch_script.py
           echo '            "accept": "application/json",' >> product_fetch_script.py
           echo '            "accept-language": "en-GB,en-US;q=0.9,en;q=0.8",' >> product_fetch_script.py
@@ -226,9 +228,13 @@ jobs:
           echo '            "origin": "https://mc.australia-southeast1.gcp.commercetools.com",' >> product_fetch_script.py
           echo '            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",' >> product_fetch_script.py
           echo '            "x-application-id": "__internal:products",' >> product_fetch_script.py
+          echo '            "x-correlation-id": search_correlation_id,' >> product_fetch_script.py
           echo '            "x-project-key": self.project_key,' >> product_fetch_script.py
-          echo '            "x-user-agent": "@commercetools/sdk-client Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 products/sdk/24.5.0 (+https://git.io/fjuyC; +mc@commercetools.com)"' >> product_fetch_script.py
+          echo '            "x-user-agent": "@commercetools/sdk-client Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 products/sdk/24.5.0 (+https://git.io/fjuyC; +mc@commercetools.com)",' >> product_fetch_script.py
+          echo '            "Cache-Control": "no-cache"' >> product_fetch_script.py
           echo '        }' >> product_fetch_script.py
+          echo '        # Generate correlation ID for GraphQL API' >> product_fetch_script.py
+          echo '        graphql_correlation_id = f"mc/{self.project_key}/941dc8ba-fd2b-4be3-a375-2d5ef173394d/{uuid.uuid4()}"' >> product_fetch_script.py
           echo '        self.graphql_headers = {' >> product_fetch_script.py
           echo '            "accept": "application/json",' >> product_fetch_script.py
           echo '            "accept-language": "en-GB,en-US;q=0.9,en;q=0.8",' >> product_fetch_script.py
@@ -236,15 +242,17 @@ jobs:
           echo '            "origin": "https://mc.australia-southeast1.gcp.commercetools.com",' >> product_fetch_script.py
           echo '            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",' >> product_fetch_script.py
           echo '            "x-application-id": "__internal:products",' >> product_fetch_script.py
-          echo '            "x-graphql-operation-name": "ProductDetailsQuery",' >> product_fetch_script.py
+          echo '            "x-correlation-id": graphql_correlation_id,' >> product_fetch_script.py
+          echo '            "x-graphql-operation-name": "GeneralInfoTabQuery",' >> product_fetch_script.py
           echo '            "x-graphql-target": "ctp",' >> product_fetch_script.py
           echo '            "x-project-key": self.project_key,' >> product_fetch_script.py
-          echo '            "x-user-agent": "apollo-client Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 products/application-shell/24.5.0 (+https://git.io/fjuyC; +support@commercetools.com)"' >> product_fetch_script.py
+          echo '            "x-user-agent": "apollo-client Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 products/application-shell/24.5.0 (+https://git.io/fjuyC; +support@commercetools.com)",' >> product_fetch_script.py
+          echo '            "Cache-Control": "no-cache"' >> product_fetch_script.py
           echo '        }' >> product_fetch_script.py
           echo '        if self.auth_token:' >> product_fetch_script.py
-          echo '            # Use Cookie-based authentication as shown in Postman collection' >> product_fetch_script.py
-          echo '            self.search_headers["Cookie"] = f"mcAccessToken={self.auth_token}"' >> product_fetch_script.py
-          echo '            self.graphql_headers["Cookie"] = f"mcAccessToken={self.auth_token}"' >> product_fetch_script.py
+          echo '            # Use Bearer token authentication as shown in working API calls' >> product_fetch_script.py
+          echo '            self.search_headers["Authorization"] = f"Bearer {self.auth_token}"' >> product_fetch_script.py
+          echo '            self.graphql_headers["Authorization"] = f"Bearer {self.auth_token}"' >> product_fetch_script.py
           echo '' >> product_fetch_script.py
           echo '    def extract_skus_from_csv_files(self, max_products=100):' >> product_fetch_script.py
           echo '        """Extract SKUs from broken link CSV files."""' >> product_fetch_script.py
@@ -330,7 +338,7 @@ jobs:
           echo '        if not self.auth_token:' >> product_fetch_script.py
           echo '            return None' >> product_fetch_script.py
           echo '        # Use a simplified GraphQL query without fragments to avoid 500 errors' >> product_fetch_script.py
-          echo '        graphql_query = """query ProductDetailsQuery($productId: String!) {' >> product_fetch_script.py
+          echo '        graphql_query = """query GeneralInfoTabQuery($productId: String!) {' >> product_fetch_script.py
           echo '  product(id: $productId) {' >> product_fetch_script.py
           echo '    id' >> product_fetch_script.py
           echo '    key' >> product_fetch_script.py
@@ -367,7 +375,7 @@ jobs:
           echo '        variables = {' >> product_fetch_script.py
           echo '            "productId": product_id' >> product_fetch_script.py
           echo '        }' >> product_fetch_script.py
-          echo '        payload = {"operationName": "ProductDetailsQuery", "variables": variables, "query": graphql_query}' >> product_fetch_script.py
+          echo '        payload = {"operationName": "GeneralInfoTabQuery", "variables": variables, "query": graphql_query}' >> product_fetch_script.py
           echo '        try:' >> product_fetch_script.py
           echo '            logger.info(f"Getting product details for ID {product_id}")' >> product_fetch_script.py
           echo '            response = requests.post(self.graphql_endpoint, headers=self.graphql_headers, json=payload, timeout=30)' >> product_fetch_script.py
