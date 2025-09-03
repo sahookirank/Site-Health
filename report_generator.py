@@ -54,8 +54,6 @@ def generate_html_table_from_df(df, table_id):
 """
     return table_html
 
-
-
 STYLE_DEFINITIONS = """
             :root {
                 --container-max: 1400px;
@@ -337,7 +335,6 @@ STYLE_DEFINITIONS = """
             .category-content.active {
                 display: block;
             }
-            {product_availability_styles}
 """
 
 def extract_category_hierarchy(df, region):
@@ -919,12 +916,11 @@ def _compute_changes(conn: sqlite3.Connection):
         }
     }
 
-def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='combined_report.html', db_path: str = 'broken_links.db', product_csv_path=None):
-    """Generates a combined HTML report with tabs for AU, NZ, and Product Availability."""
+def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='combined_report.html', db_path: str = 'broken_links.db'):
+    """Generates a combined HTML report with tabs for AU and NZ link check results."""
     try:
         au_df = pd.read_csv(au_csv_path)
         au_df['Status'] = pd.to_numeric(au_df['Status'], errors='coerce').fillna(0).astype(int)
-
         # Extract category hierarchy for AU
         extract_category_hierarchy(au_df, 'AU')
     except FileNotFoundError:
@@ -1030,14 +1026,6 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
     # Drop 'Region' for individual table view; errors='ignore' handles cases where 'Region' might not exist (e.g., empty df)
     au_table_html = generate_html_table_from_df(au_error_df.drop(columns=['Region'], errors='ignore'), 'auLinkTable')
     nz_table_html = generate_html_table_from_df(nz_error_df.drop(columns=['Region'], errors='ignore'), 'nzLinkTable')
-
-    # Import and use the sophisticated Product Availability UI
-    from product_availability_ui import generate_product_availability_html, get_product_availability_styles, get_product_availability_scripts
-
-    # Generate the sophisticated Product Availability tab content
-    product_availability_html = generate_product_availability_html(product_csv_path)
-    product_availability_styles = get_product_availability_styles()
-    product_availability_scripts = get_product_availability_scripts()
 
     # Build Changes tab HTML
     def render_changes_section(title: str, items: list[tuple[str,str]], change_type: str):
@@ -1191,7 +1179,6 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                 <button class="tab-link active" onclick="openTab(event, 'AU_Report')">AU</button>
                 <button class="tab-link" onclick="openTab(event, 'NZ_Report')">NZ</button>
                 <button class="tab-link" onclick="openTab(event, 'Changes')">Changes</button>
-                <button class="tab-link" onclick="openTab(event, 'Product_Availability')">Product Availability</button>
                 <!-- Categories tab disabled -->
             </div>
 
@@ -1215,10 +1202,6 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                 {nz_table_html}
             </div>
             {changes_html}
-
-            <div id="Product_Availability" class="tab-content">
-                {product_availability_html}
-            </div>
 
             <!-- Categories tab content disabled -->
         </div>
@@ -1391,8 +1374,6 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                 document.getElementById(categoryName).classList.add('active');
                 evt.currentTarget.classList.add('active');
             }};
-
-            {product_availability_scripts}
         </script>
     </body>
     </html>
@@ -1406,9 +1387,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Generate a combined HTML report for AU and NZ link checks.')
     parser.add_argument('--au-csv', default='au_link_check_results.csv', help='Path to the AU link check results CSV file.')
     parser.add_argument('--nz-csv', default='nz_link_check_results.csv', help='Path to the NZ link check results CSV file.')
-    parser.add_argument('--product-csv', default='product_export.csv', help='Path to the product export CSV file.')
     parser.add_argument('--output-html', default='combined_report.html', help='Path to save the combined HTML report.')
     args = parser.parse_args()
 
-    # Pass the product CSV path to the report generation function
-    generate_combined_html_report(args.au_csv, args.nz_csv, args.output_html, product_csv_path=args.product_csv)
+    generate_combined_html_report(args.au_csv, args.nz_csv, args.output_html)
