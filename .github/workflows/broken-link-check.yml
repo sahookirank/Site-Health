@@ -195,13 +195,13 @@ import sqlite3
 conn = sqlite3.connect('product_availability.db')
 cursor = conn.cursor()
 cursor.execute('''
-    CREATE TABLE IF NOT EXISTS "products-in-links" (
-        ID INTEGER PRIMARY KEY AUTOINCREMENT,
-        SKU TEXT UNIQUE NOT NULL,
-        DETAILS TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
+CREATE TABLE IF NOT EXISTS "products-in-links" (
+    ID INTEGER PRIMARY KEY AUTOINCREMENT,
+    SKU TEXT UNIQUE NOT NULL,
+    DETAILS TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)
 ''')
 cursor.execute('CREATE INDEX IF NOT EXISTS idx_sku ON "products-in-links" (SKU)')
 conn.commit()
@@ -223,158 +223,156 @@ EOF
         if: ${{ github.event_name == 'schedule' || !inputs.skip_link_checks }}
         run: |
           cat > product_fetch_script.py << 'EOF'
-          #!/usr/bin/env python3
-          """
-          Inline Product Data Fetcher for Broken Link Check Workflow
-          """
+#!/usr/bin/env python3
+"""
+Inline Product Data Fetcher for Broken Link Check Workflow
+"""
 
-          import os
-          import sys
-          import sqlite3
-          import json
-          import requests
-          import pandas as pd
-          import logging
-          from datetime import datetime
-          from typing import List, Dict, Optional
-          import time
+import os
+import sys
+import sqlite3
+import json
+import requests
+import pandas as pd
+import logging
+from datetime import datetime
+from typing import List, Dict, Optional
+import time
 
-          # Configure logging
-          logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-          logger = logging.getLogger(__name__)
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
-          class ProductFetcher:
-              def __init__(self):
-                  self.db_path = "product_availability.db"
-                  self.base_url = "https://mc-api.australia-southeast1.gcp.commercetools.com"
-                  self.search_endpoint = f"{self.base_url}/proxy/pim-search/kmart-production/search/products"
-                  self.graphql_endpoint = f"{self.base_url}/graphql"
+class ProductFetcher:
+    def __init__(self):
+        self.db_path = "product_availability.db"
+        self.base_url = "https://mc-api.australia-southeast1.gcp.commercetools.com"
+        self.search_endpoint = f"{self.base_url}/proxy/pim-search/kmart-production/search/products"
+        self.graphql_endpoint = f"{self.base_url}/graphql"
 
-                  # Get secrets from environment
-                  self.auth_token = os.getenv('COMMERCETOOL_AUTH_TOKEN')
-                  self.project_key = 'kmart-production'
+        # Get secrets from environment
+        self.auth_token = os.getenv('COMMERCETOOL_AUTH_TOKEN')
+        self.project_key = 'kmart-production'
 
-                  if not self.auth_token:
-                      logger.warning("COMMERCETOOL_AUTH_TOKEN not found, will create fallback data")
-                      self.auth_token = None
+        if not self.auth_token:
+            logger.warning("COMMERCETOOL_AUTH_TOKEN not found, will create fallback data")
+            self.auth_token = None
 
-                  # Headers for API requests
-                  if self.auth_token:
-                      self.search_headers = {
-                          "accept": "application/json",
-                          "content-type": "application/json",
-                          "authorization": f"Bearer {self.auth_token}",
-                          "x-project-key": self.project_key,
-                          "cache-control": "no-cache"
-                      }
+        # Headers for API requests
+        if self.auth_token:
+            self.search_headers = {
+                "accept": "application/json",
+                "content-type": "application/json",
+                "authorization": f"Bearer {self.auth_token}",
+                "x-project-key": self.project_key,
+                "cache-control": "no-cache"
+            }
 
-                      self.graphql_headers = {
-                          "accept": "application/json",
-                          "content-type": "application/json",
-                          "authorization": f"Bearer {self.auth_token}",
-                          "x-project-key": self.project_key,
-                          "x-graphql-operation-name": "GeneralInfoTabQuery",
-                          "x-graphql-target": "ctp",
-                          "cache-control": "no-cache"
-                      }
+            self.graphql_headers = {
+                "accept": "application/json",
+                "content-type": "application/json",
+                "authorization": f"Bearer {self.auth_token}",
+                "x-project-key": self.project_key,
+                "x-graphql-operation-name": "GeneralInfoTabQuery",
+                "x-graphql-target": "ctp",
+                "cache-control": "no-cache"
+            }
+    def get_products_from_database(self, max_products: int = 100) -> List[Dict]:
+        """Get products from database."""
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
 
-              def get_products_from_database(self, max_products: int = 100) -> List[Dict]:
-                  """Get products from database."""
-                  try:
-                      conn = sqlite3.connect(self.db_path)
-                      cursor = conn.cursor()
+            query = 'SELECT ID, SKU, DETAILS FROM "products-in-links" LIMIT ?'
+            cursor.execute(query, (max_products,))
 
-                      query = 'SELECT ID, SKU, DETAILS FROM "products-in-links" LIMIT ?'
-                      cursor.execute(query, (max_products,))
+            rows = cursor.fetchall()
+            conn.close()
 
-                      rows = cursor.fetchall()
-                      conn.close()
+            products = []
+            for row in rows:
+                try:
+                    details = json.loads(row[2]) if row[2] else {}
+                except json.JSONDecodeError:
+                    details = {"error": "Invalid JSON data"}
 
-                      products = []
-                      for row in rows:
-                          try:
-                              details = json.loads(row[2]) if row[2] else {}
-                          except json.JSONDecodeError:
-                              details = {"error": "Invalid JSON data"}
+                products.append({
+                    "id": row[0],
+                    "sku": row[1],
+                    "details": details
+                })
 
-                          products.append({
-                              "id": row[0],
-                              "sku": row[1],
-                              "details": details
-                          })
+            logger.info(f"Retrieved {len(products)} products from database")
+            return products
 
-                      logger.info(f"Retrieved {len(products)} products from database")
-                      return products
+        except Exception as e:
+            logger.error(f"Error retrieving products from database: {e}")
+            return []
 
-                  except Exception as e:
-                      logger.error(f"Error retrieving products from database: {e}")
-                      return []
+    def create_fallback_data(self) -> List[Dict]:
+        """Create fallback data when API is not available."""
+        logger.info("Creating fallback product data")
+        return [
+            {
+                "SKU": "FALLBACK001",
+                "ID": "fallback-id-1",
+                "DETAIL": json.dumps({"name": "Fallback Product", "attributes": {}})
+            }
+        ]
+    def save_to_csv(self, results: List[Dict], filename: str = None):
+        """Save results to CSV file."""
+        if not filename:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"product_export_{timestamp}.csv"
 
-              def create_fallback_data(self) -> List[Dict]:
-                  """Create fallback data when API is not available."""
-                  logger.info("Creating fallback product data")
-                  return [
-                      {
-                          "SKU": "FALLBACK001",
-                          "ID": "fallback-id-1",
-                          "DETAIL": json.dumps({"name": "Fallback Product", "attributes": {}})
-                      }
-                  ]
+        try:
+            df = pd.DataFrame(results)
+            df.to_csv(filename, index=False)
+            logger.info(f"Saved {len(results)} records to {filename}")
+            return filename
+        except Exception as e:
+            logger.error(f"Error saving to CSV: {e}")
+            return None
 
-              def save_to_csv(self, results: List[Dict], filename: str = None):
-                  """Save results to CSV file."""
-                  if not filename:
-                      timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                      filename = f"product_export_{timestamp}.csv"
+    def run(self):
+        """Main execution function."""
+        max_products = int(os.getenv('MAX_PRODUCTS', '100'))
 
-                  try:
-                      df = pd.DataFrame(results)
-                      df.to_csv(filename, index=False)
-                      logger.info(f"Saved {len(results)} records to {filename}")
-                      return filename
-                  except Exception as e:
-                      logger.error(f"Error saving to CSV: {e}")
-                      return None
+        if not self.auth_token:
+            logger.info("No auth token available, creating fallback data")
+            results = self.create_fallback_data()
+        else:
+            # Try to get products from database
+            products = self.get_products_from_database(max_products)
 
-              def run(self):
-                  """Main execution function."""
-                  max_products = int(os.getenv('MAX_PRODUCTS', '100'))
+            if not products:
+                logger.warning("No products found in database, creating fallback data")
+                results = self.create_fallback_data()
+            else:
+                # For now, just use the database data as-is
+                # In a full implementation, you would fetch details from the API
+                results = []
+                for product in products[:max_products]:
+                    results.append({
+                        "SKU": product["sku"],
+                        "ID": product["id"],
+                        "DETAIL": json.dumps(product["details"])
+                    })
 
-                  if not self.auth_token:
-                      logger.info("No auth token available, creating fallback data")
-                      results = self.create_fallback_data()
-                  else:
-                      # Try to get products from database
-                      products = self.get_products_from_database(max_products)
+        # Save to CSV
+        filename = self.save_to_csv(results)
+        if filename:
+            print(f"Product export completed: {filename}")
+            return True
+        else:
+            print("Product export failed")
+            return False
 
-                      if not products:
-                          logger.warning("No products found in database, creating fallback data")
-                          results = self.create_fallback_data()
-                      else:
-                          # For now, just use the database data as-is
-                          # In a full implementation, you would fetch details from the API
-                          results = []
-                          for product in products[:max_products]:
-                              results.append({
-                                  "SKU": product["sku"],
-                                  "ID": product["id"],
-                                  "DETAIL": json.dumps(product["details"])
-                              })
-
-                  # Save to CSV
-                  filename = self.save_to_csv(results)
-                  if filename:
-                      print(f"Product export completed: {filename}")
-                      return True
-                  else:
-                      print("Product export failed")
-                      return False
-
-          if __name__ == "__main__":
-              fetcher = ProductFetcher()
-              success = fetcher.run()
-              sys.exit(0 if success else 1)
-          EOF
+if __name__ == "__main__":
+    fetcher = ProductFetcher()
+    success = fetcher.run()
+    sys.exit(0 if success else 1)
+EOF
 
       - name: Run Product Data Fetch
         if: ${{ github.event_name == 'schedule' || !inputs.skip_link_checks }}
@@ -391,9 +389,9 @@ EOF
           if [ ! -f product_export_*.csv ]; then
             echo "No product export file generated, creating minimal fallback"
             cat > product_export_fallback.csv << 'EOF'
-          SKU,ID,DETAIL
-          FALLBACK001,fallback-id-1,"{""name"": ""Fallback Product"", ""attributes"": {}}"
-          EOF
+SKU,ID,DETAIL
+FALLBACK001,fallback-id-1,"{""name"": ""Fallback Product"", ""attributes"": {}}"
+EOF
           fi
 
           echo "Product data fetch completed"
@@ -411,9 +409,9 @@ EOF
           else
             echo "Creating minimal fallback data"
             cat > product_export.csv << 'EOF'
-          SKU,ID,DETAIL
-          FALLBACK001,fallback-id-1,"{""name"": ""Fallback Product"", ""attributes"": {}}"
-          EOF
+SKU,ID,DETAIL
+FALLBACK001,fallback-id-1,"{""name"": ""Fallback Product"", ""attributes"": {}}"
+EOF
           fi
 
       - name: Generate Combined Report
