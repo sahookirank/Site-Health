@@ -1,0 +1,755 @@
+
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Broken Link Report</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+        <style>
+            
+            :root {{
+                --container-max: 1400px;
+                --brand: #0d6efd;
+                --muted-bg: #f6f7f9;
+                --muted: #6c757d;
+                --card-bg: #ffffff;
+                --border: #e5e7eb;
+            }}
+            body {{
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                margin: 0;
+                background-color: var(--muted-bg);
+                color: #1f2937;
+            }}
+            header {{
+                background: linear-gradient(180deg, #fff, #fafbfc);
+                border-bottom: 1px solid var(--border);
+                padding: 24px 16px 16px;
+                margin-bottom: 16px;
+            }}
+            h1 {{
+                text-align: center;
+                margin: 0 auto;
+                max-width: var(--container-max);
+                font-weight: 700;
+                letter-spacing: .2px;
+            }}
+            .container {{
+                max-width: var(--container-max);
+                margin: 0 auto;
+                padding: 0 16px 24px;
+            }}
+            .summary-container {{
+                display: flex;
+                flex-wrap: wrap;
+                gap: 12px;
+                margin-bottom: 16px;
+            }}
+            .summary-item {{
+                background-color: #eef2f7;
+                padding: 10px 14px;
+                border-radius: 999px;
+                font-size: 14px;
+                border: 1px solid var(--border);
+            }}
+            .tab-container {{
+                margin-top: 12px;
+                background-color: var(--card-bg);
+                padding: 0 0 16px;
+                border-radius: 12px;
+                box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+                border: 1px solid var(--border);
+            }}
+            .tab-buttons {{
+                display: flex;
+                gap: 12px;
+                padding: 12px;
+                border-bottom: 1px solid var(--border);
+                background: #fff;
+                position: sticky;
+                top: 0;
+                z-index: 10;
+            }}
+            .tab-link {{
+                background-color: #f3f4f6;
+                border: 1px solid var(--border);
+                padding: 12px 24px;
+                cursor: pointer;
+                border-radius: 10px;
+                font-weight: 700;
+                font-size: 15px;
+                letter-spacing: .2px;
+                min-width: 160px;
+                transition: all .15s ease;
+            }}
+            .tab-link.active, .tab-link:hover {{
+                background-color: #e9effe;
+                border-color: #c2d3ff;
+                color: #0b3fbf;
+            }}
+            .tab-content {{
+                display: none;
+                padding: 16px;
+            }}
+            .card {{
+                background: #fff;
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                padding: 14px;
+                box-shadow: 0 2px 10px rgba(0,0,0,.04);
+            }}
+            table {{
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 10px;
+                background: #fff;
+                border-radius: 8px;
+                overflow: hidden;
+            }}
+            th, td {{
+                text-align: left;
+                padding: 10px 12px;
+                border-bottom: 1px solid #eee;
+            }}
+            th {{
+                background-color: #f8fafc;
+                color: #111827;
+            }}
+            .download-button {{
+                display: inline-block;
+                margin: 10px 0;
+                padding: 10px 15px;
+                background-color: var(--brand);
+                color: white;
+                text-decoration: none;
+                border-radius: 6px;
+            }}
+            .download-button:hover {{ filter: brightness(.95); }}
+            #scrollTopBtn, #scrollBottomBtn {{
+                position: fixed;
+                right: 20px;
+                padding: 10px;
+                font-size: 18px;
+                border: none;
+                border-radius: 8px;
+                background-color: var(--brand);
+                color: white;
+                cursor: pointer;
+                z-index: 1000;
+                box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+            }}
+            #scrollTopBtn {{ bottom: 80px; }}
+            #scrollBottomBtn {{ bottom: 24px; }}
+            .download-tab-button {{
+                display: inline-block;
+                padding: 8px 12px;
+                background-color: #6c757d;
+                color: white;
+                text-decoration: none;
+                border-radius: 999px;
+                margin-left: 10px;
+                font-size: 12px;
+                border: 1px solid var(--border);
+            }}
+            .download-tab-button:hover {{ filter: brightness(.95); }}
+            .collapsible-section {{
+                margin: 20px 0;
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                overflow: hidden;
+            }}
+            .collapsible-header {{
+                background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+                padding: 16px 20px;
+                cursor: pointer;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                font-weight: 600;
+                font-size: 16px;
+                transition: all 0.3s ease;
+                border-bottom: 1px solid var(--border);
+            }}
+            .collapsible-header:hover {{
+                background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
+            }}
+            .collapsible-header.active {{
+                background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+                color: #1e40af;
+            }}
+            .collapsible-content {{
+                max-height: 0;
+                overflow: hidden;
+                transition: max-height 0.3s ease;
+                background: #fff;
+            }}
+            .collapsible-content.active {{
+                max-height: none;
+                padding: 20px;
+            }}
+            /* New styles for changes tables */
+            .changes-table-added tbody tr {{
+                background-color: #f0fdf4 !important;
+                border-left: 4px solid #22c55e;
+            }}
+            .changes-table-added tbody tr:hover {{
+                background-color: #dcfce7 !important;
+            }}
+            .changes-table-removed tbody tr {{
+                background-color: #fef2f2 !important;
+                border-left: 4px solid #ef4444;
+            }}
+            .changes-table-removed tbody tr:hover {{
+                background-color: #fecaca !important;
+            }}
+            .change-type-badge {{
+                display: inline-block;
+                padding: 4px 8px;
+                border-radius: 12px;
+                font-size: 12px;
+                font-weight: 600;
+                text-transform: uppercase;
+            }}
+            .change-type-badge.added {{
+                background-color: #dcfce7;
+                color: #166534;
+                border: 1px solid #86efac;
+            }}
+            .change-type-badge.removed {{
+                background-color: #fef2f2;
+                color: #991b1b;
+                border: 1px solid #fca5a5;
+            }}
+            .toggle-icon {{
+                font-size: 18px;
+                transition: transform 0.3s ease;
+            }}
+            .toggle-icon.rotated {{
+                transform: rotate(180deg);
+            }}
+            .changes-summary {{
+                display: flex;
+                gap: 16px;
+                margin-bottom: 16px;
+                flex-wrap: wrap;
+            }}
+            .change-count {{
+                padding: 12px 16px;
+                border-radius: 8px;
+                font-weight: 600;
+                font-size: 14px;
+                min-width: 120px;
+                text-align: center;
+            }}
+            .change-count.added {{
+                background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+                color: #166534;
+                border: 1px solid #86efac;
+            }}
+            .change-count.removed {{
+                background: linear-gradient(135deg, #fef2f2, #fecaca);
+                color: #991b1b;
+                border: 1px solid #fca5a5;
+            }}
+            .visualization-container {{
+                background: #fff;
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                padding: 20px;
+                margin: 16px 0;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            }}
+            .category-tabs {{
+                display: flex;
+                gap: 8px;
+                margin-bottom: 20px;
+                border-bottom: 2px solid var(--border);
+            }}
+            .category-tab {{
+                padding: 12px 24px;
+                background: #f8fafc;
+                border: 1px solid var(--border);
+                border-bottom: none;
+                border-radius: 8px 8px 0 0;
+                cursor: pointer;
+                font-weight: 600;
+                transition: all 0.2s ease;
+            }}
+            .category-tab.active {{
+                background: #fff;
+                border-bottom: 2px solid #fff;
+                margin-bottom: -2px;
+                color: var(--brand);
+            }}
+            .category-content {{
+                display: none;
+            }}
+            .category-content.active {{
+                display: block;
+            }}
+
+            /* Product Availability Styles */
+            .product-availability-container {{
+                margin-top: 20px;
+            }}
+            /* Table container for responsive design */
+            .table-container {{
+                width: 100%;
+                overflow-x: auto;
+                margin-top: 15px;
+            }}
+
+            .product-table {{
+                width: 100%;
+                min-width: 600px;
+                border-collapse: collapse;
+                background-color: white;
+                border-radius: 8px;
+                overflow: hidden;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }}
+            .product-table th {{
+                background-color: var(--brand);
+                color: white;
+                padding: 12px;
+                text-align: left;
+                font-weight: 600;
+                font-size: 14px;
+                white-space: nowrap;
+            }}
+            .product-table td {{
+                padding: 12px;
+                border-bottom: 1px solid #e5e7eb;
+                vertical-align: top;
+                word-wrap: break-word;
+                max-width: 300px;
+            }}
+            .product-row {{
+                cursor: pointer;
+                transition: background-color 0.2s ease;
+            }}
+            .product-row:hover {{
+                background-color: #f9fafb;
+            }}
+            .product-details-row {{
+                background-color: #f8fafc;
+            }}
+            .product-details-content {{
+                padding: 16px;
+                border-left: 4px solid var(--brand);
+                background-color: #fff;
+                border-radius: 8px;
+                margin: 8px;
+            }}
+            .product-details-content h4 {{
+                margin: 0 0 12px 0;
+                color: var(--brand);
+                font-size: 16px;
+            }}
+            .json-display {{
+                background-color: #f8fafc;
+                border: 1px solid #e5e7eb;
+                border-radius: 6px;
+                padding: 12px;
+                font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+                font-size: 12px;
+                line-height: 1.4;
+                overflow-x: auto;
+                white-space: pre-wrap;
+                word-wrap: break-word;
+                max-height: 400px;
+                overflow-y: auto;
+            }}
+
+            /* Product Attribute Styles */
+            .attributes-section {{
+                margin-bottom: 20px;
+            }}
+            .attributes-container {{
+                background-color: #f8f9fa;
+                border: 1px solid #e9ecef;
+                border-radius: 8px;
+                padding: 16px;
+                max-height: 400px;
+                overflow-y: auto;
+            }}
+            .attribute-item {{
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 8px 12px;
+                margin-bottom: 4px;
+                background-color: #ffffff;
+                border: 1px solid #e9ecef;
+                border-radius: 4px;
+                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            }}
+            .attribute-item:last-child {{
+                margin-bottom: 0;
+            }}
+            .attr-name {{
+                color: #495057;
+                min-width: 180px;
+                flex-shrink: 0;
+                margin-right: 12px;
+            }}
+            .attr-value {{
+                color: #6c757d;
+                text-align: right;
+                word-break: break-word;
+                flex-grow: 1;
+            }}
+            .no-attributes {{
+                text-align: center;
+                color: #6c757d;
+                font-style: italic;
+                padding: 20px;
+            }}
+
+            /* Visual Indicators */
+            .past-date {{
+                background-color: #fee2e2 !important;
+                border-left: 4px solid #dc2626 !important;
+                padding-left: 8px !important;
+            }}
+            .past-date .attribute-value {{
+                color: #dc2626 !important;
+                font-weight: 600 !important;
+            }}
+            .discontinued-indicator {{
+                background-color: #dc2626;
+                color: white;
+                padding: 8px 12px;
+                border-radius: 4px;
+                font-weight: 600;
+                text-align: center;
+                margin-bottom: 12px;
+                font-size: 14px;
+            }}
+            .product-type-badge.discontinued {{
+                background-color: #dc2626 !important;
+                color: white !important;
+                font-weight: 600 !important;
+            }}
+            .product-type-badge {{
+                display: inline-block;
+                padding: 4px 8px;
+                background-color: #e0f2fe;
+                color: #0369a1;
+                border-radius: 12px;
+                font-size: 11px;
+                font-weight: 600;
+                text-transform: uppercase;
+                margin-left: 8px;
+            }}
+            .toggle-icon {{
+                font-size: 14px;
+                margin-right: 8px;
+                transition: transform 0.3s ease;
+                display: inline-block;
+            }}
+            .toggle-icon.rotated {{
+                transform: rotate(180deg);
+            }}
+
+        </style>
+    </head>
+    <body>
+        <button onclick="scrollToTop()" id="scrollTopBtn" title="Go to top">&#x2191;</button> <!-- Up arrow -->
+        <button onclick="scrollToBottom()" id="scrollBottomBtn" title="Go to bottom">&#x2193;</button> <!-- Down arrow -->
+        <header>
+            <h1>Kmart Link Check Report</h1>
+        </header>
+        <div class="container">
+        <!-- <a href="combined_link_check_results.csv" download class="download-button">Download Combined CSV</a> --> <!-- Removed combined CSV download link -->
+
+        <div class="tab-container">
+            <div class="tab-buttons">
+                <button class="tab-link active" onclick="openTab(event, 'AU_Report')">AU</button>
+                <button class="tab-link" onclick="openTab(event, 'NZ_Report')">NZ</button>
+                <button class="tab-link" onclick="openTab(event, 'Product_Availability')">Product Availability</button>
+                <button class="tab-link" onclick="openTab(event, 'Changes')">Changes</button>
+                <!-- Categories tab disabled -->
+            </div>
+
+            <div id="AU_Report" class="tab-content" style="display: block;">
+                <div class="summary-container">
+                    <span class="summary-item">🔍 Total Links Checked (AU): {au_total_count}</span>
+                    <span class="summary-item">❌ Broken Links (AU): {au_count}</span>
+                    <span class="summary-item">✅ Valid Links (AU): {au_valid_count}</span>
+                    <span class="summary-item"><a href="au_link_check_results.csv" download class="download-tab-button">Download AU Full CSV</a></span>
+                </div>
+                
+    <table id="auLinkTable" class="display" style="width:100%">
+        <thead>
+            <tr><th>Timestamp</th><th>URL</th><th>Status</th><th>Path</th><th>Visible</th></tr>
+            <tr class="filters"><th><input type='text' placeholder='Filter ...' style='width: 90%;' /></th><th><input type='text' placeholder='Filter ...' style='width: 90%;' /></th><th><input type='text' placeholder='Filter ...' style='width: 90%;' /></th><th><input type='text' placeholder='Filter ...' style='width: 90%;' /></th><th><input type='text' placeholder='Filter ...' style='width: 90%;' /></th></tr>
+        </thead>
+        <tbody>
+                        {au_table_rows}
+                    </tbody>
+    </table>
+
+            </div>
+
+            <div id="NZ_Report" class="tab-content">
+                <div class="summary-container">
+                    <span class="summary-item">🔍 Total Links Checked (NZ): {nz_total_count}</span>
+                    <span class="summary-item">❌ Broken Links (NZ): {nz_count}</span>
+                    <span class="summary-item">✅ Valid Links (NZ): {nz_valid_count}</span>
+                    <span class="summary-item"><a href="nz_link_check_results.csv" download class="download-tab-button">Download NZ Full CSV</a></span>
+                </div>
+                
+    <table id="nzLinkTable" class="display" style="width:100%">
+        <thead>
+            <tr><th>Timestamp</th><th>URL</th><th>Status</th><th>Path</th><th>Visible</th></tr>
+            <tr class="filters"><th><input type='text' placeholder='Filter ...' style='width: 90%;' /></th><th><input type='text' placeholder='Filter ...' style='width: 90%;' /></th><th><input type='text' placeholder='Filter ...' style='width: 90%;' /></th><th><input type='text' placeholder='Filter ...' style='width: 90%;' /></th><th><input type='text' placeholder='Filter ...' style='width: 90%;' /></th></tr>
+        </thead>
+        <tbody>
+                        {au_table_rows}
+                    </tbody>
+    </table>
+
+            </div>
+
+            <div id="Product_Availability" class="tab-content">
+                
+            <div class="summary-container">
+                <span class="summary-item">📦 Total Products: {product_count}</span>
+                <span class="summary-item">ℹ️ No product data available</span>
+            </div>
+            <div class="card">
+                <p>No product availability data found. Please run the product extraction process first.</p>
+            </div>
+            
+            </div>
+            
+        <div id="Changes" class="tab-content">
+            <div class="collapsible-section">
+                <div class="collapsible-header" onclick="toggleSection('yesterday-section')">
+                    <span>Changes since Yesterday</span>
+                    <span class="toggle-icon" id="yesterday-toggle">▼</span>
+                </div>
+                <div class="collapsible-content" id="yesterday-section">
+
+                    <div class="changes-summary">
+                        <div style="padding: 20px; text-align: center; color: #6c757d; font-style: italic;">
+                            📊 No data present to compare with yesterday's broken links.
+                        </div>
+                    </div>
+        
+                </div>
+            </div>
+
+            <div class="collapsible-section">
+                <div class="collapsible-header" onclick="toggleSection('week-section')">
+                    <span>Changes vs 7 Days Ago</span>
+                    <span class="toggle-icon" id="week-toggle">▼</span>
+                </div>
+                <div class="collapsible-content" id="week-section">
+
+                    <div class="changes-summary">
+                        <div style="padding: 20px; text-align: center; color: #6c757d; font-style: italic;">
+                            📊 No data present to compare with 7 days ago broken links.
+                        </div>
+                    </div>
+        
+                </div>
+            </div>
+        </div>
+    
+
+            <!-- Categories tab content disabled -->
+        </div>
+        </div>
+
+        <script>
+            function openTab(evt, reportName) {{
+                var i, tabcontent, tablinks;
+                tabcontent = document.getElementsByClassName("tab-content");
+                for (i = 0; i < tabcontent.length; i++) {{
+                    tabcontent[i].style.display = "none";
+                }}
+                tablinks = document.getElementsByClassName("tab-link");
+                for (i = 0; i < tablinks.length; i++) {{
+                    tablinks[i].className = tablinks[i].className.replace(" active", "");
+                }}
+                document.getElementById(reportName).style.display = "block";
+                evt.currentTarget.className += " active";
+            }}
+
+            $(document).ready(function() {{
+                ['#auLinkTable', '#nzLinkTable'].forEach(function(tableId) {{
+                    if (!$(tableId).length) return; // If table doesn't exist, skip
+
+                    var table = $(tableId).DataTable({{
+                        pageLength: 100,
+                        orderCellsTop: true,
+                        fixedHeader: true,
+                        initComplete: function () {{
+                            var api = this.api();
+                            // Check for the correct number of filterable columns (Timestamp, URL, Status, Response_Time, Error_Message)
+                            var filterHeaderCells = $(tableId + ' thead tr.filters th');
+                            if (filterHeaderCells.length !== 5) {{
+                                console.error('Expected 5 filterable columns for ' + tableId + ', found ' + filterHeaderCells.length + '. Skipping filter setup.');
+                                return;
+                            }}
+
+                            api.columns().eq(0).each(function (colIdx) {{
+                                // Get the input element for the current column's filter
+                                var inputElement = $(filterHeaderCells[colIdx]).find('input');
+                                
+                                $(inputElement)
+                                    .off('keyup change') // Remove previous event handlers to prevent duplicates
+                                    .on('keyup change', function (e) {{
+                                        e.stopPropagation();
+                                        // Perform search, treating input as literal string (regex: false, smart: false)
+                                        var searchValue = this.value;
+                                        api.column(colIdx).search(searchValue, false, false).draw();
+                                        
+                                        // Restore cursor position if the element is still focused
+                                        if (document.activeElement === this) {{
+                                            var cursorPos = this.selectionStart;
+                                            this.focus();
+                                            this.setSelectionRange(cursorPos, cursorPos);
+                                        }}
+                                    }});
+                            }});
+                        }},
+                        rowCallback: function(row, data, index){{
+                             var statusCell = data[2]; // Status is now at index 2 (Timestamp, URL, Status, ...)
+                             var status = parseInt(statusCell) || 0;
+                             $(row).removeClass('ok error redirect');
+                            if (status >= 400) {{
+                                $(row).addClass('error');
+                            }} else if (status >= 300) {{
+                                $(row).addClass('redirect');
+                            }} else if (status === 200) {{
+                                $(row).addClass('ok');
+                            }}
+                        }}
+                    }});
+                }});
+                
+                // Initialize DataTables for changes tables
+                var changesTables = [
+                    '#yesterday-added-table', '#yesterday-removed-table',
+                    '#week-added-table', '#week-removed-table'
+                ];
+                
+                changesTables.forEach(function(tableId) {{
+                    if (!$(tableId).length) return; // If table doesn't exist, skip
+                    
+                    $(tableId).DataTable({{
+                        pageLength: 50,
+                        orderCellsTop: true,
+                        fixedHeader: true,
+                        dom: 'Bfrtip',
+                        buttons: [
+                            'copy', 'csv', 'excel', 'pdf', 'print'
+                        ],
+                        order: [[2, 'asc']] // Sort by URL column
+                    }});
+                }});
+            }});
+            
+            // Scroll buttons logic
+            var scrollTopButton = document.getElementById("scrollTopBtn");
+            var scrollBottomButton = document.getElementById("scrollBottomBtn");
+            var pageBody = document.body;
+            var pageDocumentElement = document.documentElement;
+
+            window.onscroll = function() {{scrollFunction()}};
+
+            function scrollFunction() {{
+                // Show scrollTopBtn if scrolled down, hide if near the top
+                if (scrollTopButton) {{
+                    if (pageBody.scrollTop > 30 || pageDocumentElement.scrollTop > 30) {{
+                        scrollTopButton.style.display = "block";
+                    }} else {{
+                        scrollTopButton.style.display = "none";
+                    }}
+                }}
+
+                // Show scrollBottomBtn if not near the bottom, hide if at the bottom.
+                // Also ensure it's shown if page is scrollable at all from the top
+                if (scrollBottomButton) {{
+                    let isPageScrollable = pageDocumentElement.scrollHeight > pageDocumentElement.clientHeight;
+                    let isAtBottom = (window.innerHeight + window.scrollY) >= pageDocumentElement.offsetHeight - 30; // 30px buffer
+
+                    if (isPageScrollable && !isAtBottom) {{
+                        scrollBottomButton.style.display = "block";
+                    }} else {{
+                        scrollBottomButton.style.display = "none";
+                    }}
+                }}
+            }}
+            // Initial check in case the page loads scrolled or is too short to scroll
+            scrollFunction();
+
+            // Assign functions to window so inline onclick can find them
+            window.scrollToTop = function() {{ 
+                pageBody.scrollTop = 0; // For Safari
+                pageDocumentElement.scrollTop = 0; // For Chrome, Firefox, IE and Opera
+            }};
+            window.scrollToBottom = function() {{
+                pageBody.scrollTop = pageDocumentElement.scrollHeight; // For Safari
+                pageDocumentElement.scrollTop = pageDocumentElement.scrollHeight; // For Chrome, Firefox, IE and Opera
+            }};
+            
+            // Toggle functionality for collapsible sections
+            window.toggleSection = function(sectionId) {{
+                var content = document.getElementById(sectionId);
+                var toggleIcon = document.getElementById(sectionId.replace('-section', '-toggle'));
+                var header = content.previousElementSibling;
+                
+                if (content.classList.contains('active')) {{
+                    content.classList.remove('active');
+                    header.classList.remove('active');
+                    toggleIcon.textContent = '▼';
+                    toggleIcon.classList.remove('rotated');
+                }} else {{
+                    content.classList.add('active');
+                    header.classList.add('active');
+                    toggleIcon.textContent = '▲';
+                    toggleIcon.classList.add('rotated');
+                }}
+            }};
+            
+            // Category tab functionality
+            window.openCategory = function(evt, categoryName) {{
+                var i, categoryContent, categoryTabs;
+                categoryContent = document.getElementsByClassName('category-content');
+                for (i = 0; i < categoryContent.length; i++) {{
+                    categoryContent[i].classList.remove('active');
+                }}
+                categoryTabs = document.getElementsByClassName('category-tab');
+                for (i = 0; i < categoryTabs.length; i++) {{
+                    categoryTabs[i].classList.remove('active');
+                }}
+                document.getElementById(categoryName).classList.add('active');
+                evt.currentTarget.classList.add('active');
+            }};
+
+            // Product Availability JavaScript Functions
+            window.toggleProductDetails = function(rowId) {{
+                var detailsRow = document.getElementById(rowId + '_details');
+                var toggleIcon = document.getElementById(rowId + '_toggle');
+
+                if (detailsRow.style.display === 'none' || detailsRow.style.display === '') {{
+                    detailsRow.style.display = 'table-row';
+                    toggleIcon.textContent = '▲';
+                    toggleIcon.classList.add('rotated');
+                }} else {{
+                    detailsRow.style.display = 'none';
+                    toggleIcon.textContent = '▼';
+                    toggleIcon.classList.remove('rotated');
+                }}
+            }};
+        </script>
+    </body>
+    </html>
+    
