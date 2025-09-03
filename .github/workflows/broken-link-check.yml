@@ -448,7 +448,9 @@ jobs:
           echo '        try:' >> product_fetch_script.py
           echo '            logger.info(f"Getting product details for ID {product_id}")' >> product_fetch_script.py
           echo '            logger.info(f"GraphQL URL: {self.base_graphql_url}")' >> product_fetch_script.py
-          echo '            logger.info(f"GraphQL Headers: {json.dumps({k: v for k, v in self.graphql_headers.items() if k != \"Authorization\"})}")' >> product_fetch_script.py
+          echo '            # Log headers without Authorization for security' >> product_fetch_script.py
+          echo '            safe_headers = {k: v for k, v in self.graphql_headers.items() if k != "Authorization"}' >> product_fetch_script.py
+          echo '            logger.info(f"GraphQL Headers: {json.dumps(safe_headers)}")' >> product_fetch_script.py
           echo '            logger.info(f"GraphQL Variables: {json.dumps(variables)}")' >> product_fetch_script.py
           echo '            response = requests.post(self.base_graphql_url, headers=self.graphql_headers, json=payload, timeout=30)' >> product_fetch_script.py
           echo '            logger.info(f"GraphQL API response status: {response.status_code}")' >> product_fetch_script.py
