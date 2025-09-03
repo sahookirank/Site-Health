@@ -34,7 +34,7 @@ on:
 
 permissions:
   contents: read
-  actions: read
+  actions: write  # Required to trigger other workflows
 
 jobs:
   fetch-product-data:
@@ -874,7 +874,7 @@ jobs:
     - name: Extract SKUs and check existing data
       id: extract-skus
       run: |
-        echo "🔍 Extracting SKUs from CSV files and checking existing data..."
+        echo "🔍 Extracting SKUs from broken links only and checking existing data..."
         python -c "
         import pandas as pd
         import re
@@ -886,7 +886,7 @@ jobs:
         today = datetime.now().strftime('%Y-%m-%d')
         print(f'Processing for date: {today}')
 
-        # Extract SKUs from CSV files (works with both real data and placeholder files)
+        # Extract SKUs from CSV files (only from broken links)
         skus = set()
         csv_files = ['au_broken_links.csv', 'nz_broken_links.csv']
 
@@ -897,18 +897,33 @@ jobs:
                     df = pd.read_csv(csv_file)
                     print(f'  📊 Loaded {len(df)} rows from {csv_file}')
 
-                    # Extract SKUs from all columns (URLs, error messages, etc.)
-                    for col in df.columns:
-                        for value in df[col].astype(str):
-                            # Look for 8-digit numeric SKUs
-                            sku_matches = re.findall(r'\b\d{8}\b', str(value))
-                            skus.update(sku_matches)
+                    # Filter for broken links only (non-200 status codes)
+                    # Include 404, empty status, and other non-200 codes
+                    broken_df = df[
+                        (df['Status'] != 200.0) &
+                        (df['Status'].notna()) |
+                        (df['Status'].isna()) |
+                        (df['Status'] == '')
+                    ]
 
-                            # Look for alphanumeric SKUs in URLs (8-12 characters)
-                            url_sku_matches = re.findall(r'/([A-Z0-9]{8,12})(?:/|$|\?)', str(value))
-                            for sku in url_sku_matches:
-                                if len(sku) >= 8:
-                                    skus.add(sku)
+                    print(f'  🔍 Found {len(broken_df)} broken links (non-200 status)')
+
+                    if len(broken_df) == 0:
+                        print(f'  ✅ No broken links found in {csv_file}')
+                        continue
+
+                    # Extract SKUs only from broken link URLs
+                    for url in broken_df['URL'].dropna():
+                        url_str = str(url)
+                        # Look for 8-digit numeric SKUs
+                        sku_matches = re.findall(r'\b\d{8}\b', url_str)
+                        skus.update(sku_matches)
+
+                        # Look for alphanumeric SKUs in URLs (8-12 characters)
+                        url_sku_matches = re.findall(r'/([A-Z0-9]{8,12})(?:/|$|\?)', url_str)
+                        for sku in url_sku_matches:
+                            if len(sku) >= 8:
+                                skus.add(sku)
 
                     print(f'  ✅ Extracted {len([s for s in skus if any(s in str(val) for val in df.values.flatten())])} SKUs from {csv_file}')
                 except Exception as e:
@@ -1104,6 +1119,7 @@ jobs:
       continue-on-error: true
       uses: actions/github-script@v7
       with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
           try {
             console.log('🚀 Triggering GitHub Pages deployment...');

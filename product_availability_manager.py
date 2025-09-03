@@ -440,26 +440,27 @@ class ProductAvailabilityManager:
         return stats
     
     def extract_broken_links_from_csv(self, csv_path: str) -> List[str]:
-        """Extract broken links (404 errors or empty status) from CSV file."""
+        """Extract broken links (non-200 status codes or empty status) from CSV file."""
         broken_links = []
-        
+
         try:
             df = pd.read_csv(csv_path)
-            
-            # Filter for broken links (404 status or empty status)
+
+            # Filter for broken links (non-200 status codes, empty status, or null status)
             broken_df = df[
-                (df['Status'] == 404.0) | 
-                (df['Status'].isna()) | 
+                (df['Status'] != 200.0) &
+                (df['Status'].notna()) |
+                (df['Status'].isna()) |
                 (df['Status'] == '')
             ]
-            
+
             # Extract URLs from broken links
             broken_links = broken_df['URL'].dropna().tolist()
-            logger.info(f"Found {len(broken_links)} broken links in {csv_path}")
-            
+            logger.info(f"Found {len(broken_links)} broken links (non-200 status) in {csv_path}")
+
         except Exception as e:
             logger.error(f"Error reading CSV file {csv_path}: {e}")
-            
+
         return broken_links
     
     def get_product_by_sku(self, sku: str) -> Optional[Tuple]:
