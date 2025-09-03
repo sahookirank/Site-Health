@@ -66,29 +66,43 @@ def format_product_attributes(attributes_raw, is_discontinued=False, has_past_en
     
     return "<div class='attributes-container'>" + "".join(formatted_attrs) + "</div>"
 
-def load_product_csv_data():
+def load_product_csv_data(product_csv_path=None):
     """Load product data from CSV file."""
-    csv_files = [
-        'product_export_20250902_055919.csv',
-        'product_export.csv'
-    ]
-    
+    csv_files = []
+
+    # If a specific product CSV path is provided, try it first
+    if product_csv_path and os.path.exists(product_csv_path):
+        csv_files.append(product_csv_path)
+
+    # Add fallback CSV files
+    csv_files.extend([
+        'product_export.csv',
+        'product_export_20250902_055919.csv'
+    ])
+
+    # Also try any timestamped product export files
+    import glob
+    timestamped_files = glob.glob('product_export_*.csv')
+    timestamped_files.sort(reverse=True)  # Most recent first
+    csv_files.extend(timestamped_files)
+
     for csv_file in csv_files:
         if os.path.exists(csv_file):
             try:
                 df = pd.read_csv(csv_file)
+                print(f"✅ Loaded product data from {csv_file}: {len(df)} products")
                 return df
             except Exception as e:
                 print(f"Error reading {csv_file}: {e}")
                 continue
-    
+
     return None
 
-def generate_product_availability_html():
+def generate_product_availability_html(product_csv_path=None):
     """Generate HTML content for the Product Availability tab."""
     try:
         # Load CSV data instead of database data
-        df = load_product_csv_data()
+        df = load_product_csv_data(product_csv_path)
         
         if df is None or df.empty:
             return """
@@ -108,13 +122,62 @@ def generate_product_availability_html():
         for _, row in df.iterrows():
             try:
                 detail_json = json.loads(row['DETAIL'])
-                attributes = detail_json.get('attributes', {})
-                
+
+                # Extract product information from our enhanced data format
+                product_name = 'Unknown Product'
+                product_type = 'Unknown Type'
+                attributes = {}
+
+                # Handle different data formats
+                if 'details' in detail_json:
+                    # Enhanced format from our product data fetcher
+                    details = detail_json['details']
+
+                    # Extract product name from search results or product attributes
+                    if 'search_result' in details and 'hits' in details['search_result']:
+                        hits = details['search_result']['hits']
+                        if hits and len(hits) > 0:
+                            product_name = hits[0].get('name', 'Unknown Product')
+                            product_type = hits[0].get('type', 'KosmosProduct')
+
+                    # Try to get name from product attributes if available
+                    if 'product_attributes' in details:
+                        product_attrs = details['product_attributes']
+                        if 'data' in product_attrs and 'product' in product_attrs['data']:
+                            product_data = product_attrs['data']['product']
+                            if 'masterData' in product_data and 'staged' in product_data['masterData']:
+                                staged = product_data['masterData']['staged']
+                                if 'nameAllLocales' in staged and staged['nameAllLocales']:
+                                    product_name = staged['nameAllLocales'][0].get('value', product_name)
+
+                                # Extract attributes from the product data
+                                if 'attributesRaw' in staged:
+                                    for attr in staged['attributesRaw']:
+                                        attr_name = attr.get('name', '')
+                                        attr_value = attr.get('value', '')
+                                        if attr_name:
+                                            attributes[attr_name] = attr_value
+
+                    # Set product type based on status
+                    status = detail_json.get('status', 'unknown')
+                    if status == 'from_database':
+                        product_type = 'FROM_DATABASE'
+                    elif status == 'found':
+                        product_type = 'AVAILABLE'
+                    elif status == 'not_found':
+                        product_type = 'NOT_FOUND'
+
+                else:
+                    # Legacy format - direct attributes
+                    attributes = detail_json.get('attributes', {})
+                    product_name = detail_json.get('name', 'Unknown Product')
+                    product_type = detail_json.get('product_type', 'Unknown Type')
+
                 # Check if product is discontinued based on EndDate
                 is_discontinued = False
                 end_date_au = attributes.get('EndDate')
                 end_date_nz = attributes.get('EndDateNZ')
-                
+
                 if end_date_au and end_date_au != '9999-12-31':
                     try:
                         end_date_au_parsed = datetime.strptime(end_date_au, '%Y-%m-%d').date()
@@ -122,7 +185,7 @@ def generate_product_availability_html():
                             is_discontinued = True
                     except ValueError:
                         pass
-                        
+
                 if end_date_nz and end_date_nz != '9999-12-31':
                     try:
                         end_date_nz_parsed = datetime.strptime(end_date_nz, '%Y-%m-%d').date()
@@ -130,15 +193,24 @@ def generate_product_availability_html():
                             is_discontinued = True
                     except ValueError:
                         pass
-                
+
                 # Override product type if discontinued
                 if is_discontinued:
-                    detail_json['product_type'] = 'DISCONTINUED'
-                
+                    product_type = 'DISCONTINUED'
+
+                # Create normalized product details
+                normalized_details = {
+                    'name': product_name,
+                    'product_type': product_type,
+                    'attributes': attributes,
+                    'status': detail_json.get('status', 'unknown'),
+                    'original_details': detail_json  # Keep original for debugging
+                }
+
                 product = {
                     'sku': row['SKU'],
                     'id': row['ID'],
-                    'details': detail_json,
+                    'details': normalized_details,
                     'is_discontinued': is_discontinued
                 }
                 products.append(product)

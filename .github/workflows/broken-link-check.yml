@@ -186,7 +186,9 @@ jobs:
 
 
       - name: Generate Combined Report
-        run: python report_generator.py --au-csv au_link_check_results.csv --nz-csv nz_link_check_results.csv --product-csv product_export.csv --output-html combined_report.html
+        run: |
+          echo "Generating combined report with all CSV files..."
+          python report_generator.py --au-csv au_link_check_results.csv --nz-csv nz_link_check_results.csv --product-csv product_export.csv --output-html combined_report.html
 
       - name: Prepare GitHub Pages deployment
         run: |
