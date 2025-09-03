@@ -236,7 +236,7 @@ jobs:
           echo '            "origin": "https://mc.australia-southeast1.gcp.commercetools.com",' >> product_fetch_script.py
           echo '            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",' >> product_fetch_script.py
           echo '            "x-application-id": "__internal:products",' >> product_fetch_script.py
-          echo '            "x-graphql-operation-name": "GeneralInfoTabQuery",' >> product_fetch_script.py
+          echo '            "x-graphql-operation-name": "ProductDetailsQuery",' >> product_fetch_script.py
           echo '            "x-graphql-target": "ctp",' >> product_fetch_script.py
           echo '            "x-project-key": self.project_key,' >> product_fetch_script.py
           echo '            "x-user-agent": "apollo-client Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 products/application-shell/24.5.0 (+https://git.io/fjuyC; +support@commercetools.com)"' >> product_fetch_script.py
@@ -329,48 +329,45 @@ jobs:
           echo '        """Get detailed product information via GraphQL API."""' >> product_fetch_script.py
           echo '        if not self.auth_token:' >> product_fetch_script.py
           echo '            return None' >> product_fetch_script.py
-          echo '        # Use the exact GraphQL query structure from Postman collection' >> product_fetch_script.py
-          echo '        graphql_query = """query GeneralInfoTabQuery($productId: String, $isProductAttributeEnabled: Boolean!, $enableLocaleLabelOptimization: Boolean!, $locale: Locale!) {' >> product_fetch_script.py
+          echo '        # Use a simplified GraphQL query without fragments to avoid 500 errors' >> product_fetch_script.py
+          echo '        graphql_query = """query ProductDetailsQuery($productId: String!) {' >> product_fetch_script.py
           echo '  product(id: $productId) {' >> product_fetch_script.py
           echo '    id' >> product_fetch_script.py
+          echo '    key' >> product_fetch_script.py
+          echo '    version' >> product_fetch_script.py
+          echo '    createdAt' >> product_fetch_script.py
+          echo '    lastModifiedAt' >> product_fetch_script.py
           echo '    productType {' >> product_fetch_script.py
           echo '      id' >> product_fetch_script.py
           echo '      name' >> product_fetch_script.py
-          echo '      __typename' >> product_fetch_script.py
           echo '    }' >> product_fetch_script.py
-          echo '    createdAt' >> product_fetch_script.py
-          echo '    lastModifiedAt' >> product_fetch_script.py
-          echo '    version' >> product_fetch_script.py
-          echo '    key' >> product_fetch_script.py
           echo '    masterData {' >> product_fetch_script.py
           echo '      staged {' >> product_fetch_script.py
-          echo '        nameAllLocales {' >> product_fetch_script.py
-          echo '          locale' >> product_fetch_script.py
-          echo '          value' >> product_fetch_script.py
-          echo '          __typename' >> product_fetch_script.py
-          echo '        }' >> product_fetch_script.py
+          echo '        name(locale: "en-AU")' >> product_fetch_script.py
+          echo '        description(locale: "en-AU")' >> product_fetch_script.py
+          echo '        slug(locale: "en-AU")' >> product_fetch_script.py
           echo '        masterVariant {' >> product_fetch_script.py
-          echo '          attributesRaw {' >> product_fetch_script.py
+          echo '          id' >> product_fetch_script.py
+          echo '          sku' >> product_fetch_script.py
+          echo '          key' >> product_fetch_script.py
+          echo '          attributes {' >> product_fetch_script.py
           echo '            name' >> product_fetch_script.py
           echo '            value' >> product_fetch_script.py
-          echo '            __typename' >> product_fetch_script.py
           echo '          }' >> product_fetch_script.py
-          echo '          __typename' >> product_fetch_script.py
           echo '        }' >> product_fetch_script.py
-          echo '        __typename' >> product_fetch_script.py
+          echo '        variants {' >> product_fetch_script.py
+          echo '          id' >> product_fetch_script.py
+          echo '          sku' >> product_fetch_script.py
+          echo '          key' >> product_fetch_script.py
+          echo '        }' >> product_fetch_script.py
           echo '      }' >> product_fetch_script.py
-          echo '      __typename' >> product_fetch_script.py
           echo '    }' >> product_fetch_script.py
-          echo '    __typename' >> product_fetch_script.py
           echo '  }' >> product_fetch_script.py
           echo '}"""' >> product_fetch_script.py
           echo '        variables = {' >> product_fetch_script.py
-          echo '            "productId": product_id,' >> product_fetch_script.py
-          echo '            "isProductAttributeEnabled": True,' >> product_fetch_script.py
-          echo '            "locale": "en-AU",' >> product_fetch_script.py
-          echo '            "enableLocaleLabelOptimization": False' >> product_fetch_script.py
+          echo '            "productId": product_id' >> product_fetch_script.py
           echo '        }' >> product_fetch_script.py
-          echo '        payload = {"operationName": "GeneralInfoTabQuery", "variables": variables, "query": graphql_query}' >> product_fetch_script.py
+          echo '        payload = {"operationName": "ProductDetailsQuery", "variables": variables, "query": graphql_query}' >> product_fetch_script.py
           echo '        try:' >> product_fetch_script.py
           echo '            logger.info(f"Getting product details for ID {product_id}")' >> product_fetch_script.py
           echo '            response = requests.post(self.graphql_endpoint, headers=self.graphql_headers, json=payload, timeout=30)' >> product_fetch_script.py
@@ -408,19 +405,24 @@ jobs:
           echo '                product_data = details["data"]["product"]' >> product_fetch_script.py
           echo '                master_data = product_data.get("masterData", {}).get("staged", {})' >> product_fetch_script.py
           echo '                master_variant = master_data.get("masterVariant", {})' >> product_fetch_script.py
-          echo '                attributes_raw = master_variant.get("attributesRaw", [])' >> product_fetch_script.py
-          echo '                attributes = {attr["name"]: attr["value"] for attr in attributes_raw}' >> product_fetch_script.py
-          echo '                # Get product name from nameAllLocales' >> product_fetch_script.py
-          echo '                name_locales = master_data.get("nameAllLocales", [])' >> product_fetch_script.py
-          echo '                product_name = "Unknown Product"' >> product_fetch_script.py
-          echo '                for name_locale in name_locales:' >> product_fetch_script.py
-          echo '                    if name_locale.get("locale") == "en-AU":' >> product_fetch_script.py
-          echo '                        product_name = name_locale.get("value", "Unknown Product")' >> product_fetch_script.py
-          echo '                        break' >> product_fetch_script.py
+          echo '                attributes = master_variant.get("attributes", [])' >> product_fetch_script.py
+          echo '                attributes_dict = {attr["name"]: attr["value"] for attr in attributes}' >> product_fetch_script.py
+          echo '                # Get product name directly from staged data' >> product_fetch_script.py
+          echo '                product_name = master_data.get("name", "Unknown Product")' >> product_fetch_script.py
+          echo '                product_description = master_data.get("description", "")' >> product_fetch_script.py
+          echo '                product_slug = master_data.get("slug", "")' >> product_fetch_script.py
+          echo '                master_sku = master_variant.get("sku", "")' >> product_fetch_script.py
+          echo '                # Get all variant SKUs' >> product_fetch_script.py
+          echo '                variants = master_data.get("variants", [])' >> product_fetch_script.py
+          echo '                all_skus = [master_sku] + [v.get("sku", "") for v in variants if v.get("sku")]' >> product_fetch_script.py
           echo '                detail_info = {' >> product_fetch_script.py
           echo '                    "name": product_name,' >> product_fetch_script.py
+          echo '                    "description": product_description,' >> product_fetch_script.py
+          echo '                    "slug": product_slug,' >> product_fetch_script.py
           echo '                    "product_type": product_data.get("productType", {}).get("name", "Unknown Type"),' >> product_fetch_script.py
-          echo '                    "attributes": attributes,' >> product_fetch_script.py
+          echo '                    "master_sku": master_sku,' >> product_fetch_script.py
+          echo '                    "all_skus": all_skus,' >> product_fetch_script.py
+          echo '                    "attributes": attributes_dict,' >> product_fetch_script.py
           echo '                    "created_at": product_data.get("createdAt"),' >> product_fetch_script.py
           echo '                    "last_modified_at": product_data.get("lastModifiedAt"),' >> product_fetch_script.py
           echo '                    "version": product_data.get("version"),' >> product_fetch_script.py
@@ -429,8 +431,15 @@ jobs:
           echo '                results.append({"SKU": sku, "ID": product_id, "DETAIL": json.dumps(detail_info)})' >> product_fetch_script.py
           echo '                logger.info(f"Successfully processed SKU {sku} -> ID {product_id}")' >> product_fetch_script.py
           echo '            else:' >> product_fetch_script.py
-          echo '                logger.warning(f"Could not get details for product ID {product_id}")' >> product_fetch_script.py
-          echo '                results.append({"SKU": sku, "ID": product_id, "DETAIL": "Failed to fetch product details"})' >> product_fetch_script.py
+          echo '                logger.warning(f"Could not get details for product ID {product_id}, using basic info")' >> product_fetch_script.py
+          echo '                # Fallback: create basic record with just SKU and ID' >> product_fetch_script.py
+          echo '                basic_info = {' >> product_fetch_script.py
+          echo '                    "name": f"Product {product_id}",' >> product_fetch_script.py
+          echo '                    "product_type": "Unknown",' >> product_fetch_script.py
+          echo '                    "master_sku": sku,' >> product_fetch_script.py
+          echo '                    "status": "GraphQL API failed - basic record created"' >> product_fetch_script.py
+          echo '                }' >> product_fetch_script.py
+          echo '                results.append({"SKU": sku, "ID": product_id, "DETAIL": json.dumps(basic_info)})' >> product_fetch_script.py
           echo '            time.sleep(2)' >> product_fetch_script.py
           echo '        return results' >> product_fetch_script.py
           echo '' >> product_fetch_script.py
