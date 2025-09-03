@@ -277,41 +277,32 @@ jobs:
                   product_id = product_id.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
                   detail = detail.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
 
-                  row_html = f'''<tr onclick=\"toggleProductDetails('product_{i}')\">
-                      <td>{sku}</td>
-                      <td>{detail}</td>
-                      <td>Available</td>
-                      <td><span id=\"product_{i}_toggle\" class=\"toggle-icon\">▼</span></td>
-                  </tr>
-                  <tr id=\"product_{i}_details\" class=\"product-details-row\" style=\"display: none;\">
-                      <td colspan=\"4\">
-                          <div class=\"product-details-content\">
-                              <h4>Product Details (SKU: {sku})</h4>
-                              <div class=\"attributes-section\">
-                                  <div class=\"attributes-container\">
-                                      <div class=\"attribute-item\">
-                                          <span class=\"attr-name\"><strong>SKU:</strong></span>
-                                          <span class=\"attr-value\">{sku}</span>
-                                      </div>
-                                      <div class=\"attribute-item\">
-                                          <span class=\"attr-name\"><strong>Product ID:</strong></span>
-                                          <span class=\"attr-value\">{product_id}</span>
-                                      </div>
-                                      <div class=\"attribute-item\">
-                                          <span class=\"attr-name\"><strong>Description:</strong></span>
-                                          <span class=\"attr-value\">{detail}</span>
-                                      </div>
-                                  </div>
-                              </div>
-                          </div>
-                      </td>
-                  </tr>'''
+                  row_html = f'''                <tr class=\"product-row\" onclick=\"toggleProductDetails('product_{i}')\">
+                    <td><strong>{sku}</strong></td>
+                    <td>{detail}</td>
+                    <td>
+                        <span class=\"product-type-badge available\">AVAILABLE</span>
+                    </td>
+                    <td>
+                        <span class=\"toggle-icon\" id=\"product_{i}_toggle\">▼</span>
+                    </td>
+                </tr>
+                <tr id=\"product_{i}_details\" class=\"product-details-row\" style=\"display: none;\">
+                    <td colspan=\"4\">
+                        <div class=\"product-details-content\">
+                            <h4>Product Details (SKU: {sku})</h4>
+                            <div class=\"attributes-section\">
+                                <div class='attributes-container'><div class='attribute-item'><span class='attr-name'><strong>SKU:</strong></span> <span class='attr-value'>{sku}</span></div><div class='attribute-item'><span class='attr-name'><strong>Product ID:</strong></span> <span class='attr-value'>{product_id}</span></div><div class='attribute-item'><span class='attr-name'><strong>Description:</strong></span> <span class='attr-value'>{detail}</span></div></div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>'''
                   rows.append(row_html)
               return '\\n'.join(rows)
 
           # Generate content
-          au_rows = generate_link_table_rows(csv_files['au_broken_links'], ['Timestamp', 'URL', 'Status', 'Response_Time', 'Error'])
-          nz_rows = generate_link_table_rows(csv_files['nz_broken_links'], ['Timestamp', 'URL', 'Status', 'Response_Time', 'Error'])
+          au_rows = generate_link_table_rows(csv_files['au_broken_links'], ['Timestamp', 'URL', 'Status', 'Path', 'Visible'])
+          nz_rows = generate_link_table_rows(csv_files['nz_broken_links'], ['Timestamp', 'URL', 'Status', 'Path', 'Visible'])
           product_rows = generate_product_table_rows(csv_files['product_export'], ['SKU', 'ID', 'DETAIL'])
 
           # Calculate totals for summary

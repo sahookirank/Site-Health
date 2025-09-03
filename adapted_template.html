@@ -470,8 +470,8 @@
             <div class="tab-buttons">
                 <button class="tab-link active" onclick="openTab(event, 'AU_Report')">AU</button>
                 <button class="tab-link" onclick="openTab(event, 'NZ_Report')">NZ</button>
-                <button class="tab-link" onclick="openTab(event, 'Product_Availability')">Product Availability</button>
                 <button class="tab-link" onclick="openTab(event, 'Changes')">Changes</button>
+                <button class="tab-link" onclick="openTab(event, 'Product_Availability')">Product Availability</button>
                 <!-- Categories tab disabled -->
             </div>
 
@@ -515,18 +515,6 @@
 
             </div>
 
-            <div id="Product_Availability" class="tab-content">
-                
-            <div class="summary-container">
-                <span class="summary-item">📦 Total Products: {product_count}</span>
-                <span class="summary-item">ℹ️ No product data available</span>
-            </div>
-            <div class="card">
-                <p>No product availability data found. Please run the product extraction process first.</p>
-            </div>
-            
-            </div>
-            
         <div id="Changes" class="tab-content">
             <div class="collapsible-section">
                 <div class="collapsible-header" onclick="toggleSection('yesterday-section')">
@@ -540,7 +528,7 @@
                             📊 No data present to compare with yesterday's broken links.
                         </div>
                     </div>
-        
+
                 </div>
             </div>
 
@@ -556,10 +544,39 @@
                             📊 No data present to compare with 7 days ago broken links.
                         </div>
                     </div>
-        
+
                 </div>
             </div>
         </div>
+
+            <div id="Product_Availability" class="tab-content">
+
+        <div class="summary-container">
+            <span class="summary-item">📦 Total Products: {product_count}</span>
+        </div>
+
+        <div class="product-availability-container">
+            <div class="card">
+                <h3>Product Availability</h3>
+                <div class="table-container">
+                    <table class="product-table">
+                        <thead>
+                            <tr>
+                                <th>SKU</th>
+                                <th>Product Name</th>
+                                <th>Type</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {product_table_rows}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+            </div>
     
 
             <!-- Categories tab content disabled -->

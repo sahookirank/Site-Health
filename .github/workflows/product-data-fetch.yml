@@ -13,9 +13,9 @@ on:
         default: 'manual'
         type: string
       max_products:
-        description: 'Maximum number of products to process (default: 100)'
+        description: 'Maximum number of products to process (default: 500)'
         required: false
-        default: '100'
+        default: '500'
         type: string
       region_filter:
         description: 'Filter by region (AU, NZ, or ALL)'
@@ -779,7 +779,7 @@ jobs:
         def main():
             """Main workflow function."""
             # Get workflow inputs
-            max_products = int(os.getenv('INPUT_MAX_PRODUCTS', '100'))
+            max_products = int(os.getenv('INPUT_MAX_PRODUCTS', '500'))
             region_filter = os.getenv('INPUT_REGION_FILTER', 'ALL')
             
             logger.info(f"Starting product data fetch workflow")
@@ -1013,7 +1013,7 @@ jobs:
         COMMERCETOOL_AUTH_TOKEN: ${{ secrets.COMMERCETOOL_AUTH_TOKEN }}
         COMMERCETOOL_API_KEY: ${{ secrets.COMMERCETOOL_API_KEY }}
         COMMERCETOOL_PROJECT_KEY: ${{ secrets.COMMERCETOOL_PROJECT_KEY }}
-        INPUT_MAX_PRODUCTS: ${{ github.event.inputs.max_products || '100' }}
+        INPUT_MAX_PRODUCTS: ${{ github.event.inputs.max_products || '500' }}
         INPUT_REGION_FILTER: ${{ github.event.inputs.region_filter || 'ALL' }}
       run: |
         echo "🚀 Starting product data fetch with comprehensive error handling..."
@@ -1094,7 +1094,7 @@ jobs:
         echo "## Product Data Fetch Summary" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "**Workflow Parameters:**" >> $GITHUB_STEP_SUMMARY
-        echo "- Max Products: ${{ github.event.inputs.max_products || '100' }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Max Products: ${{ github.event.inputs.max_products || '500' }}" >> $GITHUB_STEP_SUMMARY
         echo "- Region Filter: ${{ github.event.inputs.region_filter || 'ALL' }}" >> $GITHUB_STEP_SUMMARY
         echo "- Timestamp: $(date)" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
