@@ -287,7 +287,9 @@ jobs:
                 ref: 'main',
                 inputs: {
                   'source_run_id': context.runId.toString(),
-                  'trigger_source': 'broken-link-check'
+                  'trigger_source': 'broken-link-check',
+                  'max_products': '100',
+                  'region_filter': 'ALL'
                 }
               });
 
