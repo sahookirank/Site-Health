@@ -212,7 +212,7 @@ jobs:
           echo '    def __init__(self):' >> product_fetch_script.py
           echo '        self.base_url = "https://mc-api.australia-southeast1.gcp.commercetools.com"' >> product_fetch_script.py
           echo '        self.search_endpoint = f"{self.base_url}/proxy/pim-search/kmart-production/search/products"' >> product_fetch_script.py
-          echo '        self.graphql_endpoint = f"{self.base_url}/graphql"' >> product_fetch_script.py
+          echo '        self.base_graphql_url = f"{self.base_url}/graphql"' >> product_fetch_script.py
           echo '        self.auth_token = os.getenv("COMMERCETOOL_AUTH_TOKEN")' >> product_fetch_script.py
           echo '        self.api_key = os.getenv("COMMERCETOOL_API_KEY")' >> product_fetch_script.py
           echo '        self.project_key = os.getenv("COMMERCETOOL_PROJECT_KEY", "kmart-production")' >> product_fetch_script.py
@@ -447,7 +447,10 @@ jobs:
           echo '        payload = {"operationName": "GeneralInfoTabQuery", "variables": variables, "query": graphql_query}' >> product_fetch_script.py
           echo '        try:' >> product_fetch_script.py
           echo '            logger.info(f"Getting product details for ID {product_id}")' >> product_fetch_script.py
-          echo '            response = requests.post(self.graphql_endpoint, headers=self.graphql_headers, json=payload, timeout=30)' >> product_fetch_script.py
+          echo '            logger.info(f"GraphQL URL: {self.base_graphql_url}")' >> product_fetch_script.py
+          echo '            logger.info(f"GraphQL Headers: {json.dumps({k: v for k, v in self.graphql_headers.items() if k != \"Authorization\"})}")' >> product_fetch_script.py
+          echo '            logger.info(f"GraphQL Variables: {json.dumps(variables)}")' >> product_fetch_script.py
+          echo '            response = requests.post(self.base_graphql_url, headers=self.graphql_headers, json=payload, timeout=30)' >> product_fetch_script.py
           echo '            logger.info(f"GraphQL API response status: {response.status_code}")' >> product_fetch_script.py
           echo '            if response.status_code == 200:' >> product_fetch_script.py
           echo '                data = response.json()' >> product_fetch_script.py
