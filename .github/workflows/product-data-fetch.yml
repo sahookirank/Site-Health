@@ -732,8 +732,8 @@ jobs:
                             "DETAIL": "Failed to fetch product details"
                         })
                     
-                    # Rate limiting - 2 second delay between requests to prevent blocking
-                    time.sleep(2)
+                    # Rate limiting - 5 second delay between requests to prevent blocking
+                    time.sleep(5)
                 
                 return results
         
