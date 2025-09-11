@@ -336,15 +336,16 @@ jobs:
           # Create auth-config.json from secret if available; fallback to repo file or dev config
           if [ -n "$USER_SECRET" ]; then
             HASH=$(printf "%s" "$USER_SECRET" | sha256sum | cut -d' ' -f1)
-            cat > gh-pages-deploy/auth-config.json <<EOF
+            cat > gh-pages-deploy/auth-config.json <<'EOF'
 {
   "REPO_SECRET_NAME": "USER",
-  "EXPECTED_SECRET_HASH": "${HASH}",
+  "EXPECTED_SECRET_HASH": "__HASH__",
   "SESSION_TIMEOUT": 86400000,
   "SESSION_STORAGE_KEY": "auth_session",
   "SUCCESS_REDIRECT": "index.html"
 }
 EOF
+            sed -i "s/__HASH__/$HASH/" gh-pages-deploy/auth-config.json || true
             echo "✓ Created auth-config.json from secret"
           elif [ -f "auth-config.json" ]; then
             cp auth-config.json gh-pages-deploy/
