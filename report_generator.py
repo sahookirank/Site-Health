@@ -1277,8 +1277,135 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
     au_table_html = generate_html_table_from_df(au_error_df.drop(columns=['Region'], errors='ignore'), 'auLinkTable')
     nz_table_html = generate_html_table_from_df(nz_error_df.drop(columns=['Region'], errors='ignore'), 'nzLinkTable')
 
-    # Generate product table HTML using the specialized UI generator
-    from product_availability_ui import generate_product_availability_html, get_product_availability_styles
+    # Generate product table HTML inline (replacing missing product_availability_ui module)
+    def generate_product_availability_html(csv_path):
+        """Generate product availability HTML table from CSV file with expandable details"""
+        try:
+            if not os.path.exists(csv_path):
+                return "<p>No product data available.</p>"
+            
+            df = pd.read_csv(csv_path)
+            if df.empty:
+                return "<p>No product data found in file.</p>"
+            
+            # Count total products
+            total_products = len(df)
+            
+            # Generate HTML with proper wrapper structure
+            html_content = f'''
+        <div class="summary-container">
+            <span class="summary-item">📦 Total Products: {total_products}</span>
+        </div>
+        
+        <div class="product-availability-container">
+            <div class="card">
+                <h3>Product Availability</h3>
+                <div class="table-container">
+                    <table class="product-table">
+                        <thead>
+                            <tr>
+                                <th>SKU</th>
+                                <th>Product Name</th>
+                                <th>Type</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            '''
+            
+            for idx, row in df.iterrows():
+                sku = str(row.get('SKU', '')) if pd.notna(row.get('SKU', '')) else ''
+                
+                # Parse JSON from DETAIL column
+                product_data = {}
+                try:
+                    if pd.notna(row.get('DETAIL', '')):
+                        product_data = json.loads(row['DETAIL'])
+                except Exception as e:
+                    product_data = {}
+                
+                # Extract product name from JSON
+                product_name = product_data.get('name', 'Unknown Product')
+                
+                # Determine if product is discontinued based on EndDate
+                is_discontinued = False
+                end_date = product_data.get('attributes', {}).get('EndDate', '')
+                if end_date and str(end_date).strip():
+                    try:
+                        from datetime import datetime
+                        # Try different date formats
+                        for date_format in ['%Y-%m-%d', '%d %b %Y', '%Y-%m-%dT%H:%M:%S.%fZ']:
+                            try:
+                                end_date_obj = datetime.strptime(str(end_date), date_format)
+                                if end_date_obj < datetime.now():
+                                    is_discontinued = True
+                                break
+                            except:
+                                continue
+                    except:
+                        pass
+                
+                # Product type badge
+                product_type_class = 'discontinued' if is_discontinued else ''
+                product_type_text = 'DISCONTINUED' if is_discontinued else 'ACTIVE'
+                
+                # Main product row
+                html_content += f'<tr class="product-row" onclick="toggleProductDetails(\'product_{idx}\')">'
+                html_content += f'<td><strong>{html.escape(sku)}</strong></td>'
+                html_content += f'<td>{html.escape(product_name)}</td>'
+                html_content += f'<td><span class="product-type-badge {product_type_class}">{product_type_text}</span></td>'
+                html_content += f'<td><span class="toggle-icon" id="product_{idx}_toggle">▼</span></td>'
+                html_content += '</tr>'
+                
+                # Details row (hidden by default)
+                html_content += f'<tr id="product_{idx}_details" class="product-details-row" style="display: none;">'
+                html_content += '<td colspan="4">'
+                html_content += '<div class="product-details-content">'
+                html_content += f'<h4>Product Details (SKU: {html.escape(sku)})</h4>'
+                html_content += '<div class="attributes-section">'
+                html_content += '<div class="attributes-container">'
+                
+                # Generate attributes from JSON data
+                attributes = product_data.get('attributes', {})
+                if attributes:
+                    for attr_name, attr_value in attributes.items():
+                        if attr_value is not None and str(attr_value).strip():
+                            value_str = str(attr_value)
+                            
+                            # Special handling for date fields
+                            date_style = ''
+                            if 'Date' in attr_name and value_str.strip():
+                                try:
+                                    for date_format in ['%Y-%m-%d', '%d %b %Y', '%Y-%m-%dT%H:%M:%S.%fZ']:
+                                        try:
+                                            date_obj = datetime.strptime(value_str, date_format)
+                                            if date_obj < datetime.now():
+                                                date_style = ' style="background-color: #fee2e2; color: #dc2626; padding: 2px 4px; border-radius: 3px; font-weight: 600;"'
+                                            break
+                                        except:
+                                            continue
+                                except:
+                                    pass
+                            
+                            html_content += '<div class="attribute-item">'
+                            html_content += f'<span class="attr-name"><strong>{html.escape(attr_name)}:</strong></span> '
+                            html_content += f'<span class="attr-value"{date_style}>{html.escape(value_str)}</span>'
+                            html_content += '</div>'
+                else:
+                    html_content += '<div class="no-attributes">No additional attributes available</div>'
+                
+                html_content += '</div></div></div></td></tr>'
+            
+            html_content += '''
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>'''
+            return html_content
+        except Exception as e:
+            return f"<p>Error loading product data: {str(e)}</p>"
+    
     product_table_html = generate_product_availability_html(product_csv_path)
 
     # Build Changes tab HTML
@@ -1423,6 +1550,7 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
         <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
         <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
         <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+        <script src="auth.js"></script>
         <style>
             {STYLE_DEFINITIONS}
         </style>

@@ -243,6 +243,8 @@ jobs:
           fi
 
       - name: Prepare deployment directory with validation
+        env:
+          USER_SECRET: ${{ secrets.USER }}
         run: |
           echo "📁 Preparing deployment directory..."
           mkdir -p gh-pages-deploy
@@ -332,8 +334,8 @@ jobs:
           fi
 
           # Create auth-config.json from secret if available; fallback to repo file or dev config
-          if [ -n "${{ secrets.USER }}" ]; then
-            HASH=$(printf "%s" "${{ secrets.USER }}" | sha256sum | cut -d' ' -f1)
+          if [ -n "$USER_SECRET" ]; then
+            HASH=$(printf "%s" "$USER_SECRET" | sha256sum | cut -d' ' -f1)
             cat > gh-pages-deploy/auth-config.json <<EOF
 {
   "REPO_SECRET_NAME": "USER",
