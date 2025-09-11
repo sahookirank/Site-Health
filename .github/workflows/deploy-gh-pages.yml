@@ -1,6 +1,8 @@
 name: Deploy to GitHub Pages
 
 on:
+  push:
+    branches: [ main ]
   workflow_dispatch:
     inputs:
       product_data_run_id:
@@ -312,6 +314,64 @@ jobs:
           done
 
           echo "</body></html>" >> gh-pages-deploy/downloads.html
+
+          # --- Authentication assets and page guard ---
+          # Copy auth UI and logic
+          if [ -f "auth.html" ]; then
+            cp auth.html gh-pages-deploy/
+            echo "✓ Copied auth.html"
+          else
+            echo "⚠️ auth.html not found in repo root"
+          fi
+
+          if [ -f "auth.js" ]; then
+            cp auth.js gh-pages-deploy/
+            echo "✓ Copied auth.js"
+          else
+            echo "⚠️ auth.js not found in repo root"
+          fi
+
+          # Create auth-config.json from secret if available; fallback to repo file or dev config
+          if [ -n "${{ secrets.USER }}" ]; then
+            HASH=$(printf "%s" "${{ secrets.USER }}" | sha256sum | cut -d' ' -f1)
+            cat > gh-pages-deploy/auth-config.json <<EOF
+{
+  "REPO_SECRET_NAME": "USER",
+  "EXPECTED_SECRET_HASH": "${HASH}",
+  "SESSION_TIMEOUT": 86400000,
+  "SESSION_STORAGE_KEY": "auth_session",
+  "SUCCESS_REDIRECT": "index.html"
+}
+EOF
+            echo "✓ Created auth-config.json from secret"
+          elif [ -f "auth-config.json" ]; then
+            cp auth-config.json gh-pages-deploy/
+            echo "✓ Copied existing auth-config.json"
+          else
+            cat > gh-pages-deploy/auth-config.json <<'EOF'
+{
+  "REPO_SECRET_NAME": "USER",
+  "EXPECTED_SECRET_HASH": "",
+  "SESSION_TIMEOUT": 86400000,
+  "SESSION_STORAGE_KEY": "auth_session",
+  "SUCCESS_REDIRECT": "index.html"
+}
+EOF
+            echo "⚠️ Created dev auth-config.json (no expected hash)"
+          fi
+
+          # Create a lightweight guard script that enforces auth on deployed pages
+          cat > gh-pages-deploy/guard.js <<'EOF'
+(function(){try{var KEY='auth_session',TIMEOUT=86400000;var raw=localStorage.getItem(KEY),s=null;try{s=raw?JSON.parse(raw):null}catch(e){};var valid=s&&s.authenticated&&s.ts&&(Date.now()-s.ts)<TIMEOUT;var p=location.pathname;var isAuth=/\/auth\.html$/.test(p);if(!valid&&!isAuth){location.replace('auth.html');return;}document.addEventListener('DOMContentLoaded',function(){if(valid&&!isAuth){var a=document.createElement('a');a.href='auth.html?signout=1';a.textContent='Sign out';a.style='position:fixed;right:12px;top:12px;padding:6px 10px;background:#eee;border-radius:6px;color:#111;text-decoration:none;font:12px system-ui;z-index:9999;';document.body.appendChild(a);}});}catch(e){}})();
+EOF
+          echo "✓ Created guard.js"
+
+          # Inject guard.js into all HTML pages in deployment directory
+          for f in gh-pages-deploy/*.html; do
+            [ -f "$f" ] || continue
+            sed -i '0,/<head>/s//<head><script src="guard.js"><\/script>/' "$f" || true
+            echo "✓ Injected guard into $(basename "$f")"
+          done
 
           echo "✅ Deployment directory prepared"
 

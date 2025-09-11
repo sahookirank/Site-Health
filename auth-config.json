@@ -1,0 +1,7 @@
+{
+  "REPO_SECRET_NAME": "USER",
+  "EXPECTED_SECRET_HASH": "",
+  "SESSION_TIMEOUT": 86400000,
+  "SESSION_STORAGE_KEY": "auth_session",
+  "SUCCESS_REDIRECT": "index.html"
+}
