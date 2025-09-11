@@ -336,37 +336,30 @@ jobs:
           # Create auth-config.json from secret if available; fallback to repo file or dev config
           if [ -n "$USER_SECRET" ]; then
             HASH=$(printf "%s" "$USER_SECRET" | sha256sum | cut -d' ' -f1)
-            cat > gh-pages-deploy/auth-config.json <<'EOF'
-{
-  "REPO_SECRET_NAME": "USER",
-  "EXPECTED_SECRET_HASH": "__HASH__",
-  "SESSION_TIMEOUT": 86400000,
-  "SESSION_STORAGE_KEY": "auth_session",
-  "SUCCESS_REDIRECT": "index.html"
-}
-EOF
-            sed -i "s/__HASH__/$HASH/" gh-pages-deploy/auth-config.json || true
+            echo "{" > gh-pages-deploy/auth-config.json
+            echo '  "REPO_SECRET_NAME": "USER",' >> gh-pages-deploy/auth-config.json
+            echo "  \"EXPECTED_SECRET_HASH\": \"$HASH\"," >> gh-pages-deploy/auth-config.json
+            echo '  "SESSION_TIMEOUT": 86400000,' >> gh-pages-deploy/auth-config.json
+            echo '  "SESSION_STORAGE_KEY": "auth_session",' >> gh-pages-deploy/auth-config.json
+            echo '  "SUCCESS_REDIRECT": "index.html"' >> gh-pages-deploy/auth-config.json
+            echo "}" >> gh-pages-deploy/auth-config.json
             echo "✓ Created auth-config.json from secret"
           elif [ -f "auth-config.json" ]; then
             cp auth-config.json gh-pages-deploy/
             echo "✓ Copied existing auth-config.json"
           else
-            cat > gh-pages-deploy/auth-config.json <<'EOF'
-{
-  "REPO_SECRET_NAME": "USER",
-  "EXPECTED_SECRET_HASH": "",
-  "SESSION_TIMEOUT": 86400000,
-  "SESSION_STORAGE_KEY": "auth_session",
-  "SUCCESS_REDIRECT": "index.html"
-}
-EOF
+            echo "{" > gh-pages-deploy/auth-config.json
+            echo '  "REPO_SECRET_NAME": "USER",' >> gh-pages-deploy/auth-config.json
+            echo '  "EXPECTED_SECRET_HASH": "",' >> gh-pages-deploy/auth-config.json
+            echo '  "SESSION_TIMEOUT": 86400000,' >> gh-pages-deploy/auth-config.json
+            echo '  "SESSION_STORAGE_KEY": "auth_session",' >> gh-pages-deploy/auth-config.json
+            echo '  "SUCCESS_REDIRECT": "index.html"' >> gh-pages-deploy/auth-config.json
+            echo "}" >> gh-pages-deploy/auth-config.json
             echo "⚠️ Created dev auth-config.json (no expected hash)"
           fi
 
           # Create a lightweight guard script that enforces auth on deployed pages
-          cat > gh-pages-deploy/guard.js <<'EOF'
-(function(){try{var KEY='auth_session',TIMEOUT=86400000;var raw=localStorage.getItem(KEY),s=null;try{s=raw?JSON.parse(raw):null}catch(e){};var valid=s&&s.authenticated&&s.ts&&(Date.now()-s.ts)<TIMEOUT;var p=location.pathname;var isAuth=/\/auth\.html$/.test(p);if(!valid&&!isAuth){location.replace('auth.html');return;}document.addEventListener('DOMContentLoaded',function(){if(valid&&!isAuth){var a=document.createElement('a');a.href='auth.html?signout=1';a.textContent='Sign out';a.style='position:fixed;right:12px;top:12px;padding:6px 10px;background:#eee;border-radius:6px;color:#111;text-decoration:none;font:12px system-ui;z-index:9999;';document.body.appendChild(a);}});}catch(e){}})();
-EOF
+          echo "(function(){try{var KEY='auth_session',TIMEOUT=86400000;var raw=localStorage.getItem(KEY),s=null;try{s=raw?JSON.parse(raw):null}catch(e){};var valid=s&&s.authenticated&&s.ts&&(Date.now()-s.ts)<TIMEOUT;var p=location.pathname;var isAuth=/\\/auth\\.html$/.test(p);if(!valid&&!isAuth){location.replace('auth.html');return;}document.addEventListener('DOMContentLoaded',function(){if(valid&&!isAuth){var a=document.createElement('a');a.href='auth.html?signout=1';a.textContent='Sign out';a.style='position:fixed;right:12px;top:12px;padding:6px 10px;background:#eee;border-radius:6px;color:#111;text-decoration:none;font:12px system-ui;z-index:9999;';document.body.appendChild(a);}});}catch(e){}})();" > gh-pages-deploy/guard.js
           echo "✓ Created guard.js"
 
           # Inject guard.js into all HTML pages in deployment directory
