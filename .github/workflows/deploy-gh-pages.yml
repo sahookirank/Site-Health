@@ -210,7 +210,7 @@ jobs:
           NEWRELIC_ACCOUNT_ID: ${{ secrets.NEWRELIC_ACCOUNT_ID }}
         run: |
           echo "📊 Generating New Relic top products data..."
-          python3 newrelic_top_products.py
+          /usr/bin/python3 newrelic_top_products.py
           
           if [ -f "top_products_content.html" ]; then
             echo "✅ Top products data generated successfully"
