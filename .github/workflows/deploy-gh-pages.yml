@@ -204,6 +204,10 @@ jobs:
           echo "✅ Dependencies installed successfully"
 
       - name: Generate HTML Report using existing report_generator.py
+        env:
+          NEWRELIC_BASE_URL: ${{ secrets.NEWRELIC_BASE_URL }}
+          NEWRELIC_COOKIE: ${{ secrets.NEWRELIC_COOKIE }}
+          NEWRELIC_ACCOUNT_ID: ${{ secrets.NEWRELIC_ACCOUNT_ID }}
         run: |
           echo "🎨 Generating comprehensive HTML report using report_generator.py..."
 

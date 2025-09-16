@@ -2,45 +2,83 @@
 """
 New Relic Top Products Data Processor
 Generates HTML content for top product URLs and their page visit counts
+
+Environment Variables:
+- NEWRELIC_COOKIE: New Relic session cookie.
+- NEWRELIC_BASE_URL: The complete metadata URL for the payload.
+- NEWRELIC_ACCOUNT_ID: The New Relic account ID.
+
+Usage:
+  # Production (with cookie environment variable)
+  export NEWRELIC_COOKIE="your_cookie"
+  export NEWRELIC_BASE_URL="your_metadata_url"
+  export NEWRELIC_ACCOUNT_ID="your_account_id"
+  python newrelic_top_products.py
+
+GitHub Workflow:
+  The deploy-gh-pages.yml workflow uses repository secrets:
+  - secrets.NEWRELIC_COOKIE
+  - secrets.NEWRELIC_BASE_URL
+  - secrets.NEWRELIC_ACCOUNT_ID
 """
 
 import json
 import requests
+import os
 from datetime import datetime
 from urllib.parse import unquote
 
-def parse_request_file(file_path):
+def get_dynamic_headers_and_payload():
     """
-    Parse the New Relic API request file to extract headers and payload
+    Get headers and payload using cookie from environment variables.
     """
-    with open(file_path, 'r') as f:
-        content = f.read()
+    metadata_url = os.getenv('NEWRELIC_BASE_URL')
+    cookie = os.getenv('NEWRELIC_COOKIE')
+    account_id = os.getenv('NEWRELIC_ACCOUNT_ID')
+
+    if not metadata_url:
+        raise ValueError("NEWRELIC_BASE_URL environment variable not set.")
+
+    if not cookie:
+        print("Warning: NEWRELIC_COOKIE environment variable not set. Requests may fail.")
+
+    if not account_id:
+        raise ValueError("NEWRELIC_ACCOUNT_ID environment variable not set.")
+
+    base_url = "https://chartdata.service.newrelic.com"  # API host
+
+    # Build headers with all required fields
+    headers = {
+        'Content-Type': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (compatible; Link-Checker/1.0)',
+        'Accept': 'application/json',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive'
+    }
     
-    lines = content.strip().split('\n')
-    headers = {}
-    payload_start = False
-    payload_lines = []
+    if cookie:
+        headers['Cookie'] = cookie
     
-    for line in lines:
-        if line.startswith('POST') or line.startswith('200') or line.startswith('1821 ms'):
-            continue
-        elif ':' in line and not payload_start:
-            if line.strip().startswith('['):
-                payload_start = True
-                payload_lines.append(line)
-            else:
-                key, value = line.split(':', 1)
-                headers[key.strip()] = value.strip()
-        elif payload_start:
-            payload_lines.append(line)
+    # Build payload
+    payload = [
+        {
+            "account_ids": [int(account_id)],
+            "metadata": {
+                "artifact_id": "viz.billboard",
+                "entity_guid": None,
+                "root_artifact_id": "unified-data-exploration.home",
+                "url": metadata_url
+            },
+            "nrql": "SELECT count(*) FROM PageView WHERE pageUrl RLIKE '.*[0-9]+.*' FACET pageUrl ORDER BY count(*) LIMIT 100 SINCE 1 day ago",
+            "raw": False,
+            "async": False,
+            "duration": None,
+            "end_time": None,
+            "begin_time": None
+        }
+    ]
     
-    payload_str = '\n'.join(payload_lines)
-    try:
-        payload = json.loads(payload_str)
-    except json.JSONDecodeError:
-        payload = None
-    
-    return headers, payload
+    return headers, payload, base_url
 
 def parse_response_file(file_path):
     """
@@ -147,19 +185,19 @@ def generate_html_content(products):
         total_views=total_views
     )
 
-def make_api_request(headers, payload):
+def make_api_request(headers, payload, base_url):
     """
     Make the actual API request to New Relic (optional - for live data)
     Note: This requires valid authentication tokens
     """
-    url = "https://chartdata.service.newrelic.com/v3/nrql"
+    url = f"{base_url}/v3/nrql" if "chartdata" in base_url else f"{base_url}/graphql"
     
     try:
         response = requests.post(url, headers=headers, json=payload)
         if response.status_code == 200:
             return response.json()
         else:
-            print(f"API request failed with status {response.status_code}")
+            print(f"API request failed with status {response.status_code}: {response.text}")
             return None
     except Exception as e:
         print(f"Error making API request: {e}")
@@ -174,13 +212,12 @@ def main():
     # Get the directory where this script is located
     script_dir = os.path.dirname(os.path.abspath(__file__))
     
-    # File paths relative to script location
-    request_file = os.path.join(script_dir, 'nrql', 'request.txt')
-    response_file = os.path.join(script_dir, 'nrql', 'response.json')
+    # Get headers and payload dynamically (environment variables with file fallback)
+    headers, payload, base_url = get_dynamic_headers_and_payload()
+    print(f"Configured request with {len(headers)} headers")
     
-    # Parse request file
-    headers, payload = parse_request_file(request_file)
-    print(f"Parsed request with {len(headers)} headers")
+    # File path for response data (still used for static data)
+    response_file = os.path.join(script_dir, 'nrql', 'response.json')
     
     # Parse response file
     products = parse_response_file(response_file)
