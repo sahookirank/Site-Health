@@ -73,9 +73,12 @@ def get_dynamic_headers_and_payload():
         headers['Cookie'] = cookie
     
     # Build payload
+    # Note: 'SINCE today' uses New Relic's account timezone (typically UTC)
+    # This ensures we get data from the start of the current day (00:00:00)
+    # rather than the last 24 hours which could include previous day's data
     payload = {
         "account_ids": [int(account_id)],
-        "nrql": "SELECT count(*) FROM PageView WHERE pageUrl RLIKE '.*[0-9]+.*' FACET pageUrl ORDER BY count(*) LIMIT 100 SINCE 1 day ago"
+        "nrql": "SELECT count(*) FROM PageView WHERE pageUrl RLIKE '.*[0-9]+.*' FACET pageUrl ORDER BY count(*) LIMIT 100 SINCE today"
     }
     return headers, payload, base_url
 
@@ -211,6 +214,8 @@ def main():
     # Get headers and payload dynamically
     headers, payload, base_url = get_dynamic_headers_and_payload()
     print(f"Configured request with {len(headers)} headers")
+    print(f"Current date/time: {datetime.now()}")
+    print(f"NRQL Query: {payload['nrql']}")
 
     # Make API request
     api_response = make_api_request(headers, payload, base_url)
@@ -219,6 +224,15 @@ def main():
         # Parse response data
         products = parse_response_data(api_response)
         print(f"Found {len(products)} products from API response")
+        
+        # Debug: Show date range of returned data
+        if products:
+            dates = [p['timestamp'] for p in products if p['timestamp'] != 'Unknown']
+            if dates:
+                print(f"Data date range: {min(dates)} to {max(dates)}")
+                print(f"Sample timestamps from first 3 products:")
+                for i, product in enumerate(products[:3]):
+                    print(f"  {i+1}. {product['url'][:50]}... - {product['timestamp']} ({product['count']} views)")
     else:
         print("No data received from API. Exiting.")
         products = []
