@@ -45,7 +45,7 @@ def get_dynamic_headers_and_payload():
     if not account_id:
         raise ValueError("NEWRELIC_ACCOUNT_ID environment variable not set.")
 
-    base_url = "https://chartdata.service.newrelic.com"  # API host
+    base_url = "https://api.newrelic.com"  # API host
 
     # Build headers with all required fields
     headers = {
@@ -80,13 +80,10 @@ def get_dynamic_headers_and_payload():
     
     return headers, payload, base_url
 
-def parse_response_file(file_path):
+def parse_response_data(response_data):
     """
-    Parse the New Relic API response file to extract product data
+    Parse the New Relic API response data to extract product data
     """
-    with open(file_path, 'r') as f:
-        response_data = json.load(f)
-    
     products = []
     
     if response_data and len(response_data) > 0:
@@ -212,17 +209,21 @@ def main():
     # Get the directory where this script is located
     script_dir = os.path.dirname(os.path.abspath(__file__))
     
-    # Get headers and payload dynamically (environment variables with file fallback)
+    # Get headers and payload dynamically
     headers, payload, base_url = get_dynamic_headers_and_payload()
     print(f"Configured request with {len(headers)} headers")
+
+    # Make API request
+    api_response = make_api_request(headers, payload, base_url)
     
-    # File path for response data (still used for static data)
-    response_file = os.path.join(script_dir, 'nrql', 'response.json')
-    
-    # Parse response file
-    products = parse_response_file(response_file)
-    print(f"Found {len(products)} products")
-    
+    if api_response:
+        # Parse response data
+        products = parse_response_data(api_response)
+        print(f"Found {len(products)} products from API response")
+    else:
+        print("No data received from API. Exiting.")
+        products = []
+
     # Limit to top 50 products (excluding "Other" entries)
     top_products = products[:50]
     print(f"Displaying top {len(top_products)} products (excluding 'Other' entries)")
