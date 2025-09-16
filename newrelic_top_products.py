@@ -73,24 +73,10 @@ def get_dynamic_headers_and_payload():
         headers['Cookie'] = cookie
     
     # Build payload
-    payload = [
-        {
-            "account_ids": [int(account_id)],
-            "metadata": {
-                "artifact_id": "viz.billboard",
-                "entity_guid": None,
-                "root_artifact_id": "unified-data-exploration.home",
-                "url": metadata_url
-            },
-            "nrql": "SELECT count(*) FROM PageView WHERE pageUrl RLIKE '.*[0-9]+.*' FACET pageUrl ORDER BY count(*) LIMIT 100 SINCE 1 day ago",
-            "raw": False,
-            "async": False,
-            "duration": None,
-            "end_time": None,
-            "begin_time": None
-        }
-    ]
-    
+    payload = {
+        "account_ids": [int(account_id)],
+        "nrql": "FROM PageView SELECT count(*) as page_views, average(duration) as avg_duration, apdex(duration) as apdex_score WHERE appName = 'Kmart-prod' AND pageUrl LIKE 'https://www.kmart.com.au/product/%' FACET pageUrl SINCE 1 day ago LIMIT 25"
+    }
     return headers, payload, base_url
 
 def parse_response_data(response_data):
