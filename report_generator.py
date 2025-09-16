@@ -3,6 +3,7 @@ import argparse
 import html
 import os
 import sqlite3
+import subprocess
 from datetime import date, timedelta, datetime
 import plotly.graph_objects as go
 import plotly.express as px
@@ -1408,6 +1409,32 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
     
     product_table_html = generate_product_availability_html(product_csv_path)
 
+    # Generate Top Products data by calling the newrelic_top_products.py script
+    def generate_top_products_data():
+        """Call the newrelic_top_products.py script to generate top products data"""
+        try:
+            # Run the newrelic_top_products.py script
+            result = subprocess.run(['python', 'newrelic_top_products.py'], 
+                                  capture_output=True, text=True, cwd=os.path.dirname(__file__))
+            
+            if result.returncode == 0:
+                print("Top products data generated successfully")
+                # Read the generated HTML content
+                top_products_file = os.path.join(os.path.dirname(__file__), 'top_products_content.html')
+                if os.path.exists(top_products_file):
+                    with open(top_products_file, 'r', encoding='utf-8') as f:
+                        return f.read()
+                else:
+                    return "<p>Top products content file not found.</p>"
+            else:
+                print(f"Error running newrelic_top_products.py: {result.stderr}")
+                return f"<p>Error generating top products data: {result.stderr}</p>"
+        except Exception as e:
+            print(f"Exception running newrelic_top_products.py: {str(e)}")
+            return f"<p>Error generating top products data: {str(e)}</p>"
+    
+    top_products_html = generate_top_products_data()
+
     # Build Changes tab HTML
     def render_changes_section(title: str, items: list[tuple[str,str]], change_type: str):
         # items: list of (Region, URL)
@@ -1570,6 +1597,7 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                 <button class="tab-link" onclick="openTab(event, 'NZ_Report')">NZ</button>
                 <button class="tab-link" onclick="openTab(event, 'Changes')">Changes</button>
                 <button class="tab-link" onclick="openTab(event, 'Product_Availability')">Product Availability</button>
+                <button class="tab-link" onclick="openTab(event, 'Top_Products')">Top Products</button>
                 <!-- Categories tab disabled -->
             </div>
 
@@ -1597,6 +1625,10 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
 
             <div id="Product_Availability" class="tab-content">
                 {product_table_html}
+            </div>
+
+            <div id="Top_Products" class="tab-content">
+                {top_products_html}
             </div>
 
             <!-- Categories tab content disabled -->
