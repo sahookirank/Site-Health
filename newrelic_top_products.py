@@ -169,9 +169,14 @@ def main():
     """
     Main function to process New Relic data and generate HTML
     """
-    # File paths
-    request_file = '/Users/ksahoo/Documents/brokenlinkchecker-private/Link-Checker/nrql/request.txt'
-    response_file = '/Users/ksahoo/Documents/brokenlinkchecker-private/Link-Checker/nrql/response.json'
+    import os
+    
+    # Get the directory where this script is located
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    # File paths relative to script location
+    request_file = os.path.join(script_dir, 'nrql', 'request.txt')
+    response_file = os.path.join(script_dir, 'nrql', 'response.json')
     
     # Parse request file
     headers, payload = parse_request_file(request_file)
@@ -189,7 +194,7 @@ def main():
     html_content = generate_html_content(top_products)
     
     # Save HTML content to file
-    output_file = '/Users/ksahoo/Documents/brokenlinkchecker-private/Link-Checker/top_products_content.html'
+    output_file = os.path.join(script_dir, 'top_products_content.html')
     with open(output_file, 'w') as f:
         f.write(html_content)
     
