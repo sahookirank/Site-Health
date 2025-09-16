@@ -45,15 +45,28 @@ def get_dynamic_headers_and_payload():
     if not account_id:
         raise ValueError("NEWRELIC_ACCOUNT_ID environment variable not set.")
 
-    base_url = "https://api.newrelic.com"  # API host
+    base_url = "https://chartdata.service.newrelic.com/v3/nrql?"  # API host
 
     # Build headers with all required fields
     headers = {
-        'Content-Type': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (compatible; Link-Checker/1.0)',
-        'Accept': 'application/json',
+        'Accept': '*/*',
         'Accept-Encoding': 'gzip, deflate, br',
-        'Connection': 'keep-alive'
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'Content-Type': 'application/json',
+        'Referer': 'https://one.newrelic.com/',
+        'sec-ch-ua': '"Chromium";v="140", "Not=A?Brand";v="24", "Google Chrome";v="140"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"macOS"',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+        'x-query-source-capability-id': 'QUERY_BUILDER',
+        'x-query-source-component': 'Billboard Visualization',
+        'x-query-source-component-id': 'viz-billboard',
+        'x-query-source-feature': 'Query your data',
+        'x-query-source-feature-id': 'unified-data-exploration.home',
+        'x-query-source-ui-package-id': 'viz',
+        'x-requested-with': 'XMLHttpRequest',
+        'newrelic-requesting-services': 'viz|nr1-ui',
     }
     
     if cookie:
@@ -187,7 +200,7 @@ def make_api_request(headers, payload, base_url):
     Make the actual API request to New Relic (optional - for live data)
     Note: This requires valid authentication tokens
     """
-    url = f"{base_url}/v3/nrql" if "chartdata" in base_url else f"{base_url}/graphql"
+    url = base_url
     
     try:
         response = requests.post(url, headers=headers, json=payload)
