@@ -28,6 +28,18 @@ import os
 from datetime import datetime
 from urllib.parse import unquote
 import csv
+import pandas as pd
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import time
+
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    print("Warning: python-dotenv not installed. Install with: pip install python-dotenv")
+    print("Continuing with existing environment variables...")
 
 def get_dynamic_headers_and_payload():
     """
@@ -86,11 +98,74 @@ def get_dynamic_headers_and_payload():
 def parse_response_data(response_data):
     """
     Parse the New Relic API response data to extract product data
+    Handles both old nested dict format and new list format
     """
     products = []
     
-    if response_data and len(response_data) > 0:
-        series_data = response_data[0].get('series', [])
+    if not response_data:
+        return products
+    
+    # Handle new list format (direct results)
+    if isinstance(response_data, list) and len(response_data) > 0:
+        # Check if this is the new nested structure with series
+        first_item = response_data[0]
+        if isinstance(first_item, dict) and 'series' in first_item:
+            # Handle the nested series structure: response[0]['series'][0]['series']
+            try:
+                outer_series = first_item.get('series', [])
+                if outer_series and len(outer_series) > 0:
+                    inner_series = outer_series[0].get('series', [])
+                    
+                    for product in inner_series:
+                        url = product.get('name', '').strip()
+                        data = product.get('data', [])
+                        
+                        # Skip "Other" entries
+                        if url and (url.lower() == 'other' or 'other' in url.lower()):
+                            continue
+                        
+                        if data and len(data) > 0 and len(data[0]) > 1:
+                            count = data[0][1]  # count is at index 1
+                            begin_time = data[0][0]  # timestamp at index 0
+                            
+                            # Convert timestamp to readable date
+                            try:
+                                date_str = datetime.fromtimestamp(begin_time / 1000).strftime('%Y-%m-%d %H:%M:%S')
+                            except:
+                                date_str = 'Unknown'
+                            
+                            # Clean URL (remove backticks and extra spaces)
+                            clean_url = url.strip('` ').strip()
+                            
+                            products.append({
+                                'url': clean_url,
+                                'count': count,
+                                'timestamp': date_str
+                            })
+            except Exception as e:
+                print(f"Error parsing nested series structure: {e}")
+        else:
+            # Handle simple list format
+            for item in response_data:
+                if isinstance(item, dict):
+                    # Extract URL and count from facet results
+                    url = item.get('facet', item.get('name', ''))
+                    count = item.get('count', item.get('results', [{}])[0].get('count', 0))
+                    
+                    # Skip "Other" entries
+                    if url and (url.lower() == 'other' or 'other' in url.lower()):
+                        continue
+                    
+                    if url:  # Only add if we have a valid URL
+                        products.append({
+                            'url': url,
+                            'count': count,
+                            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                        })
+    
+    # Handle old nested dict format (for backward compatibility)
+    elif isinstance(response_data, dict):
+        series_data = response_data.get('series', [])
         if series_data and len(series_data) > 0:
             product_series = series_data[0].get('series', [])
             
@@ -300,45 +375,121 @@ def _fetch_nrql(headers, base_url, nrql):
 
 
 def _read_broken_links_urls(script_dir):
+    """
+    Read broken links URLs from AU and NZ link check results CSV files.
+    Only includes URLs with Status >= 400 (broken links) that are actually shown in the AU and NZ tabs.
+    """
     urls = set()
-    # Look for both dedicated broken-links CSVs and the general link-check results CSVs
-    candidates = [
-        'au_broken_links.csv', 'nz_broken_links.csv',
-        'au_link_check_results.csv', 'nz_link_check_results.csv'
+    # Read from the actual broken links CSV files that contain the data shown in AU and NZ tabs
+    csv_files = [
+        ('Users/ksahoo/artifact 3/au_broken_links.csv', 'AU'),
+        ('Users/ksahoo/artifact 3/nz_broken_links.csv', 'NZ')
     ]
-    for fname in candidates:
-        path = os.path.join(script_dir, fname)
+    
+    for filename, region in csv_files:
+        path = os.path.join(script_dir, filename)
         if not os.path.exists(path):
+            print(f"Warning: {region} results file not found at {path}")
             continue
+        
         try:
-            with open(path, 'r', newline='', encoding='utf-8') as f:
-                reader = csv.DictReader(f)
-                # Find a column that is named URL (case-insensitive)
-                url_key = None
-                if reader.fieldnames:
-                    for k in reader.fieldnames:
-                        if k and k.strip().lower() == 'url':
-                            url_key = k
-                            break
-                # Fallback to exact 'URL' if we couldn't detect dynamically
-                if not url_key:
-                    url_key = 'URL'
-                count_before = len(urls)
-                for row in reader:
-                    url = (row.get(url_key) or '').strip()
-                    if url.startswith('http'):
-                        urls.add(url)
-                count_after = len(urls)
-                if count_after > count_before:
-                    print(f"Loaded {count_after - count_before} URLs from {fname}")
+            # Read CSV and filter for broken links (Status >= 400) just like report_generator.py
+            df = pd.read_csv(path)
+            df['Status'] = pd.to_numeric(df['Status'], errors='coerce').fillna(0).astype(int)
+            
+            # Filter for broken links only (Status >= 400)
+            broken_df = df[df['Status'] >= 400]
+            
+            count_before = len(urls)
+            for _, row in broken_df.iterrows():
+                url = str(row.get('URL', '')).strip()
+                if url.startswith('http'):
+                    urls.add(url)
+            
+            count_after = len(urls)
+            broken_count = len(broken_df)
+            if count_after > count_before:
+                print(f"Loaded {count_after - count_before} broken link URLs from {region} ({broken_count} total broken links in file)")
+            else:
+                print(f"No new broken link URLs from {region} ({broken_count} total broken links in file)")
+                
         except Exception as e:
-            print(f"Warning: failed to read {fname}: {e}")
+            print(f"Warning: failed to read {region} results from {filename}: {e}")
+    
+    print(f"Total unique broken link URLs collected: {len(urls)}")
     return list(urls)
 
 
 def _chunk(lst, size):
     for i in range(0, len(lst), size):
         yield lst[i:i+size]
+
+
+def _process_single_url(url, headers, base_url, thread_id):
+    """
+    Process a single URL to get its view count using New Relic API
+    Returns tuple: (url, view_count, success)
+    """
+    try:
+        # Create NRQL query for single URL
+        nrql = f"SELECT count(*) FROM PageView WHERE pageUrl LIKE '%{url}%' FACET pageUrl SINCE 30 days ago"
+        
+        # Make API call
+        start_time = time.time()
+        response = _fetch_nrql(headers, base_url, nrql)
+        api_duration = time.time() - start_time
+        
+        if response:
+            parsed_data = parse_response_data(response)
+            # Find matching URL in results
+            for item in parsed_data:
+                if url in item.get('url', ''):
+                    print(f"   🧵 Thread-{thread_id}: {url[:60]}{'...' if len(url) > 60 else ''} = {item['count']} views ({api_duration:.2f}s)")
+                    return (url, item['count'], True)
+            
+            # URL not found in results, means 0 views
+            print(f"   🧵 Thread-{thread_id}: {url[:60]}{'...' if len(url) > 60 else ''} = 0 views ({api_duration:.2f}s)")
+            return (url, 0, True)
+        else:
+            print(f"   ❌ Thread-{thread_id}: API failed for {url[:60]}{'...' if len(url) > 60 else ''}")
+            return (url, 0, False)
+            
+    except Exception as e:
+        print(f"   ❌ Thread-{thread_id}: Error processing {url[:60]}{'...' if len(url) > 60 else ''}: {e}")
+        return (url, 0, False)
+
+
+def _parse_broken_links_json(script_dir):
+    """Parse the brokenlinksview.json file to extract view counts for URLs"""
+    json_file = os.path.join(script_dir, 'brokenlinksview.json')
+    views_map = {}
+    
+    if not os.path.exists(json_file):
+        print(f"Warning: {json_file} not found")
+        return views_map
+    
+    try:
+        with open(json_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        # Navigate through the JSON structure to extract URL view counts
+        if data and len(data) > 0 and 'series' in data[0]:
+            for series_group in data[0]['series']:
+                if 'series' in series_group:
+                    for url_data in series_group['series']:
+                        url = url_data.get('name', '')
+                        if url and 'data' in url_data and len(url_data['data']) > 0:
+                            # Extract count from data array [timestamp, count, timestamp]
+                            count = url_data['data'][0][1] if len(url_data['data'][0]) > 1 else 0
+                            views_map[url] = int(count)
+                            print(f"Extracted view count for {url}: {count}")
+        
+        print(f"Successfully parsed {len(views_map)} URLs from JSON file")
+        return views_map
+        
+    except Exception as e:
+        print(f"Error parsing {json_file}: {e}")
+        return views_map
 
 def make_api_request(headers, payload, base_url):
     """
@@ -347,15 +498,64 @@ def make_api_request(headers, payload, base_url):
     """
     url = base_url
     
+    print(f"\n🔗 Making API request to: {url}")
+    print(f"📋 Request payload: {payload}")
+    
     try:
-        response = requests.post(url, headers=headers, json=payload)
+        response = requests.post(url, headers=headers, json=payload, timeout=30)
+        print(f"📊 Response status: {response.status_code}")
+        print(f"📏 Response size: {len(response.content)} bytes")
+        
         if response.status_code == 200:
-            return response.json()
+            json_data = response.json()
+            
+            # Log response structure
+            if isinstance(json_data, dict):
+                if 'data' in json_data:
+                    print(f"✅ Response contains 'data' field")
+                    if isinstance(json_data['data'], dict) and 'actor' in json_data['data']:
+                        print(f"✅ Response contains 'actor' field")
+                        if 'nrql' in json_data['data']['actor']:
+                            nrql_data = json_data['data']['actor']['nrql']
+                            if 'results' in nrql_data:
+                                results_count = len(nrql_data['results'])
+                                print(f"📈 Found {results_count} results in NRQL response")
+                            else:
+                                print("⚠️ No 'results' field in NRQL response")
+                        else:
+                            print("⚠️ No 'nrql' field in actor response")
+                    else:
+                        print("⚠️ No 'actor' field in data response")
+                else:
+                    print("⚠️ No 'data' field in response")
+            else:
+                print(f"⚠️ Response is not a dict: {type(json_data)}")
+                
+            return json_data
         else:
-            print(f"API request failed with status {response.status_code}: {response.text}")
+            print(f"❌ API request failed with status {response.status_code}: {response.text}")
             return None
+            
+    except requests.exceptions.SSLError as e:
+        print(f"❌ SSL Error: {e}")
+        print("💡 This indicates an SSL/TLS configuration issue with your Python environment")
+        return None
+    except requests.exceptions.ConnectionError as e:
+        print(f"❌ Connection Error: {e}")
+        return None
+    except requests.exceptions.Timeout as e:
+        print(f"❌ Timeout Error: {e}")
+        return None
+    except requests.exceptions.HTTPError as e:
+        print(f"❌ HTTP Error: {e}")
+        if hasattr(e.response, 'text'):
+            print(f"📄 Response body: {e.response.text[:500]}...")
+        return None
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Request Error: {e}")
+        return None
     except Exception as e:
-        print(f"Error making API request: {e}")
+        print(f"❌ Unexpected error: {e}")
         return None
 
 def main():
@@ -386,23 +586,101 @@ def main():
     top_pages = parse_response_data(resp_pages) if resp_pages else []
     print(f"Found {len(top_pages)} top pages")
 
-    # 3) Broken Links Views (30 days), batching ~700+ URLs from AU & NZ CSVs
+    # 3) Broken Links Views (30 days) - Process URLs individually with parallel threading
     all_urls = _read_broken_links_urls(script_dir)
     print(f"Collected {len(all_urls)} broken link URLs from CSVs")
-    # Initialize every tracked URL with 0 so the table shows them even if there are no views in the period
-    views_map = {u: 0 for u in all_urls}
-    if all_urls:
-        for batch in _chunk(all_urls, 100):  # conservative chunk size
-            escaped = [u.replace("'", "\\'") for u in batch]
-            in_clause = ", ".join([f"'{u}'" for u in escaped])
-            broken_nrql = f"SELECT count(*) AS viewCount FROM PageView WHERE pageUrl IN ({in_clause}) SINCE 1 month ago FACET pageUrl"
-            print(f"NRQL (Broken Links batch size {len(batch)}): executing")
-            resp = _fetch_nrql(headers, base_url, broken_nrql)
-            items = parse_response_data(resp) if resp else []
-            for it in items:
-                views_map[it['url']] = views_map.get(it['url'], 0) + int(it['count'])
+    
+    # Process broken links using parallel threading
+    start_time = time.time()
+    views_map = {}
+    max_workers = 10  # Number of parallel threads
+    
+    print(f"\n🔍 PARALLEL BROKEN LINKS PROCESSING STARTED")
+    print(f"📊 Total URLs to process: {len(all_urls)}")
+    print(f"🧵 Max parallel threads: {max_workers}")
+    print(f"⏰ Start time: {time.strftime('%H:%M:%S', time.localtime(start_time))}")
+    print(f"{'='*60}")
+    
+    # Use ThreadPoolExecutor for parallel processing
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # Submit all URL processing tasks
+        future_to_url = {
+            executor.submit(_process_single_url, url, headers, base_url, i % max_workers + 1): url 
+            for i, url in enumerate(all_urls)
+        }
+        
+        completed_count = 0
+        urls_with_views = 0
+        failed_count = 0
+        
+        # Process completed tasks as they finish
+        for future in as_completed(future_to_url):
+            url = future_to_url[future]
+            try:
+                result_url, view_count, success = future.result()
+                views_map[result_url] = view_count
+                
+                completed_count += 1
+                if view_count > 0:
+                    urls_with_views += 1
+                if not success:
+                    failed_count += 1
+                
+                # Progress update every 50 URLs
+                if completed_count % 50 == 0 or completed_count == len(all_urls):
+                    elapsed = time.time() - start_time
+                    progress = completed_count / len(all_urls)
+                    estimated_total = elapsed / progress if progress > 0 else 0
+                    remaining = estimated_total - elapsed
+                    
+                    print(f"\n📊 Progress Update: {completed_count}/{len(all_urls)} ({progress*100:.1f}%)")
+                    print(f"   ✅ URLs with views: {urls_with_views}")
+                    print(f"   ❌ Failed requests: {failed_count}")
+                    print(f"   ⏳ Elapsed: {elapsed:.1f}s, Estimated remaining: {remaining:.1f}s")
+                    print(f"   ⚡ Average per URL: {elapsed/completed_count:.3f}s")
+                    
+            except Exception as e:
+                print(f"   ❌ Exception processing {url}: {e}")
+                views_map[url] = 0
+                failed_count += 1
+    
+    # Ensure all URLs are included in the final map
+    for url in all_urls:
+        if url not in views_map:
+            views_map[url] = 0
+    
+    # Final processing summary
+    total_duration = time.time() - start_time
+    final_urls_with_views = sum(1 for count in views_map.values() if count > 0)
+    total_views = sum(views_map.values())
+    
+    print(f"\n{'='*60}")
+    print(f"🎯 PARALLEL BROKEN LINKS PROCESSING COMPLETED")
+    print(f"⏰ Total processing time: {total_duration:.2f} seconds")
+    print(f"📊 Final Statistics:")
+    print(f"   - Total URLs processed: {len(all_urls)}")
+    print(f"   - URLs with view data: {final_urls_with_views}")
+    print(f"   - URLs with zero views (broken links): {len(all_urls) - final_urls_with_views}")
+    print(f"   - Total page views: {total_views:,}")
+    print(f"   - Average processing time per URL: {total_duration/len(all_urls):.3f} seconds")
+    print(f"   - Parallel efficiency: {max_workers} threads used")
+    
+    if final_urls_with_views > 0:
+        print(f"\n🔥 TOP URLs WITH VIEWS:")
+        sorted_views = sorted(views_map.items(), key=lambda x: x[1], reverse=True)
+        for i, (url, count) in enumerate(sorted_views[:5]):
+            if count > 0:
+                print(f"   {i+1}. {url[:70]}{'...' if len(url) > 70 else ''} = {count:,} views")
+    
+    # Show broken links count clearly
+    broken_links_count = len(all_urls) - final_urls_with_views
+    print(f"\n🔗 BROKEN LINKS DETECTED: {broken_links_count} URLs with 0 views")
+    if broken_links_count > 0:
+        print(f"   These URLs are not receiving any traffic and may need attention.")
+    
     broken_links_views = [{ 'url': url, 'count': cnt } for url, cnt in views_map.items()]
-    print(f"Aggregated view counts for {len(broken_links_views)} broken link URLs")
+    print(f"\n✅ Aggregated view counts for {len(broken_links_views)} broken link URLs (using live API data)")
+    print(f"{'='*60}\n")
 
     # Limit sizes for rendering
     top_products = top_products[:50]
@@ -425,6 +703,19 @@ def main():
         print(f"(Compatibility) Also wrote content to {legacy_output}")
     except Exception as e:
         print(f"Warning: could not write legacy file {legacy_output}: {e}")
+    
+    # Summary of API call results
+    print("\n📊 API Call Summary:")
+    print(f"   🛍️ Top Products: {len(top_products)} found")
+    print(f"   📄 Top Pages: {len(top_pages)} found")
+    print(f"   🔗 Broken Links Checked: {len(all_urls)} URLs")
+    
+    if len(top_products) == 0 and len(top_pages) == 0:
+        print("\n⚠️ No data retrieved from New Relic API")
+        print("   This is likely due to the SSL module issue preventing HTTPS requests")
+        print("   See TROUBLESHOOTING_PAGE_VIEWS.md for solutions")
+    else:
+        print("\n✅ Successfully retrieved data from New Relic API")
 
     # Print preview of top 5 products
     for i, product in enumerate(top_products[:5], 1):

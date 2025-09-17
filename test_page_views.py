@@ -32,7 +32,7 @@ def ensure_sample_csvs(au_csv: Path, nz_csv: Path, product_csv: Path):
 
 
 def run(cmd: list[str]) -> subprocess.CompletedProcess:
-    return subprocess.run(cmd, cwd=str(ROOT), text=True, capture_output=True)
+    return subprocess.run(cmd, cwd=str(ROOT), text=True, capture_output=True, encoding='utf-8', errors='replace')
 
 
 def main():
@@ -77,11 +77,43 @@ def main():
 
     print("➡️ Generating Page Views via newrelic_top_products.py ...")
     nr = run([sys.executable, "newrelic_top_products.py"]) 
-    if nr.returncode != 0:
-        print("❌ newrelic_top_products.py failed:")
+    
+    # Display detailed API response information
+    print("\n📊 New Relic API Call Results:")
+    print(f"Exit Code: {nr.returncode}")
+    
+    if nr.stdout:
+        print("\n📤 Standard Output:")
+        print(nr.stdout)
+    
+    if nr.stderr:
+        print("\n⚠️ Error Output:")
         print(nr.stderr)
+    
+    if nr.returncode != 0:
+        print("❌ newrelic_top_products.py failed")
     else:
         print("✅ newrelic_top_products.py completed")
+        
+        # Check if page_views_content.html was generated and show preview
+        pv_html = ROOT / "page_views_content.html"
+        if pv_html.exists():
+            content = pv_html.read_text(encoding="utf-8")
+            if "No data available" in content or "0 total products" in content:
+                print("⚠️ Warning: Generated HTML shows no data - API calls may have failed")
+            else:
+                print("✅ Page Views HTML contains data - API calls appear successful")
+                # Show a brief preview of the data
+                if "total products" in content.lower():
+                    import re
+                    products_match = re.search(r'(\d+) total products', content)
+                    pages_match = re.search(r'(\d+) total pages', content)
+                    if products_match:
+                        print(f"   📈 Found {products_match.group(1)} total products")
+                    if pages_match:
+                        print(f"   📄 Found {pages_match.group(1)} total pages")
+        else:
+            print("⚠️ Warning: page_views_content.html was not generated")
 
     # Ensure we have a page_views_content.html (or fallback)
     pv_html = ROOT / "page_views_content.html"
