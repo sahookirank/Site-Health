@@ -4,6 +4,7 @@ import html
 import os
 import sqlite3
 import subprocess
+import sys
 from datetime import date, timedelta, datetime
 import plotly.graph_objects as go
 import plotly.express as px
@@ -1409,31 +1410,36 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
     
     product_table_html = generate_product_availability_html(product_csv_path)
 
-    # Generate Top Products data by calling the newrelic_top_products.py script
-    def generate_top_products_data():
-        """Call the newrelic_top_products.py script to generate top products data"""
+    # Generate Page Views data by calling the newrelic_top_products.py script
+    def generate_page_views_data():
+        """Call the newrelic_top_products.py script to generate Page Views data (Top Products, Top Pages, Broken Links Views)"""
         try:
             # Run the newrelic_top_products.py script
-            result = subprocess.run(['python', 'newrelic_top_products.py'], 
-                                  capture_output=True, text=True, cwd=os.path.dirname(__file__))
+            result = subprocess.run([sys.executable, 'newrelic_top_products.py'],
+                                  capture_output=True, text=True, cwd=os.path.dirname(__file__), env=os.environ.copy())
             
             if result.returncode == 0:
-                print("Top products data generated successfully")
-                # Read the generated HTML content
-                top_products_file = os.path.join(os.path.dirname(__file__), 'top_products_content.html')
-                if os.path.exists(top_products_file):
-                    with open(top_products_file, 'r', encoding='utf-8') as f:
+                print("Page Views data generated successfully")
+                # Prefer the new combined Page Views file
+                page_views_file = os.path.join(os.path.dirname(__file__), 'page_views_content.html')
+                if os.path.exists(page_views_file):
+                    with open(page_views_file, 'r', encoding='utf-8') as f:
                         return f.read()
                 else:
-                    return "<p>Top products content file not found.</p>"
+                    # Fallback to legacy file if new file missing
+                    legacy_file = os.path.join(os.path.dirname(__file__), 'top_products_content.html')
+                    if os.path.exists(legacy_file):
+                        with open(legacy_file, 'r', encoding='utf-8') as f:
+                            return f.read()
+                    return "<p>Page Views content file not found.</p>"
             else:
                 print(f"Error running newrelic_top_products.py: {result.stderr}")
-                return f"<p>Error generating top products data: {result.stderr}</p>"
+                return f"<p>Error generating Page Views data: {result.stderr}</p>"
         except Exception as e:
             print(f"Exception running newrelic_top_products.py: {str(e)}")
-            return f"<p>Error generating top products data: {str(e)}</p>"
+            return f"<p>Error generating Page Views data: {str(e)}</p>"
     
-    top_products_html = generate_top_products_data()
+    page_views_html = generate_page_views_data()
 
     # Build Changes tab HTML
     def render_changes_section(title: str, items: list[tuple[str,str]], change_type: str):
@@ -1597,7 +1603,7 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                 <button class="tab-link" onclick="openTab(event, 'NZ_Report')">NZ</button>
                 <button class="tab-link" onclick="openTab(event, 'Changes')">Changes</button>
                 <button class="tab-link" onclick="openTab(event, 'Product_Availability')">Product Availability</button>
-                <button class="tab-link" onclick="openTab(event, 'Top_Products')">Top Products</button>
+                <button class="tab-link" onclick="openTab(event, 'Page_Views')">Page Views</button>
                 <!-- Categories tab disabled -->
             </div>
 
@@ -1627,8 +1633,8 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                 {product_table_html}
             </div>
 
-            <div id="Top_Products" class="tab-content">
-                {top_products_html}
+            <div id="Page_Views" class="tab-content">
+                {page_views_html}
             </div>
 
             <!-- Categories tab content disabled -->
@@ -1721,6 +1727,16 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                             'copy', 'csv', 'excel', 'pdf', 'print'
                         ],
                         order: [[2, 'asc']] // Sort by URL column
+                    }});
+                }});
+
+                // Initialize DataTables for Page Views inner tables if present
+                ['#topProductsTable', '#topPagesTable', '#brokenLinksViewsTable'].forEach(function(tid) {{
+                    if (!$(tid).length) return;
+                    $(tid).DataTable({{
+                        pageLength: 50,
+                        orderCellsTop: true,
+                        fixedHeader: true
                     }});
                 }});
             }});

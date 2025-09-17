@@ -27,6 +27,7 @@ import requests
 import os
 from datetime import datetime
 from urllib.parse import unquote
+import csv
 
 def get_dynamic_headers_and_payload():
     """
@@ -140,12 +141,6 @@ def generate_html_content(products):
                             <th>Page Views</th>
                             <th>Last Updated</th>
                         </tr>
-                        <tr class="filters">
-                            <th><input type='text' placeholder='Filter ...' style='width: 90%;' /></th>
-                            <th><input type='text' placeholder='Filter ...' style='width: 90%;' /></th>
-                            <th><input type='text' placeholder='Filter ...' style='width: 90%;' /></th>
-                            <th><input type='text' placeholder='Filter ...' style='width: 90%;' /></th>
-                        </tr>
                     </thead>
                     <tbody>
 '''
@@ -184,6 +179,167 @@ def generate_html_content(products):
         total_views=total_views
     )
 
+# ---------------- New helpers for Page Views container ----------------
+
+def generate_top_pages_html(pages):
+    html_content = '''
+                <div class="summary-container">
+                    <span class="summary-item">📊 Total Pages: {total_pages}</span>
+                    <span class="summary-item">🔥 Top Page Views: {top_views:,}</span>
+                    <span class="summary-item">📈 Total Page Views: {total_views:,}</span>
+                </div>
+                <table id="topPagesTable" class="display" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Page URL</th>
+                            <th>Views</th>
+                            <th>Last Updated</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+'''
+    total_views = sum(p['count'] for p in pages)
+    top_views = pages[0]['count'] if pages else 0
+    for i, page in enumerate(pages, 1):
+        html_content += f'''
+                        <tr>
+                            <td>{i}</td>
+                            <td><a href="{page['url']}" target="_blank">{page['url']}</a></td>
+                            <td><strong>{page['count']:,}</strong></td>
+                            <td>{page['timestamp']}</td>
+                        </tr>
+'''
+    html_content += '''
+                    </tbody>
+                </table>
+'''
+    return html_content.format(total_pages=len(pages), top_views=top_views, total_views=total_views)
+
+
+def generate_broken_links_views_html(items):
+    html_content = '''
+                <div class="summary-container">
+                    <span class="summary-item">🔗 Broken Link URLs Tracked: {total_urls}</span>
+                    <span class="summary-item">👁️‍🗨️ URLs With Views: {urls_with_views}</span>
+                    <span class="summary-item">📈 Total Views (Sum): {total_views:,}</span>
+                </div>
+                <table id="brokenLinksViewsTable" class="display" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>URL</th>
+                            <th>Views (30d)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+'''
+    sorted_items = sorted(items, key=lambda x: x['count'], reverse=True)
+    total_views = sum(i['count'] for i in sorted_items)
+    for i, it in enumerate(sorted_items, 1):
+        html_content += f'''
+                        <tr>
+                            <td>{i}</td>
+                            <td><a href="{it['url']}" target="_blank">{it['url']}</a></td>
+                            <td><strong>{it['count']:,}</strong></td>
+                        </tr>
+'''
+    html_content += '''
+                    </tbody>
+                </table>
+'''
+    return html_content.format(
+        total_urls=len(items),
+        urls_with_views=sum(1 for i in items if i['count'] > 0),
+        total_views=total_views,
+    )
+
+
+def build_page_views_container_html(top_products, top_pages, broken_links_views):
+    """Compose the Page Views parent container with three sub-tabs"""
+    return f'''
+        <div id="PageViewsContainer" class="card">
+            <div style="display:flex; gap:12px; padding:8px 0 0 0;">
+                <button class="pv-tab-link active" onclick="openPvTab(event, 'PV_Top_Products')">Top Products</button>
+                <button class="pv-tab-link" onclick="openPvTab(event, 'PV_Top_Pages')">Top Pages</button>
+                <button class="pv-tab-link" onclick="openPvTab(event, 'PV_Broken_Links')">Broken Links Views</button>
+            </div>
+            <div id="PV_Top_Products" class="pv-tab-content" style="display:block;">{generate_html_content(top_products)}</div>
+            <div id="PV_Top_Pages" class="pv-tab-content">{generate_top_pages_html(top_pages)}</div>
+            <div id="PV_Broken_Links" class="pv-tab-content">{generate_broken_links_views_html(broken_links_views)}</div>
+        </div>
+        <style>
+            .pv-tab-link {{
+                background-color: #f3f4f6; border: 1px solid #e5e7eb; padding: 8px 16px; cursor: pointer; border-radius: 8px;
+                font-weight: 600; font-size: 14px; letter-spacing: .2px; transition: all .15s ease;
+            }}
+            .pv-tab-link.active, .pv-tab-link:hover {{ background-color: #e9effe; border-color: #c2d3ff; color: #0b3fbf; }}
+            .pv-tab-content {{ display:none; padding: 8px 0; }}
+        </style>
+        <script>
+            function openPvTab(evt, tabId) {{
+                var container = document.getElementById('PageViewsContainer');
+                var contents = container.getElementsByClassName('pv-tab-content');
+                for (var i=0; i<contents.length; i++) {{ contents[i].style.display = 'none'; }}
+                var links = container.getElementsByClassName('pv-tab-link');
+                for (var j=0; j<links.length; j++) {{ links[j].className = links[j].className.replace(' active',''); }}
+                document.getElementById(tabId).style.display = 'block';
+                evt.currentTarget.className += ' active';
+            }}
+        </script>
+    '''
+
+
+def _fetch_nrql(headers, base_url, nrql):
+    account_id = os.getenv('NEWRELIC_ACCOUNT_ID')
+    payload = {
+        "account_ids": [int(account_id)],
+        "nrql": nrql
+    }
+    return make_api_request(headers, payload, base_url)
+
+
+def _read_broken_links_urls(script_dir):
+    urls = set()
+    # Look for both dedicated broken-links CSVs and the general link-check results CSVs
+    candidates = [
+        'au_broken_links.csv', 'nz_broken_links.csv',
+        'au_link_check_results.csv', 'nz_link_check_results.csv'
+    ]
+    for fname in candidates:
+        path = os.path.join(script_dir, fname)
+        if not os.path.exists(path):
+            continue
+        try:
+            with open(path, 'r', newline='', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                # Find a column that is named URL (case-insensitive)
+                url_key = None
+                if reader.fieldnames:
+                    for k in reader.fieldnames:
+                        if k and k.strip().lower() == 'url':
+                            url_key = k
+                            break
+                # Fallback to exact 'URL' if we couldn't detect dynamically
+                if not url_key:
+                    url_key = 'URL'
+                count_before = len(urls)
+                for row in reader:
+                    url = (row.get(url_key) or '').strip()
+                    if url.startswith('http'):
+                        urls.add(url)
+                count_after = len(urls)
+                if count_after > count_before:
+                    print(f"Loaded {count_after - count_before} URLs from {fname}")
+        except Exception as e:
+            print(f"Warning: failed to read {fname}: {e}")
+    return list(urls)
+
+
+def _chunk(lst, size):
+    for i in range(0, len(lst), size):
+        yield lst[i:i+size]
+
 def make_api_request(headers, payload, base_url):
     """
     Make the actual API request to New Relic (optional - for live data)
@@ -215,46 +371,66 @@ def main():
     headers, payload, base_url = get_dynamic_headers_and_payload()
     print(f"Configured request with {len(headers)} headers")
     print(f"Current date/time: {datetime.now()}")
-    print(f"NRQL Query: {payload['nrql']}")
 
-    # Make API request
-    api_response = make_api_request(headers, payload, base_url)
-    
-    if api_response:
-        # Parse response data
-        products = parse_response_data(api_response)
-        print(f"Found {len(products)} products from API response")
-        
-        # Debug: Show date range of returned data
-        if products:
-            dates = [p['timestamp'] for p in products if p['timestamp'] != 'Unknown']
-            if dates:
-                print(f"Data date range: {min(dates)} to {max(dates)}")
-                print(f"Sample timestamps from first 3 products:")
-                for i, product in enumerate(products[:3]):
-                    print(f"  {i+1}. {product['url'][:50]}... - {product['timestamp']} ({product['count']} views)")
-    else:
-        print("No data received from API. Exiting.")
-        products = []
+    # 1) Top Products (today) — preserve existing behavior/query
+    products_nrql = "SELECT count(*) FROM PageView WHERE pageUrl RLIKE '.*[0-9]+.*' FACET pageUrl ORDER BY count(*) LIMIT 100 SINCE today"
+    print(f"NRQL (Top Products): {products_nrql}")
+    resp_products = _fetch_nrql(headers, base_url, products_nrql)
+    top_products = parse_response_data(resp_products) if resp_products else []
+    print(f"Found {len(top_products)} top products")
 
-    # Limit to top 50 products (excluding "Other" entries)
-    top_products = products[:50]
-    print(f"Displaying top {len(top_products)} products (excluding 'Other' entries)")
-    
-    # Generate HTML content
-    html_content = generate_html_content(top_products)
-    
+    # 2) Top Pages (last 1 day)
+    pages_nrql = "SELECT count(*) FROM PageView FACET pageUrl ORDER BY count(*) LIMIT 50 SINCE 1 day ago"
+    print(f"NRQL (Top Pages): {pages_nrql}")
+    resp_pages = _fetch_nrql(headers, base_url, pages_nrql)
+    top_pages = parse_response_data(resp_pages) if resp_pages else []
+    print(f"Found {len(top_pages)} top pages")
+
+    # 3) Broken Links Views (30 days), batching ~700+ URLs from AU & NZ CSVs
+    all_urls = _read_broken_links_urls(script_dir)
+    print(f"Collected {len(all_urls)} broken link URLs from CSVs")
+    # Initialize every tracked URL with 0 so the table shows them even if there are no views in the period
+    views_map = {u: 0 for u in all_urls}
+    if all_urls:
+        for batch in _chunk(all_urls, 100):  # conservative chunk size
+            escaped = [u.replace("'", "\\'") for u in batch]
+            in_clause = ", ".join([f"'{u}'" for u in escaped])
+            broken_nrql = f"SELECT count(*) AS viewCount FROM PageView WHERE pageUrl IN ({in_clause}) SINCE 1 month ago FACET pageUrl"
+            print(f"NRQL (Broken Links batch size {len(batch)}): executing")
+            resp = _fetch_nrql(headers, base_url, broken_nrql)
+            items = parse_response_data(resp) if resp else []
+            for it in items:
+                views_map[it['url']] = views_map.get(it['url'], 0) + int(it['count'])
+    broken_links_views = [{ 'url': url, 'count': cnt } for url, cnt in views_map.items()]
+    print(f"Aggregated view counts for {len(broken_links_views)} broken link URLs")
+
+    # Limit sizes for rendering
+    top_products = top_products[:50]
+    top_pages = top_pages[:50]
+
+    # Generate combined Page Views HTML
+    page_views_html = build_page_views_container_html(top_products, top_pages, broken_links_views)
+
     # Save HTML content to file
-    output_file = os.path.join(script_dir, 'top_products_content.html')
-    with open(output_file, 'w') as f:
-        f.write(html_content)
-    
+    output_file = os.path.join(script_dir, 'page_views_content.html')
+    with open(output_file, 'w', encoding='utf-8') as f:
+        f.write(page_views_html)
     print(f"HTML content generated and saved to {output_file}")
-    print(f"Top 5 products (from filtered 50):")
+
+    # Also keep legacy file name for backward compatibility
+    legacy_output = os.path.join(script_dir, 'top_products_content.html')
+    try:
+        with open(legacy_output, 'w', encoding='utf-8') as f:
+            f.write(page_views_html)
+        print(f"(Compatibility) Also wrote content to {legacy_output}")
+    except Exception as e:
+        print(f"Warning: could not write legacy file {legacy_output}: {e}")
+
+    # Print preview of top 5 products
     for i, product in enumerate(top_products[:5], 1):
         print(f"{i}. {product['url']} - {product['count']:,} views")
     
-    return html_content
+    return page_views_html
 
 if __name__ == "__main__":
     main()

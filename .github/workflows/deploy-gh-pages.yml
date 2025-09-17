@@ -203,21 +203,25 @@ jobs:
           }
           echo "✅ Dependencies installed successfully"
 
-      - name: Generate New Relic Top Products Data
+      - name: Generate New Relic Page Views Data
         env:
           NEWRELIC_BASE_URL: ${{ secrets.NEWRELIC_BASE_URL }}
           NEWRELIC_COOKIE: ${{ secrets.NEWRELIC_COOKIE }}
           NEWRELIC_ACCOUNT_ID: ${{ secrets.NEWRELIC_ACCOUNT_ID }}
         run: |
-          echo "📊 Generating New Relic top products data..."
+          echo "📊 Generating New Relic Page Views data..."
           /usr/bin/python3 newrelic_top_products.py
           
-          if [ -f "top_products_content.html" ]; then
-            echo "✅ Top products data generated successfully"
+          # Prefer new page_views_content.html, but keep legacy fallback for compatibility
+          if [ -f "page_views_content.html" ]; then
+            echo "✅ Page Views data generated successfully"
+            echo "📄 File size: $(wc -c < page_views_content.html) bytes"
+          elif [ -f "top_products_content.html" ]; then
+            echo "ℹ️ Using legacy top_products_content.html (compatibility mode)"
             echo "📄 File size: $(wc -c < top_products_content.html) bytes"
           else
-            echo "⚠️ Top products data not generated, continuing with empty data"
-            echo "<p>No top products data available</p>" > top_products_content.html
+            echo "⚠️ Page Views data not generated, continuing with empty data"
+            echo "<p>No Page Views data available</p>" > page_views_content.html
           fi
 
       - name: Generate HTML Report using existing report_generator.py

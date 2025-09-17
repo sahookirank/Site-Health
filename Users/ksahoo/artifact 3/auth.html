@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head><script src="guard.js"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Authentication</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 0; background: #f7f7f8; color: #222; }
+    .wrap { max-width: 480px; margin: 10vh auto; background: #fff; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.06); overflow: hidden; }
+    header { padding: 20px 24px; border-bottom: 1px solid #eee; }
+    header h1 { margin: 0; font-size: 18px; }
+    main { padding: 24px; }
+    .hint { margin-top: 8px; color: #666; font-size: 13px; }
+    .small { font-size: 12px; color: #777; }
+    .footer { padding: 12px 24px; border-top: 1px solid #eee; background: #fafafa; }
+    .btn { appearance: none; border: none; background: #2563eb; color: white; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Restricted Area</h1>
+      <div class="small">Enter the repository secret to continue</div>
+    </header>
+    <main>
+      <p>When prompted, provide the access key configured in the repository secrets under name <b>USER</b>.</p>
+      <p class="hint">You will have up to three attempts. A local session will be created on success.</p>
+      <button class="btn" id="startAuth">Enter Access Key</button>
+    </main>
+    <div class="footer small">Authentication uses a short-lived local session only.</div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script>
+    // Manually trigger the prompt on button click (in case auto-prompt is not desired)
+    document.getElementById('startAuth').addEventListener('click', async () => {
+      // Reload auth.js logic by navigating to the same page to trigger IIFE again
+      // Alternatively, we can expose a small function; but here we simply reload
+      location.reload();
+    });
+  </script>
+</body>
+</html>
