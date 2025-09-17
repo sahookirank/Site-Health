@@ -394,7 +394,7 @@ def _read_broken_links_urls(script_dir):
         
         try:
             # Read CSV and filter for broken links (Status >= 400) just like report_generator.py
-            df = pd.read_csv(path)
+            df = pd.read_csv(path, encoding='utf-8', encoding_errors='replace')
             df['Status'] = pd.to_numeric(df['Status'], errors='coerce').fillna(0).astype(int)
             
             # Filter for broken links only (Status >= 400)

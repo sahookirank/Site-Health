@@ -70,7 +70,7 @@ def load_product_csv_data(csv_path=None):
     """Load product data from CSV file."""
     if csv_path and os.path.exists(csv_path):
         try:
-            df = pd.read_csv(csv_path)
+            df = pd.read_csv(csv_path, encoding='utf-8', encoding_errors='replace')
             return df
         except Exception as e:
             print(f"Error reading {csv_path}: {e}")
@@ -84,7 +84,7 @@ def load_product_csv_data(csv_path=None):
     for csv_file in csv_files:
         if os.path.exists(csv_file):
             try:
-                df = pd.read_csv(csv_file)
+                df = pd.read_csv(csv_file, encoding='utf-8', encoding_errors='replace')
                 return df
             except Exception as e:
                 print(f"Error reading {csv_file}: {e}")

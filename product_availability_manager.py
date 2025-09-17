@@ -85,7 +85,7 @@ class ProductAvailabilityManager:
         product_ids = []
         
         try:
-            df = pd.read_csv(csv_path)
+            df = pd.read_csv(csv_path, encoding='utf-8', encoding_errors='replace')
             
             # Look for URL column (might be named differently)
             url_columns = [col for col in df.columns if 'url' in col.lower() or 'link' in col.lower()]
@@ -444,7 +444,7 @@ class ProductAvailabilityManager:
         broken_links = []
 
         try:
-            df = pd.read_csv(csv_path)
+            df = pd.read_csv(csv_path, encoding='utf-8', encoding_errors='replace')
 
             # Filter for broken links (non-200 status codes, empty status, or null status)
             broken_df = df[

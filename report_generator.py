@@ -1147,7 +1147,7 @@ def _compute_changes(conn: sqlite3.Connection):
 def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='combined_report.html', product_csv_path='product_export.csv', db_path: str = 'broken_links.db'):
     """Generates a combined HTML report with tabs for AU and NZ link check results."""
     try:
-        au_df = pd.read_csv(au_csv_path)
+        au_df = pd.read_csv(au_csv_path, encoding='utf-8', encoding_errors='replace')
         au_df['Status'] = pd.to_numeric(au_df['Status'], errors='coerce').fillna(0).astype(int)
         # Extract category hierarchy for AU
         extract_category_hierarchy(au_df, 'AU')
@@ -1159,7 +1159,7 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
         au_df = pd.DataFrame(columns=['URL', 'Status', 'Response_Time', 'Error_Message'])
 
     try:
-        nz_df = pd.read_csv(nz_csv_path)
+        nz_df = pd.read_csv(nz_csv_path, encoding='utf-8', encoding_errors='replace')
         nz_df['Status'] = pd.to_numeric(nz_df['Status'], errors='coerce').fillna(0).astype(int)
         # Extract category hierarchy for NZ
         extract_category_hierarchy(nz_df, 'NZ')
@@ -1172,7 +1172,7 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
 
     # Load product data
     try:
-        product_df = pd.read_csv(product_csv_path)
+        product_df = pd.read_csv(product_csv_path, encoding='utf-8', errors='replace')
         print(f"✅ Loaded {len(product_df)} product records from {product_csv_path}")
     except FileNotFoundError:
         print(f"⚠️ Product CSV file not found: {product_csv_path}, creating empty dataframe")
@@ -1286,7 +1286,7 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
             if not os.path.exists(csv_path):
                 return "<p>No product data available.</p>"
             
-            df = pd.read_csv(csv_path)
+            df = pd.read_csv(csv_path, encoding='utf-8', encoding_errors='replace')
             if df.empty:
                 return "<p>No product data found in file.</p>"
             
