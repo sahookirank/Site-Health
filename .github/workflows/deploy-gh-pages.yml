@@ -210,7 +210,7 @@ jobs:
           NEWRELIC_ACCOUNT_ID: ${{ secrets.NEWRELIC_ACCOUNT_ID }}
         run: |
           echo "📊 Generating New Relic Page Views data..."
-          /usr/bin/python3 newrelic_top_products.py
+          python3 newrelic_top_products.py
           
           # Prefer new page_views_content.html, but keep legacy fallback for compatibility
           if [ -f "page_views_content.html" ]; then
