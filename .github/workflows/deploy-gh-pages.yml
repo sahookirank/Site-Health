@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, 'feature/**' ]
   workflow_dispatch:
     inputs:
       product_data_run_id:
