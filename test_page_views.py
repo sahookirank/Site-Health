@@ -5,6 +5,14 @@ import subprocess
 import sys
 from pathlib import Path
 
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    print("Warning: python-dotenv not installed. Install with: pip install python-dotenv")
+    print("Continuing with existing environment variables...")
+
 ROOT = Path(__file__).resolve().parent
 
 
@@ -39,13 +47,20 @@ def main():
 
     args = parser.parse_args()
 
-    # Set environment variables for newrelic_top_products.py from CLI args if provided (otherwise inherit existing environment)
+    # Set environment variables for newrelic_top_products.py from CLI args if provided (otherwise use .env file values)
     if args.base_url:
         os.environ["NEWRELIC_BASE_URL"] = args.base_url
     if args.cookie:
         os.environ["NEWRELIC_COOKIE"] = args.cookie
     if args.account_id:
         os.environ["NEWRELIC_ACCOUNT_ID"] = args.account_id
+    
+    # Display loaded environment variables (without exposing sensitive data)
+    print("Environment variables loaded:")
+    print(f"  NEWRELIC_BASE_URL: {'✓ Set' if os.environ.get('NEWRELIC_BASE_URL') else '✗ Missing'}")
+    print(f"  NEWRELIC_COOKIE: {'✓ Set' if os.environ.get('NEWRELIC_COOKIE') else '✗ Missing'}")
+    print(f"  NEWRELIC_ACCOUNT_ID: {os.environ.get('NEWRELIC_ACCOUNT_ID', '✗ Missing')}")
+    print()
 
     # Brief sanity check without exposing secrets
     missing = [k for k in ("NEWRELIC_BASE_URL", "NEWRELIC_ACCOUNT_ID") if not os.environ.get(k)]

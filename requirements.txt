@@ -12,3 +12,4 @@ networkx
 numpy
 lxml
 html5lib
+python-dotenv
