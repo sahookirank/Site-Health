@@ -1,0 +1,180 @@
+name: Preview Build (Safe)
+
+on:
+  push:
+    branches:
+      - feature/**
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      product_data_run_id:
+        description: 'Run ID of the product data fetch workflow (optional)'
+        required: false
+        type: string
+      broken_link_run_id:
+        description: 'Run ID of the broken link check workflow (optional)'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  build-preview:
+    name: Build preview artifact (no deploy)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Collect artifacts from upstream workflows (optional)
+        id: collect-artifacts
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let artifactsCollected = {
+              brokenLinkCsvs: false,
+              productExportCsv: false
+            };
+
+            async function downloadArtifactsFromRun(runId, artifactName, outputFile) {
+              try {
+                const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  run_id: runId
+                });
+                const artifact = artifacts.data.artifacts.find(a => a.name === artifactName && !a.expired);
+                if (artifact) {
+                  const download = await github.rest.actions.downloadArtifact({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    artifact_id: artifact.id,
+                    archive_format: 'zip'
+                  });
+                  fs.writeFileSync(outputFile, Buffer.from(download.data));
+                  core.info(`Downloaded ${artifactName} from run ${runId}`);
+                  return true;
+                }
+                return false;
+              } catch (error) {
+                core.info(`Error downloading ${artifactName} from run ${runId}: ${error.message}`);
+                return false;
+              }
+            }
+
+            async function findRecentSuccessfulRuns(workflowFile) {
+              const runs = await github.rest.actions.listWorkflowRuns({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                workflow_id: workflowFile,
+                status: 'completed',
+                conclusion: 'success',
+                per_page: 10
+              });
+              return runs.data.workflow_runs;
+            }
+
+            let brokenLinkRunId = '${{ inputs.broken_link_run_id }}';
+            if (brokenLinkRunId) {
+              artifactsCollected.brokenLinkCsvs = await downloadArtifactsFromRun(
+                brokenLinkRunId, 'broken-link-csvs', 'broken-link-csvs.zip'
+              );
+            }
+            if (!artifactsCollected.brokenLinkCsvs) {
+              const brokenLinkRuns = await findRecentSuccessfulRuns('broken-link-check.yml');
+              for (const run of brokenLinkRuns) {
+                artifactsCollected.brokenLinkCsvs = await downloadArtifactsFromRun(run.id, 'broken-link-csvs', 'broken-link-csvs.zip');
+                if (artifactsCollected.brokenLinkCsvs) break;
+              }
+            }
+
+            let productDataRunId = '${{ inputs.product_data_run_id }}';
+            if (productDataRunId) {
+              artifactsCollected.productExportCsv = await downloadArtifactsFromRun(
+                productDataRunId, 'product-export-csv', 'product-export-csv.zip'
+              );
+            }
+            if (!artifactsCollected.productExportCsv) {
+              const productDataRuns = await findRecentSuccessfulRuns('product-data-fetch.yml');
+              for (const run of productDataRuns) {
+                artifactsCollected.productExportCsv = await downloadArtifactsFromRun(run.id, 'product-export-csv', 'product-export-csv.zip');
+                if (artifactsCollected.productExportCsv) break;
+              }
+            }
+
+            core.setOutput('broken_link_csvs', artifactsCollected.brokenLinkCsvs);
+            core.setOutput('product_export_csv', artifactsCollected.productExportCsv);
+
+      - name: Extract and validate CSV files
+        run: |
+          echo "Extracting and validating CSV files..."
+          if [ -f "broken-link-csvs.zip" ]; then unzip -o broken-link-csvs.zip; fi
+          if [ -f "product-export-csv.zip" ]; then unzip -o product-export-csv.zip; fi
+
+          # Create fallbacks if missing
+          [ -f au_broken_links.csv ] || { echo "URL,Status,Response_Time,Error" > au_broken_links.csv && echo "https://example.com,404,1.0,Not Found" >> au_broken_links.csv; }
+          [ -f nz_broken_links.csv ] || { echo "URL,Status,Response_Time,Error" > nz_broken_links.csv && echo "https://example.com,404,1.0,Not Found" >> nz_broken_links.csv; }
+          ls -1 product_export*.csv >/dev/null 2>&1 || { echo "SKU,ID,DETAIL" > product_export.csv && echo "12345678,NOT_FOUND,No product data available" >> product_export.csv; }
+
+      - name: Generate New Relic Page Views Data (best-effort)
+        env:
+          NEWRELIC_BASE_URL: ${{ secrets.NEWRELIC_BASE_URL }}
+          NEWRELIC_COOKIE: ${{ secrets.NEWRELIC_COOKIE }}
+          NEWRELIC_ACCOUNT_ID: ${{ secrets.NEWRELIC_ACCOUNT_ID }}
+        run: |
+          echo "Generating Page Views data..."
+          /usr/bin/python3 newrelic_top_products.py || true
+          [ -f page_views_content.html ] || echo "<p>No Page Views data available</p>" > page_views_content.html
+
+      - name: Generate HTML Report
+        run: |
+          PRODUCT_FILE=$(ls -t product_export*.csv 2>/dev/null | head -n1)
+          [ -n "$PRODUCT_FILE" ] || PRODUCT_FILE=product_export.csv
+          python3 report_generator.py \
+            --au-csv au_broken_links.csv \
+            --nz-csv nz_broken_links.csv \
+            --product-csv "$PRODUCT_FILE" \
+            --output-html index.html
+
+      - name: Prepare preview directory
+        run: |
+          mkdir -p gh-pages-deploy
+          if [ -s index.html ]; then cp index.html gh-pages-deploy/; else echo "<h1>Build failed</h1>" > gh-pages-deploy/index.html; fi
+          for f in *.csv; do [ -f "$f" ] && cp "$f" gh-pages-deploy/; done
+          cat > gh-pages-deploy/downloads.html << 'EOF'
+          <!DOCTYPE html>
+          <html><head><meta charset="utf-8"><title>Downloads</title></head>
+          <body><h1>Downloads</h1>
+          EOF
+          for f in gh-pages-deploy/*.csv; do n=$(basename "$f"); echo "<a href=\"$n\" download>$n</a><br>" >> gh-pages-deploy/downloads.html; done
+          echo "</body></html>" >> gh-pages-deploy/downloads.html
+
+      - name: Upload preview as artifact (not deployed)
+        uses: actions/upload-artifact@v4
+        with:
+          name: gh-pages-preview
+          path: gh-pages-deploy
+          retention-days: 7
+
+      - name: Summary
+        run: |
+          echo "## Preview Build Complete (No Deploy)" >> $GITHUB_STEP_SUMMARY
+          echo "This workflow mirrors the production build and packages a preview artifact without deploying to the live GitHub Pages site." >> $GITHUB_STEP_SUMMARY
+          echo "Download the 'gh-pages-preview' artifact to review the preview locally." >> $GITHUB_STEP_SUMMARY

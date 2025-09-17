@@ -18,4 +18,9 @@ link_check_log.txt
 # Optional: ignore other local artifacts (uncomment if desired)
 # *.sqlite
 # *.db
-# gh-pages/
+# Generated preview artifacts
+gh-pages-deploy/
+# Local preview server artifacts
+page_views_content.html
+top_products_content.html
+product_export.csv
