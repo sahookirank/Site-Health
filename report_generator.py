@@ -1172,7 +1172,7 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
 
     # Load product data
     try:
-        product_df = pd.read_csv(product_csv_path, encoding='utf-8', errors='replace')
+        product_df = pd.read_csv(product_csv_path, encoding='utf-8', encoding_errors='replace')
         print(f"✅ Loaded {len(product_df)} product records from {product_csv_path}")
     except FileNotFoundError:
         print(f"⚠️ Product CSV file not found: {product_csv_path}, creating empty dataframe")
@@ -1423,13 +1423,13 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                 # Prefer the new combined Page Views file
                 page_views_file = os.path.join(os.path.dirname(__file__), 'page_views_content.html')
                 if os.path.exists(page_views_file):
-                    with open(page_views_file, 'r', encoding='utf-8') as f:
+                    with open(page_views_file, 'r', encoding='utf-8', errors='replace') as f:
                         return f.read()
                 else:
                     # Fallback to legacy file if new file missing
                     legacy_file = os.path.join(os.path.dirname(__file__), 'top_products_content.html')
                     if os.path.exists(legacy_file):
-                        with open(legacy_file, 'r', encoding='utf-8') as f:
+                        with open(legacy_file, 'r', encoding='utf-8', errors='replace') as f:
                             return f.read()
                     return "<p>Page Views content file not found.</p>"
             else:

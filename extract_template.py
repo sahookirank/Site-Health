@@ -9,7 +9,7 @@ def extract_and_adapt_template():
     """Extract template from reference file and adapt for GitHub workflow."""
     
     # Read the reference file
-    with open('test_reference_report.html', 'r', encoding='utf-8') as f:
+    with open('test_reference_report.html', 'r', encoding='utf-8', errors='replace') as f:
         content = f.read()
     
     # Replace specific data values with template placeholders

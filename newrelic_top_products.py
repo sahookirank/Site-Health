@@ -469,7 +469,7 @@ def _parse_broken_links_json(script_dir):
         return views_map
     
     try:
-        with open(json_file, 'r', encoding='utf-8') as f:
+        with open(json_file, 'r', encoding='utf-8', errors='replace') as f:
             data = json.load(f)
         
         # Navigate through the JSON structure to extract URL view counts
