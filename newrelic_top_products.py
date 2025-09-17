@@ -382,8 +382,8 @@ def _read_broken_links_urls(script_dir):
     urls = set()
     # Read from the actual broken links CSV files that contain the data shown in AU and NZ tabs
     csv_files = [
-        ('Users/ksahoo/artifact 3/au_broken_links.csv', 'AU'),
-        ('Users/ksahoo/artifact 3/nz_broken_links.csv', 'NZ')
+        ('au_broken_links.csv', 'AU'),
+        ('nz_broken_links.csv', 'NZ')
     ]
     
     for filename, region in csv_files:
@@ -662,7 +662,10 @@ def main():
     print(f"   - URLs with view data: {final_urls_with_views}")
     print(f"   - URLs with zero views (broken links): {len(all_urls) - final_urls_with_views}")
     print(f"   - Total page views: {total_views:,}")
-    print(f"   - Average processing time per URL: {total_duration/len(all_urls):.3f} seconds")
+    if len(all_urls) > 0:
+        print(f"   - Average processing time per URL: {total_duration/len(all_urls):.3f} seconds")
+    else:
+        print(f"   - Average processing time per URL: N/A (no URLs processed)")
     print(f"   - Parallel efficiency: {max_workers} threads used")
     
     if final_urls_with_views > 0:
