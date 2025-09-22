@@ -565,13 +565,7 @@ def extract_category_hierarchy(df, region):
     for category in category_hierarchy:
         category_hierarchy[category]['subcategories'] = list(category_hierarchy[category]['subcategories'])
     
-    # Save to temporary file
-    temp_file = f'temp/{region.lower()}_categories.json'
-    os.makedirs('temp', exist_ok=True)
-    
-    with open(temp_file, 'w') as f:
-        json.dump(category_hierarchy, f, indent=2)
-    
+    # Return category hierarchy directly without saving to temp file
     return category_hierarchy
 
 def generate_site_architecture_visualization(df, region):
@@ -1144,7 +1138,7 @@ def _compute_changes(conn: sqlite3.Connection):
         'available_dates': available_dates
     }
 
-def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='combined_report.html', product_csv_path='product_export.csv', db_path: str = 'broken_links.db'):
+def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='combined_report.html', product_csv_path='product_export.csv', db_path='broken_links.db'):
     """Generates a combined HTML report with tabs for AU and NZ link check results."""
     try:
         au_df = pd.read_csv(au_csv_path, encoding='utf-8', encoding_errors='replace')
@@ -1193,9 +1187,7 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
     else:
         cols = ['Region'] + [col for col in combined_df.columns if col != 'Region']
     combined_df = combined_df[cols]
-    combined_csv_path = 'combined_link_check_results.csv'
-    # combined_df.to_csv(combined_csv_path, index=False) # Removed generation of combined CSV
-    # print(f"✅ Combined CSV report saved to {combined_csv_path}")
+    # Combined CSV generation removed - not needed for GitHub workflow
 
     total_links_au = len(au_df[au_df['Region'] == 'AU']) # Filter by region just in case, though au_df is already AU
     broken_links_au = len(au_df[(au_df['Region'] == 'AU') & (au_df['Status'] >= 400)])
@@ -1283,7 +1275,10 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
     def generate_product_availability_html(csv_path):
         """Generate product availability HTML table from CSV file with expandable details"""
         try:
-            if not os.path.exists(csv_path):
+            # Check if CSV file exists using try/except instead of os.path.exists
+            try:
+                pd.read_csv(csv_path, nrows=0)  # Just check if file can be read
+            except (FileNotFoundError, pd.errors.EmptyDataError):
                 return "<p>No product data available.</p>"
             
             df = pd.read_csv(csv_path, encoding='utf-8', encoding_errors='replace')
@@ -1416,22 +1411,23 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
         try:
             # Run the newrelic_top_products.py script
             result = subprocess.run([sys.executable, 'newrelic_top_products.py'],
-                                  capture_output=True, text=True, cwd=os.path.dirname(__file__), env=os.environ.copy())
+                                  capture_output=True, text=True, env=os.environ.copy())
             
             if result.returncode == 0:
                 print("Page Views data generated successfully")
-                # Prefer the new combined Page Views file
-                page_views_file = os.path.join(os.path.dirname(__file__), 'page_views_content.html')
-                if os.path.exists(page_views_file):
+                # Check for Page Views content file in current directory
+                page_views_file = 'page_views_content.html'
+                try:
                     with open(page_views_file, 'r', encoding='utf-8', errors='replace') as f:
                         return f.read()
-                else:
+                except FileNotFoundError:
                     # Fallback to legacy file if new file missing
-                    legacy_file = os.path.join(os.path.dirname(__file__), 'top_products_content.html')
-                    if os.path.exists(legacy_file):
+                    legacy_file = 'top_products_content.html'
+                    try:
                         with open(legacy_file, 'r', encoding='utf-8', errors='replace') as f:
                             return f.read()
-                    return "<p>Page Views content file not found.</p>"
+                    except FileNotFoundError:
+                        return "<p>Page Views content file not found.</p>"
             else:
                 print(f"Error running newrelic_top_products.py: {result.stderr}")
                 return f"<p>Error generating Page Views data: {result.stderr}</p>"
