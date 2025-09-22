@@ -1275,13 +1275,20 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
     def generate_product_availability_html(csv_path):
         """Generate product availability HTML table from CSV file with expandable details"""
         try:
-            # Check if CSV file exists using try/except instead of os.path.exists
+            # Check if CSV file exists, try temp directory as fallback
+            csv_file_to_use = csv_path
             try:
                 pd.read_csv(csv_path, nrows=0)  # Just check if file can be read
             except (FileNotFoundError, pd.errors.EmptyDataError):
-                return "<p>No product data available.</p>"
+                # Try temp directory
+                temp_csv_path = os.path.join('temp', 'product_export.csv')
+                try:
+                    pd.read_csv(temp_csv_path, nrows=0)
+                    csv_file_to_use = temp_csv_path
+                except (FileNotFoundError, pd.errors.EmptyDataError):
+                    return "<p>No product data available.</p>"
             
-            df = pd.read_csv(csv_path, encoding='utf-8', encoding_errors='replace')
+            df = pd.read_csv(csv_file_to_use, encoding='utf-8', encoding_errors='replace')
             if df.empty:
                 return "<p>No product data found in file.</p>"
             
@@ -1317,16 +1324,33 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                 product_data = {}
                 try:
                     if pd.notna(row.get('DETAIL', '')):
-                        product_data = json.loads(row['DETAIL'])
+                        detail_str = str(row['DETAIL'])
+                        # Handle double-escaped JSON if needed
+                        if detail_str.startswith('"') and detail_str.endswith('"'):
+                            detail_str = detail_str[1:-1].replace('\\"', '"')
+                        product_data = json.loads(detail_str)
                 except Exception as e:
                     product_data = {}
                 
-                # Extract product name from JSON
-                product_name = product_data.get('name', 'Unknown Product')
+                # Extract product name from JSON - check multiple possible keys
+                product_name = product_data.get('ProductName', 
+                              product_data.get('name', 
+                              product_data.get('Name', 'Unknown Product')))
                 
-                # Determine if product is discontinued based on EndDate
+                # Determine if product is discontinued based on status or EndDate
                 is_discontinued = False
-                end_date = product_data.get('attributes', {}).get('EndDate', '')
+                
+                # Check status field first
+                status = str(row.get('ID', '')).upper() if pd.notna(row.get('ID', '')) else ''
+                if 'DISCONTINUED' in status:
+                    is_discontinued = True
+                
+                # Also check EndDate in product data
+                end_date = product_data.get('EndDate', '')
+                if not end_date:
+                    # Check nested attributes
+                    end_date = product_data.get('attributes', {}).get('EndDate', '') if isinstance(product_data.get('attributes'), dict) else ''
+                
                 if end_date and str(end_date).strip():
                     try:
                         from datetime import datetime
@@ -1362,8 +1386,18 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                 html_content += '<div class="attributes-section">'
                 html_content += '<div class="attributes-container">'
                 
-                # Generate attributes from JSON data
-                attributes = product_data.get('attributes', {})
+                # Generate attributes from JSON data - handle both flat and nested structure
+                attributes = {}
+                
+                # First, add all top-level attributes from product_data
+                for key, value in product_data.items():
+                    if key not in ['ProductName', 'name', 'Name'] and value is not None and str(value).strip():
+                        attributes[key] = value
+                
+                # Then add nested attributes if they exist
+                if 'attributes' in product_data and isinstance(product_data['attributes'], dict):
+                    attributes.update(product_data['attributes'])
+                
                 if attributes:
                     for attr_name, attr_value in attributes.items():
                         if attr_value is not None and str(attr_value).strip():
