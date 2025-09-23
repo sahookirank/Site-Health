@@ -1140,6 +1140,10 @@ def _compute_changes(conn: sqlite3.Connection):
 
 def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='combined_report.html', product_csv_path='product_export.csv', db_path='broken_links.db'):
     """Generates a combined HTML report with tabs for AU and NZ link check results."""
+    # Generate timestamp for cache busting
+    from datetime import datetime
+    timestamp = int(datetime.now().timestamp())
+    cache_buster = f"v={timestamp}"
     try:
         au_df = pd.read_csv(au_csv_path, encoding='utf-8', encoding_errors='replace')
         au_df['Status'] = pd.to_numeric(au_df['Status'], errors='coerce').fillna(0).astype(int)
@@ -1525,7 +1529,7 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                     <div class="changes-summary">
                         <div class="change-count added">➕ Added: {len(changes['yesterday']['added'])}</div>
                         <div class="change-count removed">➖ Removed: {len(changes['yesterday']['removed'])}</div>
-                        <a class=\"download-tab-button\" download href=\"changes_all.csv\">Download All Changes (CSV)</a>
+                        <a class=\"download-tab-button\" download href=\"changes_all.csv?{cache_buster}\">Download All Changes (CSV)</a>
                     </div>
                     <div class="collapsible-section">
                         <div class="collapsible-header" onclick="toggleSection('yesterday-added-section')">
@@ -1565,7 +1569,7 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                     <div class="changes-summary">
                         <div class="change-count added">➕ Added: {len(changes['week']['added'])}</div>
                         <div class="change-count removed">➖ Removed: {len(changes['week']['removed'])}</div>
-                        <a class=\"download-tab-button\" download href=\"changes_all.csv\">Download All Changes (CSV)</a>
+                        <a class=\"download-tab-button\" download href=\"changes_all.csv?{cache_buster}\">Download All Changes (CSV)</a>
                     </div>
                     
                     <div class="collapsible-section">
@@ -1632,10 +1636,25 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
         <meta charset="UTF-8">
         <title>Broken Link Report</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
-        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-        <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
-        <script src="auth.js"></script>
+        
+        <!-- Cache Control Meta Tags -->
+        <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+        <meta http-equiv="Pragma" content="no-cache">
+        <meta http-equiv="Expires" content="0">
+        <meta http-equiv="Last-Modified" content="{datetime.now().strftime('%a, %d %b %Y %H:%M:%S GMT')}">
+        
+        <!-- Dynamic refresh meta tag - disabled by default -->
+        <!-- <meta http-equiv="refresh" content="300"> Auto-refresh every 5 minutes -->
+        
+        <!-- GitHub Pages specific cache busting -->
+        <meta name="github-pages-cache" content="{cache_buster}">
+        <meta name="generated-timestamp" content="{timestamp}">
+        
+        <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css?{cache_buster}">
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js?{cache_buster}"></script>
+        <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js?{cache_buster}"></script>
+        <script src="auth.js?{cache_buster}"></script>
+        <script src="cache_manager.js?{cache_buster}"></script>
         <style>
             {STYLE_DEFINITIONS}
         </style>
@@ -1644,7 +1663,14 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
         <button onclick="scrollToTop()" id="scrollTopBtn" title="Go to top">&#x2191;</button> <!-- Up arrow -->
         <button onclick="scrollToBottom()" id="scrollBottomBtn" title="Go to bottom">&#x2193;</button> <!-- Down arrow -->
         <header>
-            <h1>Kmart Link Check Report</h1>
+            <div style="display: flex; justify-content: space-between; align-items: center; max-width: var(--container-max); margin: 0 auto;">
+                <h1 style="margin: 0;">Kmart Link Check Report</h1>
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    <span style="font-size: 12px; color: #666;">Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}</span>
+                    <button onclick="refreshDashboard()" style="padding: 8px 16px; background: #0d6efd; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;" title="Refresh Dashboard">🔄 Refresh</button>
+                    <button onclick="clearBrowserCache()" style="padding: 8px 16px; background: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;" title="Clear Cache & Refresh">🗑️ Clear Cache</button>
+                </div>
+            </div>
         </header>
         <div class="container">
         <!-- <a href="combined_link_check_results.csv" download class="download-button">Download Combined CSV</a> --> <!-- Removed combined CSV download link -->
@@ -1664,7 +1690,7 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                     <span class="summary-item">🔍 Total Links Checked (AU): {total_links_au}</span>
                     <span class="summary-item">❌ Broken Links (AU): {broken_links_au}</span>
                     <span class="summary-item">✅ Valid Links (AU): {total_links_au - broken_links_au}</span>
-                    <span class="summary-item"><a href="au_link_check_results.csv" download class="download-tab-button">Download AU Full CSV</a></span>
+                    <span class="summary-item"><a href="au_link_check_results.csv?{cache_buster}" download class="download-tab-button">Download AU Full CSV</a></span>
                 </div>
                 {au_table_html}
             </div>
@@ -1674,7 +1700,7 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                     <span class="summary-item">🔍 Total Links Checked (NZ): {total_links_nz}</span>
                     <span class="summary-item">❌ Broken Links (NZ): {broken_links_nz}</span>
                     <span class="summary-item">✅ Valid Links (NZ): {total_links_nz - broken_links_nz}</span>
-                    <span class="summary-item"><a href="nz_link_check_results.csv" download class="download-tab-button">Download NZ Full CSV</a></span>
+                    <span class="summary-item"><a href="nz_link_check_results.csv?{cache_buster}" download class="download-tab-button">Download NZ Full CSV</a></span>
                 </div>
                 {nz_table_html}
             </div>
@@ -1692,8 +1718,65 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
             <!-- Categories tab content disabled -->
         </div>
         </div>
+        
+        <!-- Cache Status Footer -->
+        <footer id="cache-status" style="text-align: center; padding: 20px; margin-top: 40px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #6c757d;">
+            <div style="margin-bottom: 8px;">
+                🕐 Dashboard loaded: <span id="load-time">{datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}</span> | 
+                📊 Data version: <span id="data-version">{cache_buster}</span>
+            </div>
+            <div style="margin-top: 8px;">
+                ⌨️ Quick actions: <strong>Ctrl/Cmd+R</strong> to refresh, <strong>Ctrl/Cmd+Shift+R</strong> to clear cache
+            </div>
+        </footer>
 
         <script>
+            // Cache Management Functions
+            function clearBrowserCache() {{
+                try {{
+                    // Clear various browser caches
+                    if ('caches' in window) {{
+                        caches.keys().then(function(names) {{
+                            for (let name of names) {{
+                                caches.delete(name);
+                            }}
+                        }});
+                    }}
+                    
+                    // Clear localStorage and sessionStorage
+                    if (typeof(Storage) !== "undefined") {{
+                        localStorage.clear();
+                        sessionStorage.clear();
+                    }}
+                    
+                    // Force reload from server
+                    if (typeof window !== 'undefined') {{
+                        window.location.reload(true);
+                    }}
+                }} catch (e) {{
+                    console.log('Cache clearing partially failed:', e);
+                    // Fallback: normal reload
+                    window.location.reload();
+                }}
+            }}
+            
+            function refreshDashboard() {{
+                console.log('Refreshing dashboard data...');
+                // Add timestamp to current URL to force refresh
+                var currentUrl = window.location.href.split('?')[0];
+                var timestamp = new Date().getTime();
+                window.location.href = currentUrl + '?t=' + timestamp;
+            }}
+            
+            function autoRefreshSetup() {{
+                // Set up auto-refresh every 5 minutes (300000 ms)
+                setInterval(function() {{
+                    console.log('Auto-refreshing dashboard...');
+                    refreshDashboard();
+                }}, 300000);
+            }}
+            
+            // Tab management function
             function openTab(evt, reportName) {{
                 var i, tabcontent, tablinks;
                 tabcontent = document.getElementsByClassName("tab-content");
@@ -1708,7 +1791,57 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                 evt.currentTarget.className += " active";
             }}
 
+            // Page Load Initialization
             $(document).ready(function() {{
+                // Initialize cache management
+                console.log('Dashboard loaded at: {datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")}');
+                
+                // Set up auto-refresh (disabled by default, uncomment to enable)
+                // autoRefreshSetup();
+                
+                // Register service worker for cache management (if available)
+                if ('serviceWorker' in navigator) {{
+                    navigator.serviceWorker.getRegistrations().then(function(registrations) {{
+                        for(let registration of registrations) {{
+                            registration.unregister();
+                        }}
+                    }}).catch(function(err) {{
+                        console.log('Service worker unregistration failed: ', err);
+                    }});
+                }}
+                
+                // Add keyboard shortcuts for quick access
+                document.addEventListener('keydown', function(e) {{
+                    // Ctrl/Cmd + R for refresh
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'r') {{
+                        e.preventDefault();
+                        refreshDashboard();
+                    }}
+                    // Ctrl/Cmd + Shift + R for cache clear and refresh
+                    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'R') {{
+                        e.preventDefault();
+                        clearBrowserCache();
+                    }}
+                }});
+                
+                // Add keyboard shortcuts for quick access
+                document.addEventListener('keydown', function(e) {{
+                    // Ctrl/Cmd + R for refresh
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'r') {{
+                        e.preventDefault();
+                        refreshDashboard();
+                    }}
+                    // Ctrl/Cmd + Shift + R for cache clear and refresh
+                    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'R') {{
+                        e.preventDefault();
+                        clearBrowserCache();
+                    }}
+                }});
+                
+                // Add cache-busting to any dynamically loaded content
+                var timestamp = new Date().getTime();
+                
+                // Initialize DataTables
                 ['#auLinkTable', '#nzLinkTable'].forEach(function(tableId) {{
                     if (!$(tableId).length) return; // If table doesn't exist, skip
 
