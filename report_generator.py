@@ -1325,11 +1325,14 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                 try:
                     if pd.notna(row.get('DETAIL', '')):
                         detail_str = str(row['DETAIL'])
+                        # Sanitize string to ensure valid UTF-8
+                        detail_str = detail_str.encode('utf-8', 'ignore').decode('utf-8')
                         # Handle double-escaped JSON if needed
                         if detail_str.startswith('"') and detail_str.endswith('"'):
                             detail_str = detail_str[1:-1].replace('\\"', '"')
                         product_data = json.loads(detail_str)
-                except Exception as e:
+                except (Exception, UnicodeDecodeError) as e:
+                    print(f"Warning: Failed to parse product detail JSON: {e}")
                     product_data = {}
                 
                 # Extract product name from JSON - check multiple possible keys
@@ -1402,6 +1405,8 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                     for attr_name, attr_value in attributes.items():
                         if attr_value is not None and str(attr_value).strip():
                             value_str = str(attr_value)
+                            # Sanitize value string to ensure valid UTF-8
+                            value_str = value_str.encode('utf-8', 'ignore').decode('utf-8')
                             
                             # Special handling for date fields
                             date_style = ''
@@ -1418,8 +1423,11 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                                 except:
                                     pass
                             
+                            # Sanitize attribute name as well
+                            safe_attr_name = str(attr_name).encode('utf-8', 'ignore').decode('utf-8')
+                            
                             html_content += '<div class="attribute-item">'
-                            html_content += f'<span class="attr-name"><strong>{html.escape(attr_name)}:</strong></span> '
+                            html_content += f'<span class="attr-name"><strong>{html.escape(safe_attr_name)}:</strong></span> '
                             html_content += f'<span class="attr-value"{date_style}>{html.escape(value_str)}</span>'
                             html_content += '</div>'
                 else:
@@ -1452,22 +1460,36 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                 # Check for Page Views content file in current directory
                 page_views_file = 'page_views_content.html'
                 try:
-                    with open(page_views_file, 'r', encoding='utf-8', errors='replace') as f:
-                        return f.read()
-                except FileNotFoundError:
+                    # Use more robust encoding handling
+                    with open(page_views_file, 'r', encoding='utf-8', errors='ignore') as f:
+                        content = f.read()
+                        # Sanitize the content to ensure it's valid UTF-8
+                        content = content.encode('utf-8', 'ignore').decode('utf-8')
+                        return content
+                except (FileNotFoundError, UnicodeDecodeError) as e:
+                    print(f"Error reading {page_views_file}: {e}")
                     # Fallback to legacy file if new file missing
                     legacy_file = 'top_products_content.html'
                     try:
-                        with open(legacy_file, 'r', encoding='utf-8', errors='replace') as f:
-                            return f.read()
-                    except FileNotFoundError:
-                        return "<p>Page Views content file not found.</p>"
+                        with open(legacy_file, 'r', encoding='utf-8', errors='ignore') as f:
+                            content = f.read()
+                            # Sanitize the content to ensure it's valid UTF-8
+                            content = content.encode('utf-8', 'ignore').decode('utf-8')
+                            return content
+                    except (FileNotFoundError, UnicodeDecodeError) as e:
+                        print(f"Error reading {legacy_file}: {e}")
+                        return "<p>Page Views content file not found or contains encoding errors.</p>"
             else:
-                print(f"Error running newrelic_top_products.py: {result.stderr}")
-                return f"<p>Error generating Page Views data: {result.stderr}</p>"
+                error_msg = result.stderr if result.stderr else "Unknown error"
+                print(f"Error running newrelic_top_products.py: {error_msg}")
+                # Sanitize error message for safe HTML inclusion
+                safe_error = html.escape(error_msg)
+                return f"<p>Error generating Page Views data: {safe_error}</p>"
         except Exception as e:
             print(f"Exception running newrelic_top_products.py: {str(e)}")
-            return f"<p>Error generating Page Views data: {str(e)}</p>"
+            # Sanitize error message for safe HTML inclusion
+            safe_error = html.escape(str(e))
+            return f"<p>Error generating Page Views data: {safe_error}</p>"
     
     page_views_html = generate_page_views_data()
 
@@ -1869,7 +1891,10 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
     </html>
     """
 
-    with open(output_html_path, 'w', encoding='utf-8') as f:
+    # Sanitize the final HTML content to ensure valid UTF-8
+    html_content = html_content.encode('utf-8', 'ignore').decode('utf-8')
+    
+    with open(output_html_path, 'w', encoding='utf-8', errors='ignore') as f:
         f.write(html_content)
     print(f"✅ Combined HTML report saved to {output_html_path}")
 

@@ -44,19 +44,18 @@ except ImportError:
 def get_dynamic_headers_and_payload():
     """
     Get headers and payload using cookie from environment variables.
+    Returns None if environment variables are not set.
     """
     metadata_url = os.getenv('NEWRELIC_BASE_URL')
     cookie = os.getenv('NEWRELIC_COOKIE')
     account_id = os.getenv('NEWRELIC_ACCOUNT_ID')
 
-    if not metadata_url:
-        raise ValueError("NEWRELIC_BASE_URL environment variable not set.")
+    if not metadata_url or not account_id:
+        print("Warning: New Relic environment variables not configured.")
+        return None, None, None
 
     if not cookie:
         print("Warning: NEWRELIC_COOKIE environment variable not set. Requests may fail.")
-
-    if not account_id:
-        raise ValueError("NEWRELIC_ACCOUNT_ID environment variable not set.")
 
     base_url = "https://chartdata.service.newrelic.com/v3/nrql?"  # API host
 
@@ -229,17 +228,22 @@ def generate_html_content(products):
         product_name = url_parts[-2] if len(url_parts) > 1 else product['url']
         product_name = product_name.replace('-', ' ').title()
         
+        # Sanitize URL and product name to ensure valid UTF-8
+        safe_url = product['url'].encode('utf-8', 'ignore').decode('utf-8')
+        safe_product_name = product_name.encode('utf-8', 'ignore').decode('utf-8')
+        safe_timestamp = product['timestamp'].encode('utf-8', 'ignore').decode('utf-8')
+        
         html_content += f'''
                         <tr>
                             <td>{i}</td>
                             <td>
-                                <a href="{product['url']}" target="_blank" title="{product['url']}">
-                                    {product_name}
+                                <a href="{safe_url}" target="_blank" title="{safe_url}">
+                                    {safe_product_name}
                                 </a>
-                                <br><small style="color: #666;">{product['url']}</small>
+                                <br><small style="color: #666;">{safe_url}</small>
                             </td>
                             <td><strong>{product['count']:,}</strong></td>
-                            <td>{product['timestamp']}</td>
+                            <td>{safe_timestamp}</td>
                         </tr>
 '''
     
@@ -277,12 +281,16 @@ def generate_top_pages_html(pages):
     total_views = sum(p['count'] for p in pages)
     top_views = pages[0]['count'] if pages else 0
     for i, page in enumerate(pages, 1):
+        # Sanitize URL and timestamp to ensure valid UTF-8
+        safe_url = page['url'].encode('utf-8', 'ignore').decode('utf-8')
+        safe_timestamp = page['timestamp'].encode('utf-8', 'ignore').decode('utf-8')
+        
         html_content += f'''
                         <tr>
                             <td>{i}</td>
-                            <td><a href="{page['url']}" target="_blank">{page['url']}</a></td>
+                            <td><a href="{safe_url}" target="_blank">{safe_url}</a></td>
                             <td><strong>{page['count']:,}</strong></td>
-                            <td>{page['timestamp']}</td>
+                            <td>{safe_timestamp}</td>
                         </tr>
 '''
     html_content += '''
@@ -312,10 +320,13 @@ def generate_broken_links_views_html(items):
     sorted_items = sorted(items, key=lambda x: x['count'], reverse=True)
     total_views = sum(i['count'] for i in sorted_items)
     for i, it in enumerate(sorted_items, 1):
+        # Sanitize URL to ensure valid UTF-8
+        safe_url = it['url'].encode('utf-8', 'ignore').decode('utf-8')
+        
         html_content += f'''
                         <tr>
                             <td>{i}</td>
-                            <td><a href="{it['url']}" target="_blank">{it['url']}</a></td>
+                            <td><a href="{safe_url}" target="_blank">{safe_url}</a></td>
                             <td><strong>{it['count']:,}</strong></td>
                         </tr>
 '''
@@ -394,7 +405,7 @@ def _read_broken_links_urls(script_dir):
         
         try:
             # Read CSV and filter for broken links (Status >= 400) just like report_generator.py
-            df = pd.read_csv(path, encoding='utf-8', encoding_errors='replace')
+            df = pd.read_csv(path, encoding='utf-8', encoding_errors='ignore')
             df['Status'] = pd.to_numeric(df['Status'], errors='coerce').fillna(0).astype(int)
             
             # Filter for broken links only (Status >= 400)
@@ -402,9 +413,15 @@ def _read_broken_links_urls(script_dir):
             
             count_before = len(urls)
             for _, row in broken_df.iterrows():
-                url = str(row.get('URL', '')).strip()
-                if url.startswith('http'):
-                    urls.add(url)
+                try:
+                    url = str(row.get('URL', '')).strip()
+                    # Sanitize URL to ensure valid UTF-8
+                    url = url.encode('utf-8', 'ignore').decode('utf-8')
+                    if url.startswith('http'):
+                        urls.add(url)
+                except Exception as e:
+                    print(f"Warning: skipping problematic URL in {region}: {e}")
+                    continue
             
             count_after = len(urls)
             broken_count = len(broken_df)
@@ -569,6 +586,33 @@ def main():
     
     # Get headers and payload dynamically
     headers, payload, base_url = get_dynamic_headers_and_payload()
+    
+    # Check if environment variables are configured
+    if headers is None:
+        fallback_html = '''
+        <div class="card">
+            <h3>📊 Page Views Data</h3>
+            <div class="info-message">
+                <p><strong>New Relic Configuration Required</strong></p>
+                <p>To display page views data, please configure the following environment variables:</p>
+                <ul>
+                    <li><code>NEWRELIC_BASE_URL</code></li>
+                    <li><code>NEWRELIC_ACCOUNT_ID</code></li>
+                    <li><code>NEWRELIC_COOKIE</code></li>
+                </ul>
+                <p>Once configured, regenerate the report to see page views analytics.</p>
+            </div>
+        </div>
+        '''
+        
+        # Write fallback content to file
+        output_file = os.path.join(script_dir, 'page_views_content.html')
+        with open(output_file, 'w', encoding='utf-8', errors='ignore') as f:
+            f.write(fallback_html)
+        
+        print("Generated fallback page views content due to missing New Relic configuration.")
+        return fallback_html
+    
     print(f"Configured request with {len(headers)} headers")
     print(f"Current date/time: {datetime.now()}")
 
@@ -692,16 +736,19 @@ def main():
     # Generate combined Page Views HTML
     page_views_html = build_page_views_container_html(top_products, top_pages, broken_links_views)
 
-    # Save HTML content to file
+    # Save HTML content to file with proper encoding handling
     output_file = os.path.join(script_dir, 'page_views_content.html')
-    with open(output_file, 'w', encoding='utf-8') as f:
+    # Sanitize HTML content to ensure valid UTF-8
+    page_views_html = page_views_html.encode('utf-8', 'ignore').decode('utf-8')
+    
+    with open(output_file, 'w', encoding='utf-8', errors='ignore') as f:
         f.write(page_views_html)
     print(f"HTML content generated and saved to {output_file}")
 
     # Also keep legacy file name for backward compatibility
     legacy_output = os.path.join(script_dir, 'top_products_content.html')
     try:
-        with open(legacy_output, 'w', encoding='utf-8') as f:
+        with open(legacy_output, 'w', encoding='utf-8', errors='ignore') as f:
             f.write(page_views_html)
         print(f"(Compatibility) Also wrote content to {legacy_output}")
     except Exception as e:
