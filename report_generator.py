@@ -1456,8 +1456,14 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
         """Call the newrelic_top_products.py script to generate Page Views data (Top Products, Top Pages, Broken Links Views)"""
         try:
             # Run the newrelic_top_products.py script
-            result = subprocess.run([sys.executable, 'newrelic_top_products.py'],
-                                  capture_output=True, text=True, env=os.environ.copy())
+            # Run the script in binary mode to avoid UnicodeDecodeError when decoding stdout/stderr
+            # We'll decode manually with a tolerant strategy only if needed for logging
+            result = subprocess.run(
+                [sys.executable, 'newrelic_top_products.py'],
+                capture_output=True,
+                text=False,  # capture raw bytes to prevent decoding errors
+                env=os.environ.copy()
+            )
             
             if result.returncode == 0:
                 print("Page Views data generated successfully")
@@ -1484,7 +1490,9 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                         print(f"Error reading {legacy_file}: {e}")
                         return "<p>Page Views content file not found or contains encoding errors.</p>"
             else:
-                error_msg = result.stderr if result.stderr else "Unknown error"
+                # Decode stderr safely for reporting
+                err_bytes = result.stderr or b""
+                error_msg = err_bytes.decode('utf-8', errors='ignore') or "Unknown error"
                 print(f"Error running newrelic_top_products.py: {error_msg}")
                 # Sanitize error message for safe HTML inclusion
                 safe_error = html.escape(error_msg)
