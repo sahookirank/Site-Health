@@ -267,6 +267,21 @@ jobs:
             exit 1
           fi
 
+      - name: Generate Optimizely Enhanced Report
+        run: |
+          echo "🧪 Generating Optimizely Enhanced report from kmart.json..."
+          if python3 generate_static_report.py --local-backup kmart.json; then
+            if [ -f "optimizely_enhanced_report.html" ]; then
+              echo "✅ Optimizely report generated (size: $(wc -c < optimizely_enhanced_report.html) bytes)"
+            else
+              echo "❌ Expected optimizely_enhanced_report.html not found after generation"
+              exit 1
+            fi
+          else
+            echo "❌ Failed to run generate_static_report.py"
+            exit 1
+          fi
+
       - name: Prepare deployment directory with validation
         env:
           USER_SECRET: ${{ secrets.USER }}
@@ -315,6 +330,23 @@ jobs:
               echo "✓ Copied $csv_file"
             fi
           done
+
+          # Copy Optimizely report if present
+          if [ -f "optimizely_enhanced_report.html" ]; then
+            cp optimizely_enhanced_report.html gh-pages-deploy/
+            echo "✓ Copied optimizely_enhanced_report.html"
+          else
+            echo "⚠️ optimizely_enhanced_report.html not found; Optimizely tab iframe may not load"
+          fi
+
+          # Ensure Optimizely JSON is published for dashboard usage
+          if [ -f "kmart.json" ]; then
+            cp kmart.json gh-pages-deploy/
+            echo "✓ Copied kmart.json for Optimizely tab data"
+          else
+            echo "❌ kmart.json missing; Optimizely tab data will fail to load"
+            exit 1
+          fi
 
           # Create download links page
           cat > gh-pages-deploy/downloads.html << 'EOF'
@@ -438,3 +470,9 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**🌐 Live Report:** ${{ steps.deployment.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
           echo "**📥 Downloads:** ${{ steps.deployment.outputs.page_url }}downloads.html" >> $GITHUB_STEP_SUMMARY
+      - name: Fetch latest Optimizely datafile
+        run: |
+          echo "🌐 Downloading latest Optimizely datafile..."
+          curl -fSL "https://www.kmart.com.au/assets/optimizely/datafile.json" -o kmart.json
+          echo "✅ Downloaded kmart.json (size: $(wc -c < kmart.json) bytes)"
+*** End Patch
