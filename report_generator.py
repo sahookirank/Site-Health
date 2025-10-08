@@ -1138,7 +1138,677 @@ def _compute_changes(conn: sqlite3.Connection):
         'available_dates': available_dates
     }
 
-def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='combined_report.html', product_csv_path='product_export.csv', db_path='broken_links.db'):
+OPTIMIZELY_TAB_STYLES = """
+            .optly-container {
+                margin-top: 16px;
+                background: #ffffff;
+                border-radius: 12px;
+                box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+                overflow: hidden;
+                border: 1px solid rgba(148, 163, 184, 0.25);
+            }
+            .optly-inner {
+                padding: 20px 24px 28px;
+            }
+            .optly-search-container {
+                background: linear-gradient(135deg, #f8fafc, #eef2ff);
+                padding: 20px 24px;
+                border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+            }
+            .optly-search-box {
+                max-width: 520px;
+                margin: 0 auto;
+                position: relative;
+            }
+            #optly-search-input {
+                width: 100%;
+                padding: 12px 44px 12px 16px;
+                border: 2px solid rgba(59, 130, 246, 0.2);
+                border-radius: 999px;
+                font-size: 15px;
+                transition: all 0.25s ease;
+                outline: none;
+            }
+            #optly-search-input:focus {
+                border-color: rgba(59, 130, 246, 0.6);
+                box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+            }
+            #optly-search-clear {
+                position: absolute;
+                right: 10px;
+                top: 50%;
+                transform: translateY(-50%);
+                width: 26px;
+                height: 26px;
+                border-radius: 50%;
+                border: none;
+                background: #64748b;
+                color: #fff;
+                cursor: pointer;
+                display: none;
+                transition: background 0.2s ease;
+            }
+            #optly-search-clear.visible {
+                display: block;
+            }
+            #optly-search-clear:hover {
+                background: #475569;
+            }
+            .optly-tabs {
+                display: flex;
+                flex-wrap: wrap;
+                background: #eef2ff;
+                border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+            }
+            .optly-tab {
+                flex: 1;
+                min-width: 160px;
+                padding: 18px 12px;
+                text-align: center;
+                font-weight: 600;
+                letter-spacing: .2px;
+                color: #3b82f6;
+                background: transparent;
+                border: none;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                position: relative;
+            }
+            .optly-tab:hover {
+                background: rgba(59, 130, 246, 0.06);
+            }
+            .optly-tab.active {
+                background: #fff;
+                color: #1e3a8a;
+                box-shadow: inset 0 -3px 0 #3b82f6;
+            }
+            .optly-tab-content {
+                display: none;
+            }
+            .optly-tab-content.active {
+                display: block;
+            }
+            .optly-data-section {
+                margin-bottom: 28px;
+            }
+            .optly-section-title {
+                font-size: 20px;
+                font-weight: 700;
+                color: #1e293b;
+                margin-bottom: 18px;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            .optly-section-title::before {
+                content: '';
+                width: 6px;
+                height: 22px;
+                border-radius: 999px;
+                background: linear-gradient(135deg, #3b82f6, #6366f1);
+            }
+            .optly-info-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                gap: 16px;
+                margin-bottom: 10px;
+            }
+            .optly-info-card {
+                background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+                padding: 16px;
+                border-radius: 12px;
+                border: 1px solid rgba(99, 102, 241, 0.1);
+            }
+            .optly-info-label {
+                font-size: 13px;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: .8px;
+                color: #4c1d95;
+                margin-bottom: 6px;
+            }
+            .optly-info-value {
+                font-family: 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+                font-size: 15px;
+                color: #1e293b;
+                word-break: break-all;
+            }
+            .optly-badge {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                padding: 4px 10px;
+                border-radius: 999px;
+                font-size: 12px;
+                font-weight: 700;
+                background: rgba(59, 130, 246, 0.15);
+                color: #1d4ed8;
+                margin-left: 12px;
+            }
+            .optly-collapsible {
+                width: 100%;
+                background: linear-gradient(135deg, #3b82f6, #6366f1);
+                color: #fff;
+                border: none;
+                border-radius: 12px;
+                padding: 14px 18px;
+                text-align: left;
+                font-size: 15px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: transform 0.15s ease, box-shadow 0.2s ease;
+                margin-bottom: 12px;
+            }
+            .optly-collapsible:hover {
+                box-shadow: 0 10px 18px rgba(99, 102, 241, 0.25);
+                transform: translateY(-1px);
+            }
+            .optly-collapsible.active {
+                box-shadow: 0 12px 20px rgba(59, 130, 246, 0.25);
+            }
+            .optly-collapse-content {
+                max-height: 0;
+                overflow: hidden;
+                transition: max-height 0.3s ease;
+                border-radius: 12px;
+            }
+            .optly-collapse-content.active {
+                max-height: none;
+                margin-bottom: 12px;
+            }
+            .optly-expandable-table {
+                background: #fff;
+                border-radius: 12px;
+                border: 1px solid rgba(148, 163, 184, 0.25);
+                box-shadow: inset 0 1px 0 rgba(148, 163, 184, 0.2);
+            }
+            .optly-table-row {
+                border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+            }
+            .optly-table-row:last-child {
+                border-bottom: none;
+            }
+            .optly-table-row.hidden {
+                display: none;
+            }
+            .optly-row-header {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 16px 20px;
+                cursor: pointer;
+                background: linear-gradient(135deg, rgba(248, 250, 252, 0.98), rgba(236, 241, 251, 0.98));
+                transition: background 0.2s ease;
+            }
+            .optly-row-header:hover {
+                background: linear-gradient(135deg, rgba(226, 232, 240, 0.65), rgba(226, 232, 240, 0.45));
+            }
+            .optly-row-header.expanded {
+                background: rgba(219, 234, 254, 0.9);
+            }
+            .optly-row-title {
+                font-weight: 600;
+                color: #1e293b;
+            }
+            .optly-row-content {
+                max-height: 0;
+                overflow: hidden;
+                transition: max-height 0.3s ease;
+                background: #fff;
+            }
+            .optly-row-content.expanded {
+                max-height: none;
+                padding: 18px 22px 24px;
+                border-top: 1px solid rgba(226, 232, 240, 0.8);
+            }
+            .optly-expand-icon {
+                transition: transform 0.25s ease;
+                font-style: normal;
+                color: #1e3a8a;
+                font-weight: 700;
+            }
+            .optly-expand-icon.expanded {
+                transform: rotate(90deg);
+            }
+            .optly-json-container {
+                background: #0f172a;
+                color: #e2e8f0;
+                border-radius: 12px;
+                padding: 18px;
+                font-size: 13px;
+                line-height: 1.6;
+                font-family: 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+                box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.2);
+            }
+            .optly-json-object,
+            .optly-json-array {
+                margin-left: 18px;
+            }
+            .optly-json-item {
+                margin: 4px 0;
+            }
+            .optly-json-key {
+                color: #60a5fa;
+                font-weight: 600;
+                cursor: pointer;
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+            }
+            .optly-json-key.optly-has-children:hover {
+                background: rgba(59, 130, 246, 0.15);
+                border-radius: 6px;
+                padding: 2px 6px;
+            }
+            .optly-json-key:not(.optly-has-children) {
+                cursor: default;
+            }
+            .optly-json-value {
+                color: #facc15;
+                margin-left: 6px;
+            }
+            .optly-json-children {
+                margin-left: 18px;
+                margin-top: 6px;
+            }
+            .optly-json-children.collapsed {
+                display: none;
+            }
+            .optly-no-results {
+                text-align: center;
+                padding: 32px 16px;
+                color: #475569;
+                font-style: italic;
+                font-size: 14px;
+            }
+            .optly-error {
+                margin: 24px;
+                padding: 18px 20px;
+                border-radius: 12px;
+                border: 1px solid rgba(248, 113, 113, 0.4);
+                background: rgba(254, 226, 226, 0.6);
+                color: #991b1b;
+            }
+            @media (max-width: 768px) {
+                .optly-tabs {
+                    flex-direction: column;
+                }
+                .optly-tab {
+                    min-width: auto;
+                }
+                .optly-info-grid {
+                    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+                }
+                .optly-inner {
+                    padding: 16px 18px 24px;
+                }
+            }
+    """
+
+def _load_optimizely_json(path):
+    if not path:
+        return None, f"No Optimizely JSON path provided."
+    if not os.path.exists(path):
+        print(f"⚠️ Optimizely JSON not found: {path}")
+        return None, f"Optimizely data file not found at <code>{html.escape(path)}</code>."
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            return json.load(f), None
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"⚠️ Failed to load Optimizely data from {path}: {exc}")
+        return None, f"Unable to load Optimizely data from <code>{html.escape(path)}</code>."
+
+def _optly_generate_json_tree(data, prefix, level=0):
+    """Recursively build expandable JSON tree markup for Optimizely data."""
+    if level > 6:
+        return '<span class="optly-json-value">"..."</span>'
+
+    if isinstance(data, dict):
+        if not data:
+            return '<span class="optly-json-value">{}</span>'
+        items = []
+        for key, value in data.items():
+            safe_key = html.escape(str(key))
+            unique_id = f"{prefix}_{safe_key}_{level}_{abs(hash(str(value))) % 10000}"
+            if isinstance(value, (dict, list)) and value:
+                items.append(f'''
+                    <div class="optly-json-item">
+                        <span class="optly-json-key optly-has-children" data-target="{unique_id}">
+                            <i class="optly-expand-icon">▶</i>"{safe_key}":
+                        </span>
+                        <div id="{unique_id}" class="optly-json-children collapsed">
+                            {_optly_generate_json_tree(value, unique_id, level + 1)}
+                        </div>
+                    </div>
+                ''')
+            else:
+                value_repr = html.escape(json.dumps(value, ensure_ascii=False))
+                items.append(f'''
+                    <div class="optly-json-item">
+                        <span class="optly-json-key">"{safe_key}":</span>
+                        <span class="optly-json-value">{value_repr}</span>
+                    </div>
+                ''')
+        return f'<div class="optly-json-object">{{\n{"".join(items)}\n}}</div>'
+
+    if isinstance(data, list):
+        if not data:
+            return '<span class="optly-json-value">[]</span>'
+        items = []
+        for idx, item in enumerate(data):
+            unique_id = f"{prefix}_{idx}_{level}_{abs(hash(str(item))) % 10000}"
+            if isinstance(item, (dict, list)) and item:
+                items.append(f'''
+                    <div class="optly-json-item">
+                        <span class="optly-json-key optly-has-children" data-target="{unique_id}">
+                            <i class="optly-expand-icon">▶</i>[{idx}]:
+                        </span>
+                        <div id="{unique_id}" class="optly-json-children collapsed">
+                            {_optly_generate_json_tree(item, unique_id, level + 1)}
+                        </div>
+                    </div>
+                ''')
+            else:
+                value_repr = html.escape(json.dumps(item, ensure_ascii=False))
+                items.append(f'''
+                    <div class="optly-json-item">
+                        <span class="optly-json-key">[{idx}]:</span>
+                        <span class="optly-json-value">{value_repr}</span>
+                    </div>
+                ''')
+        return f'<div class="optly-json-array">[\n{"".join(items)}\n]</div>'
+
+    return f'<span class="optly-json-value">{html.escape(json.dumps(data, ensure_ascii=False))}</span>'
+
+def _optly_render_summary(data, region_label):
+    summary_pairs = [
+        ("Account ID", data.get('accountId', 'N/A')),
+        ("Project ID", data.get('projectId', 'N/A')),
+        ("Revision", data.get('revision', 'N/A')),
+        ("Environment", data.get('environmentKey', 'N/A')),
+    ]
+    cards = ''.join(
+        f'''
+        <div class="optly-info-card">
+            <div class="optly-info-label">{html.escape(str(label))}</div>
+            <div class="optly-info-value">{html.escape(str(value))}</div>
+        </div>
+        '''
+        for label, value in summary_pairs
+    )
+    return f'''
+        <div class="optly-data-section">
+            <h2 class="optly-section-title">Optimizely Configuration - {html.escape(region_label.upper())}</h2>
+            <div class="optly-info-grid">
+                {cards}
+            </div>
+        </div>
+    '''
+
+def _optly_render_group(title, items, region_key, item_type, open_by_default=False):
+    section_id = f"optly_{region_key}_{item_type}_section"
+    if not items:
+        return f'''
+            <div class="optly-data-section">
+                <button class="optly-collapsible" data-target="{section_id}">{html.escape(title)}<span class="optly-badge">0</span></button>
+                <div id="{section_id}" class="optly-collapse-content">
+                    <div class="optly-expandable-table">
+                        <div class="optly-no-results">No {html.escape(title.lower())} available.</div>
+                    </div>
+                </div>
+            </div>
+        '''
+
+    rows = []
+    for idx, item in enumerate(items):
+        row_id = f"optly_{region_key}_{item_type}_{idx}"
+        item_id = html.escape(str(item.get('id', 'N/A')))
+        item_key = html.escape(str(item.get('key', 'N/A')))
+        if item_type == 'event':
+            row_title = f"Event: {item_key} (ID: {item_id})"
+        elif item_type == 'flag':
+            row_title = f"Feature Flag: {item_key} (ID: {item_id})"
+        else:
+            status = html.escape(str(item.get('status', 'N/A')))
+            row_title = f"Experiment: {item_key} (ID: {item_id}) • {status}"
+
+        search_payload = f"{row_title} {json.dumps(item, ensure_ascii=False)}".lower()
+        row_header_classes = "optly-row-header"
+        rows.append(f'''
+            <div class="optly-table-row" data-search-text="{html.escape(search_payload)}">
+                <div class="{row_header_classes}" data-target="{row_id}">
+                    <i class="optly-expand-icon">▶</i>
+                    <span class="optly-row-title">{html.escape(row_title)}</span>
+                </div>
+                <div id="{row_id}" class="optly-row-content collapsed">
+                    <div class="optly-json-container">
+                        {_optly_generate_json_tree(item, f"{region_key}_{item_type}_{idx}")}
+                    </div>
+                </div>
+            </div>
+        ''')
+
+    collapse_classes = "optly-collapse-content active" if open_by_default else "optly-collapse-content"
+    collapsible_classes = "optly-collapsible active" if open_by_default else "optly-collapsible"
+
+    return f'''
+        <div class="optly-data-section">
+            <button class="{collapsible_classes}" data-target="{section_id}">
+                {html.escape(title)}<span class="optly-badge">{len(items)}</span>
+            </button>
+            <div id="{section_id}" class="{collapse_classes}">
+                <div class="optly-expandable-table">
+                    {''.join(rows)}
+                </div>
+            </div>
+        </div>
+    '''
+
+def _optly_render_tab_content(data, region_key):
+    region_label = region_key.upper()
+    events = data.get('events', [])
+    feature_flags = data.get('featureFlags', [])
+    experiments = data.get('experiments', [])
+    sections = [
+        _optly_render_summary(data, region_label),
+        _optly_render_group("Events", events, region_key, 'event', open_by_default=True),
+        _optly_render_group("Feature Flags", feature_flags, region_key, 'flag'),
+        _optly_render_group("Experiments", experiments, region_key, 'experiment'),
+    ]
+    return ''.join(sections)
+
+def generate_optimizely_section(optimizely_json_paths=None):
+    """Create the Optimizely tab content using the enhanced UI design with AU/NZ tabs."""
+    if isinstance(optimizely_json_paths, dict):
+        path_map = {key.upper(): value for key, value in optimizely_json_paths.items() if value}
+    else:
+        default_path = optimizely_json_paths or 'kmart.json'
+        path_map = {'AU': default_path, 'NZ': default_path}
+
+    if 'NZ' in path_map:
+        nz_path = path_map['NZ']
+        # Auto-discover NZ specific file if default path is shared with AU
+        if nz_path == path_map.get('AU'):
+            candidates = []
+            base = path_map['AU']
+            if base:
+                root, ext = os.path.splitext(base)
+                candidates.extend([
+                    f"{root}_nz{ext}",
+                    base.replace('au', 'nz'),
+                    base.replace('AU', 'NZ'),
+                    'kmart_nz.json'
+                ])
+            for candidate in candidates:
+                if candidate and os.path.exists(candidate):
+                    path_map['NZ'] = candidate
+                    break
+
+    # Ensure deterministic order AU then NZ for display
+    ordered_regions = []
+    for region in ['AU', 'NZ']:
+        if region in path_map:
+            ordered_regions.append(region)
+    for region in path_map:
+        if region not in ordered_regions:
+            ordered_regions.append(region)
+
+    tab_buttons = []
+    tab_contents = []
+
+    for idx, region in enumerate(ordered_regions):
+        active_class = " active" if idx == 0 else ""
+        button_html = f'<button class="optly-tab{active_class}" data-target="optly-tab-{region.lower()}">{html.escape(region)}</button>'
+        tab_buttons.append(button_html)
+
+        data, error = _load_optimizely_json(path_map.get(region))
+        if data is None:
+            content_inner = f'<div class="optly-error">{error or "Optimizely data unavailable."}</div>'
+        else:
+            content_inner = _optly_render_tab_content(data, region.lower())
+
+        tab_contents.append(
+            f'<div id="optly-tab-{region.lower()}" class="optly-tab-content{active_class}"><div class="optly-inner">{content_inner}</div></div>'
+        )
+
+    return f"""
+        <div class="optly-container" id="optly-container">
+            <div class="optly-search-container">
+                <div class="optly-search-box">
+                    <input type="text" id="optly-search-input" placeholder="Search events, feature flags, and experiments...">
+                    <button id="optly-search-clear" title="Clear search">✕</button>
+                </div>
+            </div>
+            <div class="optly-tabs">
+                {''.join(tab_buttons)}
+            </div>
+            {''.join(tab_contents)}
+        </div>
+        <script>
+            (function() {{
+                const container = document.getElementById('optly-container');
+                if (!container) return;
+
+                const tabs = Array.from(container.querySelectorAll('.optly-tab'));
+                const tabContents = Array.from(container.querySelectorAll('.optly-tab-content'));
+                tabs.forEach(tab => {{
+                    tab.addEventListener('click', () => {{
+                        const targetId = tab.getAttribute('data-target');
+                        tabs.forEach(t => t.classList.remove('active'));
+                        tabContents.forEach(content => content.classList.remove('active'));
+                        tab.classList.add('active');
+                        const target = container.querySelector('#' + targetId);
+                        if (target) target.classList.add('active');
+                    }});
+                }});
+
+                container.querySelectorAll('.optly-collapsible').forEach(button => {{
+                    button.addEventListener('click', () => {{
+                        const targetId = button.getAttribute('data-target');
+                        const content = container.querySelector('#' + targetId);
+                        button.classList.toggle('active');
+                        if (content) {{
+                            content.classList.toggle('active');
+                        }}
+                    }});
+                }});
+
+                container.querySelectorAll('.optly-row-header').forEach(header => {{
+                    header.addEventListener('click', () => {{
+                        const targetId = header.getAttribute('data-target');
+                        const content = container.querySelector('#' + targetId);
+                        const icon = header.querySelector('.optly-expand-icon');
+                        if (!content || !icon) return;
+                        if (content.classList.contains('expanded')) {{
+                            content.classList.remove('expanded');
+                            icon.classList.remove('expanded');
+                            header.classList.remove('expanded');
+                        }} else {{
+                            content.classList.add('expanded');
+                            icon.classList.add('expanded');
+                            header.classList.add('expanded');
+                        }}
+                    }});
+                }});
+
+                container.querySelectorAll('.optly-json-key.optly-has-children').forEach(key => {{
+                    key.addEventListener('click', (e) => {{
+                        e.stopPropagation();
+                        const targetId = key.getAttribute('data-target');
+                        const node = container.querySelector('#' + targetId);
+                        const icon = key.querySelector('.optly-expand-icon');
+                        if (!node || !icon) return;
+                        if (node.classList.contains('collapsed')) {{
+                            node.classList.remove('collapsed');
+                            icon.textContent = '▼';
+                        }} else {{
+                            node.classList.add('collapsed');
+                            icon.textContent = '▶';
+                        }}
+                    }});
+                }});
+
+                const searchInput = container.querySelector('#optly-search-input');
+                const clearButton = container.querySelector('#optly-search-clear');
+
+                const filterRows = () => {{
+                    const term = (searchInput.value || '').toLowerCase().trim();
+                    if (clearButton) {{
+                        clearButton.classList.toggle('visible', term.length > 0);
+                    }}
+
+                    const rows = Array.from(container.querySelectorAll('.optly-table-row'));
+                    rows.forEach(row => {{
+                        const haystack = row.getAttribute('data-search-text') || '';
+                        if (!term || haystack.includes(term)) {{
+                            row.classList.remove('hidden');
+                        }} else {{
+                            row.classList.add('hidden');
+                        }}
+                    }});
+
+                    container.querySelectorAll('.optly-expandable-table').forEach(table => {{
+                        const visibleRows = table.querySelectorAll('.optly-table-row:not(.hidden)');
+                        let message = table.querySelector('.optly-no-results');
+                        if (term && visibleRows.length === 0) {{
+                            if (!message) {{
+                                message = document.createElement('div');
+                                message.className = 'optly-no-results';
+                                message.textContent = 'No results found for \"' + searchInput.value + '\"';
+                                table.appendChild(message);
+                            }} else {{
+                                message.textContent = 'No results found for \"' + searchInput.value + '\"';
+                            }}
+                        }} else if (message) {{
+                            message.remove();
+                        }}
+                    }});
+                }};
+
+                if (searchInput) {{
+                    searchInput.addEventListener('input', filterRows);
+                    searchInput.addEventListener('keypress', (e) => {{
+                        if (e.key === 'Enter') {{
+                            e.preventDefault();
+                        }}
+                    }});
+                    filterRows();
+                }}
+
+                if (clearButton) {{
+                    clearButton.addEventListener('click', () => {{
+                        if (searchInput) {{
+                            searchInput.value = '';
+                            filterRows();
+                            searchInput.focus();
+                        }}
+                    }});
+                }}
+            }})();
+        </script>
+    """
+
+def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='combined_report.html', product_csv_path='product_export.csv', db_path='broken_links.db', optimizely_json_path='kmart.json'):
     """Generates a combined HTML report with tabs for AU and NZ link check results."""
     # Generate timestamp for cache busting
     from datetime import datetime
@@ -1504,6 +2174,7 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
             return f"<p>Error generating Page Views data: {safe_error}</p>"
     
     page_views_html = generate_page_views_data()
+    optimizely_html = generate_optimizely_section(optimizely_json_path)
 
     # Build Changes tab HTML
     def render_changes_section(title: str, items: list[tuple[str,str]], change_type: str):
@@ -1665,6 +2336,7 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
         <script src="cache_manager.js?{cache_buster}"></script>
         <style>
             {STYLE_DEFINITIONS}
+            {OPTIMIZELY_TAB_STYLES}
         </style>
     </head>
     <body>
@@ -1725,9 +2397,7 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
             </div>
 
             <div id="Optimizely" class="tab-content">
-                <div class="card" style="padding:0">
-                    <iframe src="optimizely_enhanced_report.html?{cache_buster}" title="Optimizely Enhanced Report" style="width:100%; min-height: 1200px; border:0;" loading="lazy"></iframe>
-                </div>
+                {optimizely_html}
             </div>
 
             <!-- Categories tab content disabled -->
@@ -2051,7 +2721,8 @@ if __name__ == '__main__':
     parser.add_argument('--au-csv', default='au_link_check_results.csv', help='Path to the AU link check results CSV file.')
     parser.add_argument('--nz-csv', default='nz_link_check_results.csv', help='Path to the NZ link check results CSV file.')
     parser.add_argument('--product-csv', default='product_export.csv', help='Path to the product data CSV file.')
+    parser.add_argument('--optimizely-json', default='kmart.json', help='Path to the Optimizely JSON data file.')
     parser.add_argument('--output-html', default='combined_report.html', help='Path to save the combined HTML report.')
     args = parser.parse_args()
 
-    generate_combined_html_report(args.au_csv, args.nz_csv, args.output_html, args.product_csv)
+    generate_combined_html_report(args.au_csv, args.nz_csv, args.output_html, args.product_csv, optimizely_json_path=args.optimizely_json)
