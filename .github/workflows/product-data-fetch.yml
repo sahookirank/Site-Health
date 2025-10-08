@@ -251,9 +251,6 @@ jobs:
                 self.base_url = "https://mc-api.australia-southeast1.gcp.commercetools.com"
                 self.search_endpoint = f"{self.base_url}/proxy/pim-search/kmart-production/search/products"
                 self.graphql_endpoint = f"{self.base_url}/graphql"
-                # Track last API error details for better reporting
-                self.last_search_error = None
-                self.last_graphql_error = None
                 
                 # Get secrets from environment
                 self.auth_token = os.getenv('COMMERCETOOL_AUTH_TOKEN')
@@ -323,25 +320,26 @@ jobs:
                     else:
                         # Fallback to database query
                         if region_filter == "ALL":
-                            query = 'SELECT ID, SKU, DETAILS FROM "products-in-links"'
-                            cursor.execute(query)
+                            query = 'SELECT ID, SKU, DETAILS FROM "products-in-links" LIMIT ?'
+                            cursor.execute(query, (max_products,))
                         else:
                             query = '''
                                 SELECT ID, SKU, DETAILS
                                 FROM "products-in-links"
                                 WHERE json_extract(DETAILS, '$.region') = ?
+                                LIMIT ?
                             '''
-                            cursor.execute(query, (region_filter,))
+                            cursor.execute(query, (region_filter, max_products))
 
                         rows = cursor.fetchall()
-                        skus_to_process = [row[1] for row in rows]
+                        skus_to_process = [row[1] for row in rows[:max_products]]
                         logger.info(f"Retrieved {len(skus_to_process)} SKUs from database fallback")
 
                     conn.close()
 
                     # Convert SKUs to product format
                     products = []
-                    for i, sku in enumerate(skus_to_process):
+                    for i, sku in enumerate(skus_to_process[:max_products]):
                         products.append({
                             "id": i + 1,
                             "sku": sku,
@@ -689,140 +687,89 @@ jobs:
                 return None
         
             def process_products(self, region_filter: str = "ALL", max_products: int = 100) -> List[Dict]:
-                """Process products and fetch their details with batching and adaptive rate limiting."""
+                """Process products and fetch their details."""
                 products = self.get_products_from_database(region_filter, max_products)
                 results = []
-
-                # Batching controls (customizable via env)
-                import math
-                batch_size = int(os.getenv('INPUT_BATCH_SIZE', '50'))
-                inter_batch_sleep = float(os.getenv('INPUT_BATCH_SLEEP', '10'))
-                # Adaptive per-item delay settings
-                item_delay = float(os.getenv('INPUT_ITEM_DELAY', '2'))
-                min_delay = float(os.getenv('INPUT_MIN_DELAY', '1'))
-                max_delay = float(os.getenv('INPUT_MAX_DELAY', '20'))
-                backoff_up = float(os.getenv('INPUT_BACKOFF_UP', '1.5'))
-                backoff_down = float(os.getenv('INPUT_BACKOFF_DOWN', '0.9'))
-
-                total = len(products)
-                if total == 0:
-                    return results
-
-                def chunked(lst, n):
-                    for i in range(0, len(lst), n):
-                        yield lst[i:i+n]
-
-                for bidx, batch in enumerate(chunked(products, batch_size), 1):
-                    logger.info(f"Processing batch {bidx} with {len(batch)} products (total {total})")
-
-                    for i, product in enumerate(batch, 1):
-                        sku = product['sku']
-                        logger.info(f"Processing product {sku} (batch {bidx}, item {i}/{len(batch)})")
-
-                        # Reset last errors for fresh evaluation
-                        self.last_search_error = None
-                        self.last_graphql_error = None
-
-                        # Search for product ID
-                        product_id = self.search_product_by_sku(sku)
-
-                        if not product_id:
-                            logger.warning(f"Could not find product ID for SKU {sku}")
-                            # Include structured error details from the failed search call (if available)
-                            detail_obj = {"message": "Product ID not found via search API"}
-                            if self.last_search_error:
-                                detail_obj.update(self.last_search_error)
-                            results.append({
-                                "SKU": sku,
-                                "ID": "NOT_FOUND",
-                                "DETAIL": json.dumps(detail_obj)
-                            })
-                            # Adaptive delay adjustment on 429
-                            status = (self.last_search_error or {}).get('status')
-                            if status == 429:
-                                item_delay = min(item_delay * backoff_up, max_delay)
-                            else:
-                                item_delay = max(item_delay * backoff_down, min_delay)
-                            time.sleep(item_delay)
-                            continue
-
-                        # Get product details
-                        details = self.get_product_details(product_id)
-
-                        if details and details.get('data', {}).get('product'):
-                            product_data = details['data']['product']
-
-                            # Extract key information
-                            name = "Unknown"
-                            if product_data.get('masterData', {}).get('staged', {}).get('nameAllLocales'):
-                                name_locales = product_data['masterData']['staged']['nameAllLocales']
-                                for locale_data in name_locales:
-                                    if locale_data.get('locale') == 'en-AU':
-                                        name = locale_data.get('value', 'Unknown')
-                                        break
-
-                            # Extract attributes from master variant
-                            attributes = {}
-                            master_variant = product_data.get('masterData', {}).get('staged', {}).get('masterVariant', {})
-                            if master_variant.get('attributesRaw'):
-                                for attr in master_variant['attributesRaw']:
-                                    attr_name = attr.get('name', '')
-                                    attr_value = attr.get('value', '')
-                                    attributes[attr_name] = attr_value
-
-                            # Also extract product-level attributes
-                            staged_data = product_data.get('masterData', {}).get('staged', {})
-                            if staged_data.get('attributesRaw'):
-                                for attr in staged_data['attributesRaw']:
-                                    attr_name = attr.get('name', '')
-                                    attr_value = attr.get('value', '')
-                                    attributes[attr_name] = attr_value
-
-                            # Create detailed information
-                            detail_info = {
-                                "name": name,
-                                "product_type": product_data.get('productType', {}).get('name', 'Unknown'),
-                                "key": product_data.get('key', ''),
-                                "version": product_data.get('version', 0),
-                                "created_at": product_data.get('createdAt', ''),
-                                "last_modified": product_data.get('lastModifiedAt', ''),
-                                "master_variant_sku": master_variant.get('sku', ''),
-                                "attributes_count": len(attributes),
-                                "attributes": attributes
-                            }
-
-                            results.append({
-                                "SKU": sku,
-                                "ID": product_id,
-                                "DETAIL": json.dumps(detail_info)
-                            })
-
-                            logger.info(f"Successfully processed SKU {sku} -> ID {product_id}")
-                        else:
-                            logger.warning(f"Could not get details for product ID {product_id}")
-                            # Include structured error details from the failed GraphQL call (if available)
-                            detail_obj = {"message": "Failed to fetch product details"}
-                            if self.last_graphql_error:
-                                detail_obj.update(self.last_graphql_error)
-                            results.append({
-                                "SKU": sku,
-                                "ID": product_id,
-                                "DETAIL": json.dumps(detail_obj)
-                            })
-
-                        # Adaptive delay adjustment based on GraphQL status
-                        status = (self.last_graphql_error or {}).get('status')
-                        if status == 429:
-                            item_delay = min(item_delay * backoff_up, max_delay)
-                        else:
-                            item_delay = max(item_delay * backoff_down, min_delay)
-                        time.sleep(item_delay)
-
-                    # Inter-batch sleep to avoid aggressive bursts
-                    if bidx * batch_size < total:
-                        logger.info(f"Batch {bidx} completed. Sleeping {inter_batch_sleep}s before next batch...")
-                        time.sleep(inter_batch_sleep)
-
+                
+                for i, product in enumerate(products, 1):
+                    sku = product['sku']
+                    logger.info(f"Processing product {i}/{len(products)}: SKU {sku}")
+                    
+                    # Search for product ID
+                    product_id = self.search_product_by_sku(sku)
+                    
+                    if not product_id:
+                        logger.warning(f"Could not find product ID for SKU {sku}")
+                        results.append({
+                            "SKU": sku,
+                            "ID": "NOT_FOUND",
+                            "DETAIL": "Product ID not found via search API"
+                        })
+                        continue
+                    
+                    # Get product details
+                    details = self.get_product_details(product_id)
+                    
+                    if details and details.get('data', {}).get('product'):
+                        product_data = details['data']['product']
+                        
+                        # Extract key information
+                        name = "Unknown"
+                        if product_data.get('masterData', {}).get('staged', {}).get('nameAllLocales'):
+                            name_locales = product_data['masterData']['staged']['nameAllLocales']
+                            for locale_data in name_locales:
+                                if locale_data.get('locale') == 'en-AU':
+                                    name = locale_data.get('value', 'Unknown')
+                                    break
+                        
+                        # Extract attributes from master variant
+                        attributes = {}
+                        master_variant = product_data.get('masterData', {}).get('staged', {}).get('masterVariant', {})
+                        if master_variant.get('attributesRaw'):
+                            for attr in master_variant['attributesRaw']:
+                                attr_name = attr.get('name', '')
+                                attr_value = attr.get('value', '')
+                                attributes[attr_name] = attr_value
+                        
+                        # Also extract product-level attributes
+                        staged_data = product_data.get('masterData', {}).get('staged', {})
+                        if staged_data.get('attributesRaw'):
+                            for attr in staged_data['attributesRaw']:
+                                attr_name = attr.get('name', '')
+                                attr_value = attr.get('value', '')
+                                attributes[attr_name] = attr_value
+                        
+                        # Create detailed information
+                        detail_info = {
+                            "name": name,
+                            "product_type": product_data.get('productType', {}).get('name', 'Unknown'),
+                            "key": product_data.get('key', ''),
+                            "version": product_data.get('version', 0),
+                            "created_at": product_data.get('createdAt', ''),
+                            "last_modified": product_data.get('lastModifiedAt', ''),
+                            "master_variant_sku": master_variant.get('sku', ''),
+                            "attributes_count": len(attributes),
+                            "attributes": attributes
+                        }
+                        
+                        results.append({
+                            "SKU": sku,
+                            "ID": product_id,
+                            "DETAIL": json.dumps(detail_info)
+                        })
+                        
+                        logger.info(f"Successfully processed SKU {sku} -> ID {product_id}")
+                    else:
+                        logger.warning(f"Could not get details for product ID {product_id}")
+                        results.append({
+                            "SKU": sku,
+                            "ID": product_id,
+                            "DETAIL": "Failed to fetch product details"
+                        })
+                    
+                    # Rate limiting - 5 second delay between requests to prevent blocking
+                    time.sleep(5)
+                
                 return results
         
             def save_to_database_with_date(self, results: List[Dict]):
@@ -1032,10 +979,10 @@ jobs:
                 print('  💡 To run with sample data, set force_run=true in workflow inputs')
 
         all_skus = sorted(list(skus))
-        # Process ALL SKUs found in broken links (no max_products cap)
-        sku_list = all_skus
+        max_products = min(len(all_skus), int('${{ inputs.max_products }}'))
+        sku_list = all_skus[:max_products]
 
-        print(f'✅ Found {len(all_skus)} total unique SKUs, processing ALL ({len(sku_list)}) SKUs')
+        print(f'✅ Found {len(all_skus)} total unique SKUs, processing {len(sku_list)} SKUs (limited by max_products setting)')
 
         # Check which SKUs already have data for today
         conn = sqlite3.connect('product_availability.db')
