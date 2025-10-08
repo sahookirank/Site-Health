@@ -267,6 +267,12 @@ jobs:
             exit 1
           fi
 
+      - name: Fetch latest Optimizely datafile
+        run: |
+          echo "🌐 Downloading latest Optimizely datafile..."
+          curl -fSL "https://www.kmart.com.au/assets/optimizely/datafile.json" -o kmart.json
+          echo "✅ Downloaded kmart.json (size: $(wc -c < kmart.json) bytes)"
+
       - name: Generate Optimizely Enhanced Report
         run: |
           echo "🧪 Generating Optimizely Enhanced report from kmart.json..."
@@ -470,9 +476,3 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**🌐 Live Report:** ${{ steps.deployment.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
           echo "**📥 Downloads:** ${{ steps.deployment.outputs.page_url }}downloads.html" >> $GITHUB_STEP_SUMMARY
-      - name: Fetch latest Optimizely datafile
-        run: |
-          echo "🌐 Downloading latest Optimizely datafile..."
-          curl -fSL "https://www.kmart.com.au/assets/optimizely/datafile.json" -o kmart.json
-          echo "✅ Downloaded kmart.json (size: $(wc -c < kmart.json) bytes)"
-*** End Patch
