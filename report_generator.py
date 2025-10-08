@@ -1690,6 +1690,7 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                 <button class="tab-link" onclick="openTab(event, 'Changes')">Changes</button>
                 <button class="tab-link" onclick="openTab(event, 'Product_Availability')">Product Availability</button>
                 <button class="tab-link" onclick="openTab(event, 'Page_Views')">Page Views</button>
+                <button class="tab-link" onclick="openTab(event, 'Optimizely')">Optimizely</button>
                 <!-- Categories tab disabled -->
             </div>
 
@@ -1721,6 +1722,12 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
 
             <div id="Page_Views" class="tab-content">
                 {page_views_html}
+            </div>
+
+            <div id="Optimizely" class="tab-content">
+                <div class="card" style="padding:0">
+                    <iframe src="optimizely_enhanced_report.html?{cache_buster}" title="Optimizely Enhanced Report" style="width:100%; min-height: 1200px; border:0;" loading="lazy"></iframe>
+                </div>
             </div>
 
             <!-- Categories tab content disabled -->
