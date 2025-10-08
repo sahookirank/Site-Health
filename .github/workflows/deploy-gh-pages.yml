@@ -224,6 +224,12 @@ jobs:
             echo "<p>No Page Views data available</p>" > page_views_content.html
           fi
 
+      - name: Fetch latest Optimizely datafile
+        run: |
+          echo "🌐 Downloading latest Optimizely datafile..."
+          curl -fSL "https://www.kmart.com.au/assets/optimizely/datafile.json" -o kmart.json
+          echo "✅ Downloaded kmart.json (size: $(wc -c < kmart.json) bytes)"
+
       - name: Generate HTML Report using existing report_generator.py
         env:
           NEWRELIC_BASE_URL: ${{ secrets.NEWRELIC_BASE_URL }}
@@ -231,6 +237,13 @@ jobs:
           NEWRELIC_ACCOUNT_ID: ${{ secrets.NEWRELIC_ACCOUNT_ID }}
         run: |
           echo "🎨 Generating comprehensive HTML report using report_generator.py..."
+
+          if [ ! -f "kmart.json" ]; then
+            echo "❌ kmart.json missing before report generation"
+            exit 1
+          fi
+          echo "ℹ️ kmart.json details:"
+          ls -lh kmart.json
 
           # Find the latest product export file
           PRODUCT_FILE=$(ls -t product_export*.csv 2>/dev/null | head -n1)
@@ -250,6 +263,7 @@ jobs:
             --au-csv au_broken_links.csv \
             --nz-csv nz_broken_links.csv \
             --product-csv "$PRODUCT_FILE" \
+            --optimizely-json kmart.json \
             --output-html index.html
 
           echo "✅ Generated comprehensive HTML report using report_generator.py"
@@ -266,12 +280,6 @@ jobs:
             echo "❌ Failed to create index.html"
             exit 1
           fi
-
-      - name: Fetch latest Optimizely datafile
-        run: |
-          echo "🌐 Downloading latest Optimizely datafile..."
-          curl -fSL "https://www.kmart.com.au/assets/optimizely/datafile.json" -o kmart.json
-          echo "✅ Downloaded kmart.json (size: $(wc -c < kmart.json) bytes)"
 
       - name: Generate Optimizely Enhanced Report
         run: |
