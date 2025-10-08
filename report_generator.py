@@ -2004,7 +2004,19 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                         # Handle double-escaped JSON if needed
                         if detail_str.startswith('"') and detail_str.endswith('"'):
                             detail_str = detail_str[1:-1].replace('\\"', '"')
-                        product_data = json.loads(detail_str)
+
+                        # Try to parse JSON, but handle gracefully if it fails
+                        try:
+                            product_data = json.loads(detail_str)
+                            if not isinstance(product_data, dict):
+                                product_data = {}
+                        except (json.JSONDecodeError, ValueError) as e:
+                            # If JSON parsing fails, create a basic structure with the error info
+                            product_data = {
+                                "name": "Unknown Product",
+                                "error": f"Invalid JSON in DETAIL field: {str(e)}",
+                                "raw_detail": detail_str[:200] + "..." if len(detail_str) > 200 else detail_str
+                            }
                 except (Exception, UnicodeDecodeError) as e:
                     print(f"Warning: Failed to parse product detail JSON: {e}")
                     product_data = {}
@@ -2081,7 +2093,7 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                             value_str = str(attr_value)
                             # Sanitize value string to ensure valid UTF-8
                             value_str = value_str.encode('utf-8', 'ignore').decode('utf-8')
-                            
+
                             # Special handling for date fields
                             date_style = ''
                             if 'Date' in attr_name and value_str.strip():
@@ -2096,16 +2108,40 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                                             continue
                                 except:
                                     pass
-                            
+
                             # Sanitize attribute name as well
                             safe_attr_name = str(attr_name).encode('utf-8', 'ignore').decode('utf-8')
-                            
+
                             html_content += '<div class="attribute-item">'
                             html_content += f'<span class="attr-name"><strong>{html.escape(safe_attr_name)}:</strong></span> '
                             html_content += f'<span class="attr-value"{date_style}>{html.escape(value_str)}</span>'
                             html_content += '</div>'
                 else:
-                    html_content += '<div class="no-attributes">No additional attributes available</div>'
+                    # Handle case where product_data contains error info instead of attributes
+                    if 'error' in product_data:
+                        html_content += f'<div class="no-attributes" style="color: #dc2626; font-weight: 600;">⚠️ {html.escape(product_data["error"])}</div>'
+                        # If structured API error fields are present, surface them
+                        stage = product_data.get('stage')
+                        status = product_data.get('status')
+                        reason = product_data.get('reason')
+                        snippet = product_data.get('response_snippet')
+                        extra_rows = []
+                        if stage:
+                            extra_rows.append(f"Stage: {html.escape(str(stage))}")
+                        if status is not None:
+                            extra_rows.append(f"Status: {html.escape(str(status))}")
+                        if reason:
+                            extra_rows.append(f"Reason: {html.escape(str(reason))}")
+                        if snippet:
+                            # Truncate long snippets for UI
+                            snip = snippet if len(snippet) <= 300 else snippet[:300] + '...'
+                            extra_rows.append(f"Response: {html.escape(snip)}")
+                        if extra_rows:
+                            html_content += '<div class="no-attributes" style="font-size: 12px; margin-top: 8px; white-space: pre-wrap;">' + '<br>'.join(extra_rows) + '</div>'
+                        if 'raw_detail' in product_data:
+                            html_content += f'<div class="no-attributes" style="font-size: 12px; margin-top: 8px;">Raw data: {html.escape(product_data["raw_detail"])}</div>'
+                    else:
+                        html_content += '<div class="no-attributes">No additional attributes available</div>'
                 
                 html_content += '</div></div></div></td></tr>'
             

@@ -423,13 +423,33 @@ jobs:
                         if data.get('hits') and len(data['hits']) > 0:
                             return data['hits'][0].get('id')
                         else:
-                            logger.warning(f"No search results found for SKU {sku}")
+                            logger.warning(f"No search results found for SKU {sku} (status 200)")
+                            self.last_search_error = {
+                                "stage": "search",
+                                "sku": sku,
+                                "status": 200,
+                                "reason": "no_hits"
+                            }
                     else:
                         logger.warning(f"Search API returned status {response.status_code} for SKU {sku}")
                         logger.warning(f"Response: {response.text[:500]}")
+                        self.last_search_error = {
+                            "stage": "search",
+                            "sku": sku,
+                            "status": response.status_code,
+                            "reason": "http_error",
+                            "response_snippet": response.text[:500]
+                        }
                     
                 except Exception as e:
                     logger.error(f"Error searching for SKU {sku}: {e}")
+                    self.last_search_error = {
+                        "stage": "search",
+                        "sku": sku,
+                        "status": None,
+                        "reason": "exception",
+                        "error": str(e)
+                    }
                 
                 return None
         
@@ -647,9 +667,24 @@ jobs:
                         return response.json()
                     else:
                         logger.warning(f"GraphQL API returned status {response.status_code} for product ID {product_id}")
+                        logger.warning(f"Response: {response.text[:500]}")
+                        self.last_graphql_error = {
+                            "stage": "graphql",
+                            "product_id": product_id,
+                            "status": response.status_code,
+                            "reason": "http_error",
+                            "response_snippet": response.text[:500]
+                        }
                     
                 except Exception as e:
                     logger.error(f"Error getting product details for {product_id}: {e}")
+                    self.last_graphql_error = {
+                        "stage": "graphql",
+                        "product_id": product_id,
+                        "status": None,
+                        "reason": "exception",
+                        "error": str(e)
+                    }
                 
                 return None
         
