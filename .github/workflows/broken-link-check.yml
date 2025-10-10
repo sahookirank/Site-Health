@@ -19,7 +19,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      TARGET_BRANCH: main  # Branch containing the crawler/report code to execute
+      TARGET_BRANCH: feature/date-picker-proxy-preview  # Branch containing the crawler/report code to execute
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
