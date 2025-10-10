@@ -160,7 +160,7 @@ def generate_preview(args):
     except ValueError as exc:
         raise SystemExit("❌ Account ID must be an integer.") from exc
 
-    cookie = args.cookie or os.getenv("NEWRELIC_COOKIE")
+    cookie = args.cookie or os.getenv("NEWRELIC_COOKIE") or ""
     if not cookie:
         cookie = getpass("Enter NEWRELIC_COOKIE: ").strip()
     if not cookie:
