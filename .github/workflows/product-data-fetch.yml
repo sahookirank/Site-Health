@@ -1,0 +1,1252 @@
+name: Product Data Fetch and Export
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: 'Optional: Specific run ID to retrieve CSV files from (auto-detects if not provided)'
+        required: false
+        type: string
+      trigger_source:
+        description: 'Source workflow that triggered this run'
+        required: false
+        default: 'manual'
+        type: string
+      max_products:
+        description: 'Maximum number of products to process (default: 500)'
+        required: false
+        default: '500'
+        type: string
+      region_filter:
+        description: 'Filter by region (AU, NZ, or ALL)'
+        required: false
+        default: 'ALL'
+        type: choice
+        options:
+          - ALL
+          - AU
+          - NZ
+      force_run:
+        description: 'Force run even without recent broken link data (uses sample SKUs for testing)'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  actions: write  # Required to trigger other workflows
+
+jobs:
+  fetch-product-data:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120  # 2 hour timeout for long-running product fetches
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pandas requests python-dotenv
+
+    - name: Retrieve CSV artifacts from broken link check
+      id: retrieve-csvs
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          let sourceRunId = '${{ inputs.source_run_id }}';
+          let artifactFound = false;
+
+          console.log(`Attempting to retrieve CSV artifacts...`);
+          console.log(`Source run ID: ${sourceRunId}`);
+          console.log(`Trigger source: ${{ inputs.trigger_source }}`);
+
+          // Function to download and extract artifacts from a specific run
+          async function downloadArtifactsFromRun(runId) {
+            try {
+              const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                run_id: runId
+              });
+
+              console.log(`Found ${artifacts.data.artifacts.length} artifacts in run ${runId}`);
+
+              const csvArtifact = artifacts.data.artifacts.find(
+                artifact => artifact.name === 'broken-link-csvs' && !artifact.expired
+              );
+
+              if (csvArtifact) {
+                console.log(`Found broken-link-csvs artifact: ${csvArtifact.id}`);
+
+                const download = await github.rest.actions.downloadArtifact({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  artifact_id: csvArtifact.id,
+                  archive_format: 'zip'
+                });
+
+                fs.writeFileSync('csvs.zip', Buffer.from(download.data));
+                console.log('Downloaded CSV artifact successfully');
+                return true;
+              }
+              return false;
+            } catch (error) {
+              console.log(`Error downloading from run ${runId}: ${error.message}`);
+              return false;
+            }
+          }
+
+          // Auto-detect latest successful run if no source run ID provided
+          if (!sourceRunId) {
+            console.log('🔍 No source run ID provided, auto-detecting latest successful broken link check run...');
+
+            const runs = await github.rest.actions.listWorkflowRuns({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'broken-link-check.yml',
+              status: 'completed',
+              conclusion: 'success',
+              per_page: 20  // Check more runs for better fallback
+            });
+
+            if (runs.data.workflow_runs.length === 0) {
+              console.log('❌ No successful broken link check runs found');
+            } else {
+              // Try each successful run until we find one with valid artifacts
+              for (const run of runs.data.workflow_runs) {
+                console.log(`🔍 Checking run ${run.id} from ${run.created_at}...`);
+                artifactFound = await downloadArtifactsFromRun(run.id);
+                if (artifactFound) {
+                  sourceRunId = run.id.toString();
+                  console.log(`✅ Auto-detected and using run: ${sourceRunId}`);
+                  break;
+                }
+              }
+            }
+          } else {
+            // Try to download from the specified source run
+            console.log(`📋 Using provided source run ID: ${sourceRunId}`);
+            artifactFound = await downloadArtifactsFromRun(sourceRunId);
+          }
+
+          // Final fallback: try any recent successful runs if still no artifacts
+          if (!artifactFound && sourceRunId) {
+            console.log('⚠️ No artifact from specified run, trying recent successful runs as fallback...');
+
+            const runs = await github.rest.actions.listWorkflowRuns({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'broken-link-check.yml',
+              status: 'completed',
+              conclusion: 'success',
+              per_page: 10
+            });
+
+            for (const run of runs.data.workflow_runs) {
+              if (run.id.toString() !== sourceRunId) {  // Skip the already tried run
+                console.log(`🔄 Fallback: trying run ${run.id} from ${run.created_at}`);
+                artifactFound = await downloadArtifactsFromRun(run.id);
+                if (artifactFound) break;
+              }
+            }
+          }
+
+          if (!artifactFound) {
+            console.log('❌ No CSV artifacts found in any recent runs');
+            console.log('💡 This may indicate that no broken link check workflows have completed successfully recently');
+            core.setOutput('artifacts_found', 'false');
+            core.setOutput('skip_processing', 'true');
+          } else {
+            console.log('✅ CSV artifacts retrieved successfully');
+            core.setOutput('artifacts_found', 'true');
+            core.setOutput('skip_processing', 'false');
+          }
+
+    - name: Extract and validate CSV files
+      run: |
+        if [ "${{ steps.retrieve-csvs.outputs.artifacts_found }}" = "true" ]; then
+          echo "📦 Extracting CSV files from artifacts..."
+          unzip -o csvs.zip
+
+          echo "🔍 Verifying extracted files:"
+          csv_files_found=0
+          for csv_file in au_broken_links.csv nz_broken_links.csv; do
+            if [ -f "$csv_file" ]; then
+              lines=$(wc -l < "$csv_file")
+              echo "  ✓ $csv_file: $lines lines"
+              csv_files_found=$((csv_files_found + 1))
+            else
+              echo "  ✗ $csv_file: missing"
+            fi
+          done
+
+          if [ $csv_files_found -eq 0 ]; then
+            echo "⚠️ No valid CSV files found in artifact, creating placeholders..."
+            echo "URL,Status,Response_Time,Error" > au_broken_links.csv
+            echo "https://example.com.au,404,1.0,No data from artifact" >> au_broken_links.csv
+            echo "URL,Status,Response_Time,Error" > nz_broken_links.csv
+            echo "https://example.co.nz,404,1.0,No data from artifact" >> nz_broken_links.csv
+          else
+            echo "✅ Successfully extracted $csv_files_found CSV files"
+          fi
+
+          rm -f csvs.zip
+        else
+          echo "⚠️ No artifacts found, creating placeholder CSV files for processing..."
+          echo "URL,Status,Response_Time,Error" > au_broken_links.csv
+          echo "https://example.com.au,404,1.0,No recent broken link check data" >> au_broken_links.csv
+          echo "URL,Status,Response_Time,Error" > nz_broken_links.csv
+          echo "https://example.co.nz,404,1.0,No recent broken link check data" >> nz_broken_links.csv
+          echo "📝 Created placeholder CSV files to allow workflow continuation"
+        fi
+
+        # Final verification
+        echo "📊 Final CSV file status:"
+        for csv_file in au_broken_links.csv nz_broken_links.csv; do
+          if [ -f "$csv_file" ]; then
+            lines=$(wc -l < "$csv_file")
+            echo "  ✓ $csv_file: $lines lines"
+          else
+            echo "  ✗ $csv_file: missing - creating emergency placeholder"
+            echo "URL,Status,Response_Time,Error" > "$csv_file"
+            echo "https://emergency.placeholder,500,0.0,Emergency placeholder file" >> "$csv_file"
+          fi
+        done
+        
+    - name: Create workflow script
+      run: |
+        cat > workflow_script.py << 'EOF'
+        #!/usr/bin/env python3
+        """
+        GitHub Actions Workflow Script
+        Fetches product data from database and CommerceTool API
+        """
+        
+        import os
+        import sys
+        import sqlite3
+        import json
+        import requests
+        import pandas as pd
+        import logging
+        from datetime import datetime
+        from typing import List, Dict, Optional
+        import time
+        
+        # Configure logging
+        logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+        logger = logging.getLogger(__name__)
+        
+        class WorkflowProductFetcher:
+            def __init__(self):
+                self.db_path = "product_availability.db"
+                self.base_url = "https://mc-api.australia-southeast1.gcp.commercetools.com"
+                self.search_endpoint = f"{self.base_url}/proxy/pim-search/kmart-production/search/products"
+                self.graphql_endpoint = f"{self.base_url}/graphql"
+                # Track last API error details for better reporting
+                self.last_search_error = None
+                self.last_graphql_error = None
+                
+                # Get secrets from environment
+                self.auth_token = os.getenv('COMMERCETOOL_AUTH_TOKEN')
+                self.project_key = 'kmart-production'  # Fixed project key
+                
+                if not self.auth_token:
+                    logger.error("COMMERCETOOL_AUTH_TOKEN not found in environment")
+                    sys.exit(1)
+                
+                # Headers for API requests
+                self.search_headers = {
+                    "accept": "application/json",
+                    "accept-language": "en-GB,en-US;q=0.9,en;q=0.8",
+                    "content-type": "application/json",
+                    "origin": "https://mc.australia-southeast1.gcp.commercetools.com",
+                    "priority": "u=1, i",
+                    "sec-ch-ua": '"Not;A=Brand";v="99", "Google Chrome";v="139", "Chromium";v="139"',
+                    "sec-ch-ua-mobile": "?0",
+                    "sec-ch-ua-platform": "\"macOS\"",
+                    "sec-fetch-dest": "empty",
+                    "sec-fetch-mode": "cors",
+                    "sec-fetch-site": "same-site",
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",
+                    "x-application-id": "__internal:products",
+                    "x-correlation-id": "mc/kmart-production/941dc8ba-fd2b-4be3-a375-2d5ef173394d/a55d13f1-5b22-4168-9adb-6dedf00fd383",
+                    "x-project-key": self.project_key,
+                    "x-user-agent": "apollo-client Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 products/application-shell/24.5.0 (+ https://git.io/fjuyC; +support@commercetools.com)",
+                    "authorization": f"Bearer {self.auth_token}" if self.auth_token else "",
+                    "cache-control": "no-cache"
+                }
+                
+                self.graphql_headers = {
+                    "accept": "application/json",
+                    "accept-language": "en-GB,en-US;q=0.9,en;q=0.8",
+                    "content-type": "application/json",
+                    "origin": "https://mc.australia-southeast1.gcp.commercetools.com",
+                    "priority": "u=1, i",
+                    "sec-ch-ua": '"Not;A=Brand";v="99", "Google Chrome";v="139", "Chromium";v="139"',
+                    "sec-ch-ua-mobile": "?0",
+                    "sec-ch-ua-platform": "\"macOS\"",
+                    "sec-fetch-dest": "empty",
+                    "sec-fetch-mode": "cors",
+                    "sec-fetch-site": "same-site",
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",
+                    "x-application-id": "__internal:products",
+                    "x-correlation-id": "mc/kmart-production/941dc8ba-fd2b-4be3-a375-2d5ef173394d/a55d13f1-5b22-4168-9adb-6dedf00fd383",
+                    "x-graphql-operation-name": "GeneralInfoTabQuery",
+                    "x-graphql-target": "ctp",
+                    "x-project-key": self.project_key,
+                    "x-user-agent": "apollo-client Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 products/application-shell/24.5.0 (+ https://git.io/fjuyC; +support@commercetools.com)",
+                    "authorization": f"Bearer {self.auth_token}" if self.auth_token else "",
+                    "cache-control": "no-cache"
+                }
+        
+            def get_products_from_database(self, region_filter: str = "ALL", max_products: int = 100) -> List[Dict]:
+                """Get products from database with optional filtering."""
+                try:
+                    conn = sqlite3.connect(self.db_path)
+                    cursor = conn.cursor()
+
+                    # Read SKUs from the file generated by the extract step
+                    skus_to_process = []
+                    if os.path.exists('skus_to_process.txt'):
+                        with open('skus_to_process.txt', 'r') as f:
+                            skus_to_process = [line.strip() for line in f if line.strip()]
+                        logger.info(f"Found {len(skus_to_process)} SKUs to process from file")
+                    else:
+                        # Fallback to database query
+                        if region_filter == "ALL":
+                            query = 'SELECT ID, SKU, DETAILS FROM "products-in-links"'
+                            cursor.execute(query)
+                        else:
+                            query = '''
+                                SELECT ID, SKU, DETAILS
+                                FROM "products-in-links"
+                                WHERE json_extract(DETAILS, '$.region') = ?
+                            '''
+                            cursor.execute(query, (region_filter,))
+
+                        rows = cursor.fetchall()
+                        skus_to_process = [row[1] for row in rows]
+                        logger.info(f"Retrieved {len(skus_to_process)} SKUs from database fallback")
+
+                    conn.close()
+
+                    # Convert SKUs to product format
+                    products = []
+                    for i, sku in enumerate(skus_to_process):
+                        products.append({
+                            "id": i + 1,
+                            "sku": sku,
+                            "details": {"source": "csv_extraction"}
+                        })
+
+                    logger.info(f"Prepared {len(products)} products for processing")
+                    return products
+
+                except Exception as e:
+                    logger.error(f"Error retrieving products from database: {e}")
+                    return []
+        
+            def search_product_by_sku(self, sku: str) -> Optional[str]:
+                """Search for product ID by SKU using the search API."""
+                payload = {
+                    "limit": 20,
+                    "offset": 0,
+                    "query": {
+                        "or": [
+                            {
+                                "fullText": {
+                                    "field": "name",
+                                    "language": "en-AU",
+                                    "value": sku
+                                }
+                            },
+                            {
+                                "fullText": {
+                                    "field": "description",
+                                    "language": "en-AU",
+                                    "value": sku
+                                }
+                            },
+                            {
+                                "fullText": {
+                                    "field": "slug",
+                                    "language": "en-AU",
+                                    "value": sku
+                                }
+                            },
+                            {
+                                "prefix": {
+                                    "field": "key",
+                                    "language": "en-AU",
+                                    "value": sku,
+                                    "caseInsensitive": True
+                                }
+                            },
+                            {
+                                "prefix": {
+                                    "field": "variants.sku",
+                                    "value": sku,
+                                    "caseInsensitive": True
+                                }
+                            },
+                            {
+                                "prefix": {
+                                    "field": "variants.key",
+                                    "value": sku,
+                                    "caseInsensitive": True
+                                }
+                            }
+                        ]
+                    },
+                    "enableTiebreaker": False
+                }
+                
+                try:
+                    response = requests.post(
+                        self.search_endpoint,
+                        headers=self.search_headers,
+                        json=payload,
+                        timeout=30
+                    )
+                    
+                    if response.status_code == 200:
+                        data = response.json()
+                        if data.get('hits') and len(data['hits']) > 0:
+                            return data['hits'][0].get('id')
+                        else:
+                            logger.warning(f"No search results found for SKU {sku} (status 200)")
+                            self.last_search_error = {
+                                "stage": "search",
+                                "sku": sku,
+                                "status": 200,
+                                "reason": "no_hits"
+                            }
+                    else:
+                        logger.warning(f"Search API returned status {response.status_code} for SKU {sku}")
+                        logger.warning(f"Response: {response.text[:500]}")
+                        self.last_search_error = {
+                            "stage": "search",
+                            "sku": sku,
+                            "status": response.status_code,
+                            "reason": "http_error",
+                            "response_snippet": response.text[:500]
+                        }
+                    
+                except Exception as e:
+                    logger.error(f"Error searching for SKU {sku}: {e}")
+                    self.last_search_error = {
+                        "stage": "search",
+                        "sku": sku,
+                        "status": None,
+                        "reason": "exception",
+                        "error": str(e)
+                    }
+                
+                return None
+        
+            def get_product_details(self, product_id: str) -> Optional[Dict]:
+                """Get detailed product information using GraphQL API."""
+                graphql_query = """
+                query GeneralInfoTabQuery($productId: String, $isProductAttributeEnabled: Boolean!, $enableLocaleLabelOptimization: Boolean!, $locale: Locale!) {
+                  product(id: $productId) {
+                    id
+                    ...ProductTypeFragment
+                    createdAt
+                    lastModifiedAt
+                    version
+                    key
+                    priceMode
+                    taxCategory {
+                      id
+                      name
+                      key
+                      __typename
+                    }
+                    masterData {
+                      staged {
+                        nameAllLocales {
+                          locale
+                          value
+                          __typename
+                        }
+                        descriptionAllLocales {
+                          locale
+                          value
+                          __typename
+                        }
+                        categories {
+                          ...CurrentCategoryFragment
+                          ancestors {
+                            ...CurrentCategoryFragment
+                            __typename
+                          }
+                          __typename
+                        }
+                        masterVariant {
+                          attributesRaw {
+                            name
+                            value
+                            __typename
+                          }
+                          __typename
+                        }
+                        attributesRaw {
+                          name
+                          value
+                          __typename
+                        }
+                        __typename
+                      }
+                      __typename
+                    }
+                    __typename
+                  }
+                }
+                
+                fragment ProductTypeFragment on Product {
+                  productType {
+                    id
+                    name
+                    attributeDefinitions {
+                      results {
+                        attributeConstraint
+                        level @include(if: $isProductAttributeEnabled)
+                        isSearchable
+                        labelByLocale: label(locale: $locale) @include(if: $enableLocaleLabelOptimization)
+                        labelAllLocales @skip(if: $enableLocaleLabelOptimization) {
+                          locale
+                          value
+                          __typename
+                        }
+                        inputHint
+                        inputTipAllLocales {
+                          locale
+                          value
+                          __typename
+                        }
+                        isRequired
+                        name
+                        type {
+                          name
+                          ... on SetAttributeDefinitionType {
+                            elementType {
+                              name
+                              ... on NestedAttributeDefinitionType {
+                                typeRef {
+                                  id
+                                  __typename
+                                }
+                                __typename
+                              }
+                              ... on EnumAttributeDefinitionType {
+                                values {
+                                  results {
+                                    key
+                                    label
+                                    __typename
+                                  }
+                                  __typename
+                                }
+                                __typename
+                              }
+                              ... on LocalizableEnumAttributeDefinitionType {
+                                values {
+                                  results {
+                                    key
+                                    labelByLocale: label(locale: $locale) @include(if: $enableLocaleLabelOptimization)
+                                    labelAllLocales @skip(if: $enableLocaleLabelOptimization) {
+                                      locale
+                                      value
+                                      __typename
+                                    }
+                                    __typename
+                                  }
+                                  __typename
+                                }
+                                __typename
+                              }
+                              ... on ReferenceAttributeDefinitionType {
+                                referenceTypeId
+                                __typename
+                              }
+                              __typename
+                            }
+                            __typename
+                          }
+                          ... on ReferenceAttributeDefinitionType {
+                            referenceTypeId
+                            __typename
+                          }
+                          ... on NestedAttributeDefinitionType {
+                            typeRef {
+                              id
+                              __typename
+                            }
+                            __typename
+                          }
+                          ... on EnumAttributeDefinitionType {
+                            values {
+                              results {
+                                key
+                                label
+                                __typename
+                              }
+                              __typename
+                            }
+                            __typename
+                          }
+                          ... on LocalizableEnumAttributeDefinitionType {
+                            values {
+                              results {
+                                key
+                                labelByLocale: label(locale: $locale) @include(if: $enableLocaleLabelOptimization)
+                                labelAllLocales @skip(if: $enableLocaleLabelOptimization) {
+                                  locale
+                                  value
+                                  __typename
+                                }
+                                __typename
+                              }
+                              __typename
+                            }
+                            __typename
+                          }
+                          __typename
+                        }
+                        __typename
+                      }
+                      __typename
+                    }
+                    __typename
+                  }
+                  __typename
+                }
+                
+                fragment CurrentCategoryFragment on Category {
+                  id
+                  nameAllLocales {
+                    locale
+                    value
+                    __typename
+                  }
+                  __typename
+                }
+                """
+                
+                variables = {
+                    "productId": product_id,
+                    "isProductAttributeEnabled": False,
+                    "locale": "en-AU",
+                    "enableLocaleLabelOptimization": False
+                }
+                
+                payload = {
+                    "operationName": "GeneralInfoTabQuery",
+                    "variables": variables,
+                    "query": graphql_query
+                }
+                
+                try:
+                    response = requests.post(
+                        self.graphql_endpoint,
+                        headers=self.graphql_headers,
+                        json=payload,
+                        timeout=30
+                    )
+                    
+                    if response.status_code == 200:
+                        return response.json()
+                    else:
+                        logger.warning(f"GraphQL API returned status {response.status_code} for product ID {product_id}")
+                        logger.warning(f"Response: {response.text[:500]}")
+                        self.last_graphql_error = {
+                            "stage": "graphql",
+                            "product_id": product_id,
+                            "status": response.status_code,
+                            "reason": "http_error",
+                            "response_snippet": response.text[:500]
+                        }
+                    
+                except Exception as e:
+                    logger.error(f"Error getting product details for {product_id}: {e}")
+                    self.last_graphql_error = {
+                        "stage": "graphql",
+                        "product_id": product_id,
+                        "status": None,
+                        "reason": "exception",
+                        "error": str(e)
+                    }
+                
+                return None
+        
+            def process_products(self, region_filter: str = "ALL", max_products: int = 100) -> List[Dict]:
+                """Process products and fetch their details with batching and adaptive rate limiting."""
+                products = self.get_products_from_database(region_filter, max_products)
+                results = []
+
+                # Batching controls (customizable via env)
+                import math
+                batch_size = int(os.getenv('INPUT_BATCH_SIZE', '50'))
+                inter_batch_sleep = float(os.getenv('INPUT_BATCH_SLEEP', '10'))
+                # Adaptive per-item delay settings
+                item_delay = float(os.getenv('INPUT_ITEM_DELAY', '2'))
+                min_delay = float(os.getenv('INPUT_MIN_DELAY', '1'))
+                max_delay = float(os.getenv('INPUT_MAX_DELAY', '20'))
+                backoff_up = float(os.getenv('INPUT_BACKOFF_UP', '1.5'))
+                backoff_down = float(os.getenv('INPUT_BACKOFF_DOWN', '0.9'))
+
+                total = len(products)
+                if total == 0:
+                    return results
+
+                def chunked(lst, n):
+                    for i in range(0, len(lst), n):
+                        yield lst[i:i+n]
+
+                for bidx, batch in enumerate(chunked(products, batch_size), 1):
+                    logger.info(f"Processing batch {bidx} with {len(batch)} products (total {total})")
+
+                    for i, product in enumerate(batch, 1):
+                        sku = product['sku']
+                        logger.info(f"Processing product {sku} (batch {bidx}, item {i}/{len(batch)})")
+
+                        # Reset last errors for fresh evaluation
+                        self.last_search_error = None
+                        self.last_graphql_error = None
+
+                        # Search for product ID
+                        product_id = self.search_product_by_sku(sku)
+
+                        if not product_id:
+                            logger.warning(f"Could not find product ID for SKU {sku}")
+                            # Include structured error details from the failed search call (if available)
+                            detail_obj = {"message": "Product ID not found via search API"}
+                            if self.last_search_error:
+                                detail_obj.update(self.last_search_error)
+                            results.append({
+                                "SKU": sku,
+                                "ID": "NOT_FOUND",
+                                "DETAIL": json.dumps(detail_obj)
+                            })
+                            # Adaptive delay adjustment on 429
+                            status = (self.last_search_error or {}).get('status')
+                            if status == 429:
+                                item_delay = min(item_delay * backoff_up, max_delay)
+                            else:
+                                item_delay = max(item_delay * backoff_down, min_delay)
+                            time.sleep(item_delay)
+                            continue
+
+                        # Get product details
+                        details = self.get_product_details(product_id)
+
+                        if details and details.get('data', {}).get('product'):
+                            product_data = details['data']['product']
+
+                            # Extract key information
+                            name = "Unknown"
+                            if product_data.get('masterData', {}).get('staged', {}).get('nameAllLocales'):
+                                name_locales = product_data['masterData']['staged']['nameAllLocales']
+                                for locale_data in name_locales:
+                                    if locale_data.get('locale') == 'en-AU':
+                                        name = locale_data.get('value', 'Unknown')
+                                        break
+
+                            # Extract attributes from master variant
+                            attributes = {}
+                            master_variant = product_data.get('masterData', {}).get('staged', {}).get('masterVariant', {})
+                            if master_variant.get('attributesRaw'):
+                                for attr in master_variant['attributesRaw']:
+                                    attr_name = attr.get('name', '')
+                                    attr_value = attr.get('value', '')
+                                    attributes[attr_name] = attr_value
+
+                            # Also extract product-level attributes
+                            staged_data = product_data.get('masterData', {}).get('staged', {})
+                            if staged_data.get('attributesRaw'):
+                                for attr in staged_data['attributesRaw']:
+                                    attr_name = attr.get('name', '')
+                                    attr_value = attr.get('value', '')
+                                    attributes[attr_name] = attr_value
+
+                            # Create detailed information
+                            detail_info = {
+                                "name": name,
+                                "product_type": product_data.get('productType', {}).get('name', 'Unknown'),
+                                "key": product_data.get('key', ''),
+                                "version": product_data.get('version', 0),
+                                "created_at": product_data.get('createdAt', ''),
+                                "last_modified": product_data.get('lastModifiedAt', ''),
+                                "master_variant_sku": master_variant.get('sku', ''),
+                                "attributes_count": len(attributes),
+                                "attributes": attributes
+                            }
+
+                            results.append({
+                                "SKU": sku,
+                                "ID": product_id,
+                                "DETAIL": json.dumps(detail_info)
+                            })
+
+                            logger.info(f"Successfully processed SKU {sku} -> ID {product_id}")
+                        else:
+                            logger.warning(f"Could not get details for product ID {product_id}")
+                            # Include structured error details from the failed GraphQL call (if available)
+                            detail_obj = {"message": "Failed to fetch product details"}
+                            if self.last_graphql_error:
+                                detail_obj.update(self.last_graphql_error)
+                            results.append({
+                                "SKU": sku,
+                                "ID": product_id,
+                                "DETAIL": json.dumps(detail_obj)
+                            })
+
+                        # Adaptive delay adjustment based on GraphQL status
+                        status = (self.last_graphql_error or {}).get('status')
+                        if status == 429:
+                            item_delay = min(item_delay * backoff_up, max_delay)
+                        else:
+                            item_delay = max(item_delay * backoff_down, min_delay)
+                        time.sleep(item_delay)
+
+                    # Inter-batch sleep to avoid aggressive bursts
+                    if bidx * batch_size < total:
+                        logger.info(f"Batch {bidx} completed. Sleeping {inter_batch_sleep}s before next batch...")
+                        time.sleep(inter_batch_sleep)
+
+                return results
+        
+            def save_to_database_with_date(self, results: List[Dict]):
+                """Save results to enhanced database with date tracking."""
+                try:
+                    from datetime import datetime
+                    today = datetime.now().strftime('%Y-%m-%d')
+
+                    conn = sqlite3.connect(self.db_path)
+                    cursor = conn.cursor()
+
+                    saved_count = 0
+                    for result in results:
+                        try:
+                            cursor.execute('''
+                                INSERT OR REPLACE INTO products_with_dates
+                                (SKU, DETAILS, fetch_date) VALUES (?, ?, ?)
+                            ''', (result['SKU'], result['DETAIL'], today))
+                            saved_count += 1
+                        except Exception as e:
+                            logger.warning(f"Error saving SKU {result['SKU']}: {e}")
+
+                    conn.commit()
+                    conn.close()
+                    logger.info(f"Saved {saved_count} records to database with date {today}")
+                    return True
+                except Exception as e:
+                    logger.error(f"Error saving to database: {e}")
+                    return False
+
+            def save_to_csv(self, results: List[Dict], filename: str = "product_export.csv"):
+                """Save results to CSV file."""
+                try:
+                    df = pd.DataFrame(results)
+                    df.to_csv(filename, index=False)
+                    logger.info(f"Saved {len(results)} records to {filename}")
+                    return True
+                except Exception as e:
+                    logger.error(f"Error saving to CSV: {e}")
+                    return False
+        
+        def main():
+            """Main workflow function."""
+            # Get workflow inputs
+            max_products = int(os.getenv('INPUT_MAX_PRODUCTS', '500'))
+            region_filter = os.getenv('INPUT_REGION_FILTER', 'ALL')
+            
+            logger.info(f"Starting product data fetch workflow")
+            logger.info(f"Max products: {max_products}, Region filter: {region_filter}")
+            
+            # Initialize fetcher
+            fetcher = WorkflowProductFetcher()
+            
+            # Process products
+            results = fetcher.process_products(region_filter, max_products)
+            
+            if results:
+                # Save to enhanced database with date tracking
+                fetcher.save_to_database_with_date(results)
+
+                # Save to CSV
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                filename = f"product_export_{timestamp}.csv"
+
+                if fetcher.save_to_csv(results, filename):
+                    logger.info(f"Workflow completed successfully. Generated {filename}")
+
+                    # Print summary
+                    print(f"\n=== WORKFLOW SUMMARY ===")
+                    print(f"Total products processed: {len(results)}")
+                    print(f"Region filter: {region_filter}")
+                    print(f"Output file: {filename}")
+
+                    # Count successful vs failed
+                    successful = sum(1 for r in results if r['ID'] != 'NOT_FOUND' and 'Failed to fetch' not in r['DETAIL'])
+                    print(f"Successful fetches: {successful}/{len(results)}")
+                else:
+                    logger.error("Failed to save results to CSV")
+                    sys.exit(1)
+            else:
+                logger.error("No results to save")
+                sys.exit(1)
+        
+        if __name__ == "__main__":
+            main()
+        EOF
+        
+    - name: Initialize enhanced database with date tracking
+      run: |
+        echo "Initializing enhanced database with date tracking..."
+        python -c "
+        import sqlite3
+        from datetime import datetime
+
+        conn = sqlite3.connect('product_availability.db')
+        cursor = conn.cursor()
+
+        # Drop and recreate tables to ensure clean schema migration
+        print('Dropping existing tables for clean schema migration...')
+        cursor.execute('DROP TABLE IF EXISTS \"products-in-links\"')
+        cursor.execute('DROP TABLE IF EXISTS products_with_dates')
+
+        # Create legacy table for backward compatibility
+        cursor.execute('''
+            CREATE TABLE \"products-in-links\" (
+                ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                SKU TEXT UNIQUE NOT NULL,
+                DETAILS TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        cursor.execute('CREATE INDEX idx_sku ON \"products-in-links\" (SKU)')
+
+        # Create enhanced table with date tracking
+        cursor.execute('''
+            CREATE TABLE products_with_dates (
+                ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                SKU TEXT NOT NULL,
+                DETAILS TEXT NOT NULL,
+                fetch_date DATE NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(SKU, fetch_date)
+            )
+        ''')
+
+        # Create indexes for efficient querying
+        cursor.execute('CREATE INDEX idx_sku_date ON products_with_dates (SKU, fetch_date)')
+        cursor.execute('CREATE INDEX idx_fetch_date ON products_with_dates (fetch_date)')
+
+        conn.commit()
+        conn.close()
+        print('Enhanced database schema initialized with date tracking')
+        "
+
+    - name: Extract SKUs and check existing data
+      id: extract-skus
+      run: |
+        echo "🔍 Extracting SKUs from broken links only and checking existing data..."
+        python -c "
+        import pandas as pd
+        import re
+        import os
+        import sqlite3
+        from datetime import datetime
+
+        # Get today's date
+        today = datetime.now().strftime('%Y-%m-%d')
+        print(f'Processing for date: {today}')
+
+        # Extract SKUs from CSV files (only from broken links)
+        skus = set()
+        csv_files = ['au_broken_links.csv', 'nz_broken_links.csv']
+
+        for csv_file in csv_files:
+            if os.path.exists(csv_file):
+                print(f'📄 Processing {csv_file}...')
+                try:
+                    df = pd.read_csv(csv_file)
+                    print(f'  📊 Loaded {len(df)} rows from {csv_file}')
+
+                    # Filter for broken links only (non-200 status codes)
+                    # Include 404, empty status, and other non-200 codes
+                    broken_df = df[
+                        (df['Status'] != 200.0) &
+                        (df['Status'].notna()) |
+                        (df['Status'].isna()) |
+                        (df['Status'] == '')
+                    ]
+
+                    print(f'  🔍 Found {len(broken_df)} broken links (non-200 status)')
+
+                    if len(broken_df) == 0:
+                        print(f'  ✅ No broken links found in {csv_file}')
+                        continue
+
+                    # Extract SKUs only from broken link URLs
+                    for url in broken_df['URL'].dropna():
+                        url_str = str(url)
+                        # Look for 8-digit numeric SKUs
+                        sku_matches = re.findall(r'\b\d{8}\b', url_str)
+                        skus.update(sku_matches)
+
+                        # Look for alphanumeric SKUs in URLs (8-12 characters)
+                        url_sku_matches = re.findall(r'/([A-Z0-9]{8,12})(?:/|$|\?)', url_str)
+                        for sku in url_sku_matches:
+                            if len(sku) >= 8:
+                                skus.add(sku)
+
+                    print(f'  ✅ Extracted {len([s for s in skus if any(s in str(val) for val in df.values.flatten())])} SKUs from {csv_file}')
+                except Exception as e:
+                    print(f'  ⚠️ Error processing {csv_file}: {e}')
+            else:
+                print(f'  ❌ {csv_file} not found')
+
+        # If no SKUs found, add sample SKUs for testing/demonstration
+        force_run = '${{ inputs.force_run }}' == 'true'
+        if len(skus) == 0:
+            if force_run:
+                print('🔧 Force run enabled: adding sample SKUs for testing...')
+                sample_skus = ['12345678', '87654321', 'ABCD1234', 'TEST9999', 'SAMPLE01', 'DEMO1234']
+                skus.update(sample_skus)
+                print(f'  📝 Added {len(sample_skus)} sample SKUs for demonstration')
+            else:
+                print('⚠️ No SKUs found in CSV files and force_run not enabled')
+                print('  💡 To run with sample data, set force_run=true in workflow inputs')
+
+        all_skus = sorted(list(skus))
+        # Process ALL SKUs found in broken links (no max_products cap)
+        sku_list = all_skus
+
+        print(f'✅ Found {len(all_skus)} total unique SKUs, processing ALL ({len(sku_list)}) SKUs')
+
+        # Check which SKUs already have data for today
+        conn = sqlite3.connect('product_availability.db')
+        cursor = conn.cursor()
+
+        existing_skus = set()
+        if sku_list:
+            placeholders = ','.join(['?' for _ in sku_list])
+            cursor.execute(f'''
+                SELECT DISTINCT SKU FROM products_with_dates
+                WHERE fetch_date = ? AND SKU IN ({placeholders})
+            ''', [today] + sku_list)
+            existing_skus = {row[0] for row in cursor.fetchall()}
+
+        # Also populate legacy table with new SKUs for backward compatibility
+        new_skus = [sku for sku in sku_list if sku not in existing_skus]
+        for sku in new_skus:
+            try:
+                cursor.execute('''
+                    INSERT OR IGNORE INTO \"products-in-links\" (SKU, DETAILS)
+                    VALUES (?, ?)
+                ''', (sku, json.dumps({'sku': sku, 'source': 'csv_extraction', 'date': today})))
+            except:
+                pass  # Ignore duplicates
+
+        conn.commit()
+        conn.close()
+
+        print(f'SKUs already processed today: {len(existing_skus)}')
+        print(f'New SKUs to process: {len(new_skus)}')
+
+        # Write SKUs to process to file
+        with open('skus_to_process.txt', 'w') as f:
+            for sku in new_skus:
+                f.write(sku + '\n')
+
+        # Set output for next step
+        with open('sku_summary.txt', 'w') as f:
+            f.write(f'total_skus={len(all_skus)}\n')
+            f.write(f'existing_skus={len(existing_skus)}\n')
+            f.write(f'new_skus={len(new_skus)}\n')
+        "
+
+        # Read summary for GitHub Actions
+        if [ -f "sku_summary.txt" ]; then
+          source sku_summary.txt
+          echo "total_skus=$total_skus" >> $GITHUB_OUTPUT
+          echo "existing_skus=$existing_skus" >> $GITHUB_OUTPUT
+          echo "new_skus=$new_skus" >> $GITHUB_OUTPUT
+
+          echo "📊 SKU Processing Summary:"
+          echo "  Total SKUs found: $total_skus"
+          echo "  Already processed today: $existing_skus"
+          echo "  New SKUs to process: $new_skus"
+        fi
+        
+    # Database update step disabled - database already contains SKUs
+    - name: Update database with SKUs from CSV files (DISABLED)
+      run: echo "Skipping database update - database already populated with SKUs"
+        
+    - name: Run product data fetch with error handling
+      env:
+        COMMERCETOOL_AUTH_TOKEN: ${{ secrets.COMMERCETOOL_AUTH_TOKEN }}
+        COMMERCETOOL_API_KEY: ${{ secrets.COMMERCETOOL_API_KEY }}
+        COMMERCETOOL_PROJECT_KEY: ${{ secrets.COMMERCETOOL_PROJECT_KEY }}
+        INPUT_MAX_PRODUCTS: ${{ github.event.inputs.max_products || '500' }}
+        INPUT_REGION_FILTER: ${{ github.event.inputs.region_filter || 'ALL' }}
+      run: |
+        echo "🚀 Starting product data fetch with comprehensive error handling..."
+
+        # Validate environment variables
+        if [ -z "$COMMERCETOOL_AUTH_TOKEN" ]; then
+          echo "❌ COMMERCETOOL_AUTH_TOKEN is not set"
+          echo "Please ensure the secret is configured in repository settings"
+          exit 1
+        fi
+
+        # Check if we have SKUs to process
+        if [ ! -f "skus_to_process.txt" ]; then
+          echo "⚠️ No SKUs file found, checking extraction results..."
+
+          # Check if extraction step ran and found no new SKUs
+          if [ "${{ steps.extract-skus.outputs.new_skus }}" = "0" ]; then
+            echo "✅ No new SKUs to process (all already processed today)"
+            # Create empty CSV for consistency
+            echo "SKU,ID,DETAIL" > product_export_$(date +%Y%m%d_%H%M%S).csv
+            echo "No new products to process today" >> product_export_$(date +%Y%m%d_%H%M%S).csv
+            echo "📄 Created empty product export CSV"
+            exit 0
+          else
+            echo "❌ SKU extraction may have failed, creating minimal product export..."
+            # Create minimal CSV with placeholder data
+            echo "SKU,ID,DETAIL" > product_export_$(date +%Y%m%d_%H%M%S).csv
+            echo "ERROR,EXTRACTION_FAILED,SKU extraction failed or no valid data found" >> product_export_$(date +%Y%m%d_%H%M%S).csv
+            echo "📄 Created error product export CSV"
+            exit 0
+          fi
+        fi
+
+        # Verify SKU file has content
+        if [ ! -s "skus_to_process.txt" ]; then
+          echo "⚠️ SKUs file exists but is empty"
+          echo "SKU,ID,DETAIL" > product_export_$(date +%Y%m%d_%H%M%S).csv
+          echo "EMPTY,NO_SKUS,No SKUs found to process" >> product_export_$(date +%Y%m%d_%H%M%S).csv
+          echo "📄 Created empty SKU product export CSV"
+          exit 0
+        fi
+
+        echo "✅ Found SKUs file with $(wc -l < skus_to_process.txt) SKUs to process"
+
+        # Run the product fetch with timeout and error handling
+        timeout 7200 python workflow_script.py || {
+          exit_code=$?
+          if [ $exit_code -eq 124 ]; then
+            echo "❌ Product fetch timed out after 2 hours"
+            echo "This may indicate API rate limiting or network issues"
+          else
+            echo "❌ Product fetch failed with exit code $exit_code"
+          fi
+
+          # Create error CSV file
+          echo "SKU,ID,DETAIL" > product_export_error_$(date +%Y%m%d_%H%M%S).csv
+          echo "ERROR,TIMEOUT_OR_FAILURE,Product fetch failed or timed out" >> product_export_error_$(date +%Y%m%d_%H%M%S).csv
+
+          exit $exit_code
+        }
+        
+    - name: Upload CSV artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: product-export-csv
+        path: product_export_*.csv
+        retention-days: 30
+        
+    - name: Upload database artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: product-database
+        path: product_availability.db
+        retention-days: 7
+        
+    - name: Create summary
+      run: |
+        echo "## Product Data Fetch Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Workflow Parameters:**" >> $GITHUB_STEP_SUMMARY
+        echo "- Max Products: ${{ github.event.inputs.max_products || '500' }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Region Filter: ${{ github.event.inputs.region_filter || 'ALL' }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Timestamp: $(date)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ -f product_export_*.csv ]; then
+          CSV_FILE=$(ls product_export_*.csv | head -1)
+          RECORD_COUNT=$(tail -n +2 "$CSV_FILE" | wc -l)
+          echo "**Results:**" >> $GITHUB_STEP_SUMMARY
+          echo "- CSV File Generated: $CSV_FILE" >> $GITHUB_STEP_SUMMARY
+          echo "- Total Records: $RECORD_COUNT" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Sample Data (first 5 rows):**" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          head -6 "$CSV_FILE" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ No CSV file was generated" >> $GITHUB_STEP_SUMMARY
+        fi
+
+    - name: Trigger GitHub Pages deployment
+      if: success()
+      continue-on-error: true
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          try {
+            console.log('🚀 Triggering GitHub Pages deployment...');
+            console.log(`Product Data Run ID: ${context.runId}`);
+            console.log(`Broken Link Run ID: ${{ inputs.source_run_id }}`);
+
+            const result = await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'deploy-gh-pages.yml',
+              ref: 'main',
+              inputs: {
+                'product_data_run_id': context.runId.toString(),
+                'broken_link_run_id': '${{ inputs.source_run_id }}' || '',
+                'trigger_source': 'product-data-fetch'
+              }
+            });
+
+            console.log('✅ Successfully triggered GitHub Pages deployment');
+            console.log(`Status: ${result.status}`);
+
+            // Add to step summary
+            core.summary.addHeading('🌐 GitHub Pages Deployment');
+            core.summary.addRaw('✅ Successfully triggered GitHub Pages deployment workflow');
+            core.summary.addRaw(`📋 Product Data Run ID: ${context.runId}`);
+            core.summary.addRaw(`📋 Broken Link Run ID: ${{ inputs.source_run_id }}`);
+            await core.summary.write();
+
+          } catch (error) {
+            console.log('❌ Failed to trigger GitHub Pages deployment');
+            console.log(`Error: ${error.message}`);
+
+            // Add error to step summary
+            core.summary.addHeading('🌐 GitHub Pages Deployment');
+            core.summary.addRaw('❌ Failed to trigger GitHub Pages deployment workflow');
+            core.summary.addRaw(`Error: ${error.message}`);
+            core.summary.addRaw('💡 You can manually trigger the GitHub Pages deployment using the artifacts from this run');
+            await core.summary.write();
+
+            // Don't fail the entire workflow
+            core.warning('Failed to trigger GitHub Pages deployment, but product data artifacts are available for manual processing');
+          }
