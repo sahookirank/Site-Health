@@ -26,6 +26,9 @@ def create_db():
     conn.close()
 
 def store_daily_data(date, products_json, pages_json):
+    # Ensure the database and table exist
+    create_db()
+    
     conn = sqlite3.connect('page_views_daily.db')
     cur = conn.cursor()
     generated_at = datetime.utcnow().isoformat() + 'Z'
