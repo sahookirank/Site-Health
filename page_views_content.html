@@ -1,100 +1,15 @@
 
-        <div id="PageViewsContainer" class="card">
-            <div style="display:flex; gap:12px; padding:8px 0 0 0;">
-                <button class="pv-tab-link active" onclick="openPvTab(event, 'PV_Top_Products')">Top Products</button>
-                <button class="pv-tab-link" onclick="openPvTab(event, 'PV_Top_Pages')">Top Pages</button>
-                <button class="pv-tab-link" onclick="openPvTab(event, 'PV_Broken_Links')">Broken Links Views</button>
+        <div class="card">
+            <h3>📊 Page Views Data</h3>
+            <div class="info-message">
+                <p><strong>New Relic Configuration Required</strong></p>
+                <p>To display page views data, please configure the following environment variables:</p>
+                <ul>
+                    <li><code>NEWRELIC_BASE_URL</code></li>
+                    <li><code>NEWRELIC_ACCOUNT_ID</code></li>
+                    <li><code>NEWRELIC_COOKIE</code></li>
+                </ul>
+                <p>Once configured, regenerate the report to see page views analytics.</p>
             </div>
-            <div id="PV_Top_Products" class="pv-tab-content" style="display:block;">
-                <div class="summary-container">
-                    <span class="summary-item">📊 Total Products: 0</span>
-                    <span class="summary-item">🔥 Top Product Views: 0</span>
-                    <span class="summary-item">📈 Total Page Views: 0</span>
-                </div>
-                
-                <table id="topProductsTable" class="display" style="width:100%">
-                    <thead>
-                        <tr>
-                            <th>Rank</th>
-                            <th>Product URL</th>
-                            <th>Page Views</th>
-                            <th>Last Updated</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-
-                    </tbody>
-                </table>
-</div>
-            <div id="PV_Top_Pages" class="pv-tab-content">
-                <div class="summary-container">
-                    <span class="summary-item">📊 Total Pages: 0</span>
-                    <span class="summary-item">🔥 Top Page Views: 0</span>
-                    <span class="summary-item">📈 Total Page Views: 0</span>
-                </div>
-                <table id="topPagesTable" class="display" style="width:100%">
-                    <thead>
-                        <tr>
-                            <th>Rank</th>
-                            <th>Page URL</th>
-                            <th>Views</th>
-                            <th>Last Updated</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-
-                    </tbody>
-                </table>
-</div>
-            <div id="PV_Broken_Links" class="pv-tab-content">
-                <div class="summary-container">
-                    <span class="summary-item">🔗 Broken Link URLs Tracked: 2</span>
-                    <span class="summary-item">👁️‍🗨️ URLs With Views: 0</span>
-                    <span class="summary-item">📈 Total Views (Sum): 0</span>
-                </div>
-                <table id="brokenLinksViewsTable" class="display" style="width:100%">
-                    <thead>
-                        <tr>
-                            <th>Rank</th>
-                            <th>URL</th>
-                            <th>Views (30d)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-
-                        <tr>
-                            <td>1</td>
-                            <td><a href="https://www.kmart.co.nz/" target="_blank">https://www.kmart.co.nz/</a></td>
-                            <td><strong>0</strong></td>
-                        </tr>
-
-                        <tr>
-                            <td>2</td>
-                            <td><a href="https://www.kmart.com.au/" target="_blank">https://www.kmart.com.au/</a></td>
-                            <td><strong>0</strong></td>
-                        </tr>
-
-                    </tbody>
-                </table>
-</div>
         </div>
-        <style>
-            .pv-tab-link {
-                background-color: #f3f4f6; border: 1px solid #e5e7eb; padding: 8px 16px; cursor: pointer; border-radius: 8px;
-                font-weight: 600; font-size: 14px; letter-spacing: .2px; transition: all .15s ease;
-            }
-            .pv-tab-link.active, .pv-tab-link:hover { background-color: #e9effe; border-color: #c2d3ff; color: #0b3fbf; }
-            .pv-tab-content { display:none; padding: 8px 0; }
-        </style>
-        <script>
-            function openPvTab(evt, tabId) {
-                var container = document.getElementById('PageViewsContainer');
-                var contents = container.getElementsByClassName('pv-tab-content');
-                for (var i=0; i<contents.length; i++) { contents[i].style.display = 'none'; }
-                var links = container.getElementsByClassName('pv-tab-link');
-                for (var j=0; j<links.length; j++) { links[j].className = links[j].className.replace(' active',''); }
-                document.getElementById(tabId).style.display = 'block';
-                evt.currentTarget.className += ' active';
-            }
-        </script>
-    
+        

@@ -32,6 +32,7 @@ import pandas as pd
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
+from store_daily_data import store_daily_data
 
 # Load environment variables from .env file
 try:
@@ -90,7 +91,7 @@ def get_dynamic_headers_and_payload():
     # rather than the last 24 hours which could include previous day's data
     payload = {
         "account_ids": [int(account_id)],
-        "nrql": "SELECT count(*) FROM PageView WHERE pageUrl RLIKE '.*[0-9]+.*' FACET pageUrl ORDER BY count(*) LIMIT 100 SINCE today"
+        "nrql": "SELECT count(*) FROM PageView WHERE pageUrl RLIKE '.*[0-9]+.*' FACET pageUrl ORDER BY count(*) SINCE today"
     }
     return headers, payload, base_url
 
@@ -234,7 +235,7 @@ def generate_html_content(products):
         safe_timestamp = product['timestamp'].encode('utf-8', 'ignore').decode('utf-8')
         
         html_content += f'''
-                        <tr>
+                        <tr class="table-row" style="display: none;">
                             <td>{i}</td>
                             <td>
                                 <a href="{safe_url}" target="_blank" title="{safe_url}">
@@ -286,7 +287,7 @@ def generate_top_pages_html(pages):
         safe_timestamp = page['timestamp'].encode('utf-8', 'ignore').decode('utf-8')
         
         html_content += f'''
-                        <tr>
+                        <tr class="table-row" style="display: none;">
                             <td>{i}</td>
                             <td><a href="{safe_url}" target="_blank">{safe_url}</a></td>
                             <td><strong>{page['count']:,}</strong></td>
@@ -324,7 +325,7 @@ def generate_broken_links_views_html(items):
         safe_url = it['url'].encode('utf-8', 'ignore').decode('utf-8')
         
         html_content += f'''
-                        <tr>
+                        <tr class="table-row" style="display: none;">
                             <td>{i}</td>
                             <td><a href="{safe_url}" target="_blank">{safe_url}</a></td>
                             <td><strong>{it['count']:,}</strong></td>
@@ -360,7 +361,7 @@ def build_page_views_container_html(top_products, top_pages, broken_links_views)
                 font-weight: 600; font-size: 14px; letter-spacing: .2px; transition: all .15s ease;
             }}
             .pv-tab-link.active, .pv-tab-link:hover {{ background-color: #e9effe; border-color: #c2d3ff; color: #0b3fbf; }}
-            .pv-tab-content {{ display:none; padding: 8px 0; }}
+            .pv-tab-content {{ display:none; padding: 8px 0; max-height: 600px; overflow-y: auto; }}
         </style>
         <script>
             function openPvTab(evt, tabId) {{
@@ -371,7 +372,46 @@ def build_page_views_container_html(top_products, top_pages, broken_links_views)
                 for (var j=0; j<links.length; j++) {{ links[j].className = links[j].className.replace(' active',''); }}
                 document.getElementById(tabId).style.display = 'block';
                 evt.currentTarget.className += ' active';
+                
+                // Initialize infinite scroll for the newly active tab
+                initializeInfiniteScroll(tabId);
             }}
+            
+            function initializeInfiniteScroll(tabId) {{
+                var tabContent = document.getElementById(tabId);
+                var table = tabContent.querySelector('table');
+                if (!table) return;
+                
+                var rows = table.querySelectorAll('.table-row');
+                var visibleRows = 50; // Show 50 rows initially
+                var increment = 50; // Load 50 more rows at a time
+                
+                // Show initial rows
+                for (var i = 0; i < Math.min(visibleRows, rows.length); i++) {{
+                    rows[i].style.display = '';
+                }}
+                
+                // Add scroll listener to the tab content
+                tabContent.addEventListener('scroll', function() {{
+                    var scrollTop = tabContent.scrollTop;
+                    var scrollHeight = tabContent.scrollHeight;
+                    var clientHeight = tabContent.clientHeight;
+                    
+                    // Load more when scrolled near bottom (100px threshold)
+                    if (scrollTop + clientHeight >= scrollHeight - 100 && visibleRows < rows.length) {{
+                        var newVisibleRows = Math.min(visibleRows + increment, rows.length);
+                        for (var i = visibleRows; i < newVisibleRows; i++) {{
+                            rows[i].style.display = '';
+                        }}
+                        visibleRows = newVisibleRows;
+                    }}
+                }});
+            }}
+            
+            // Initialize infinite scroll for the default active tab
+            document.addEventListener('DOMContentLoaded', function() {{
+                initializeInfiniteScroll('PV_Top_Products');
+            }});
         </script>
     '''
 
@@ -617,18 +657,22 @@ def main():
     print(f"Current date/time: {datetime.now()}")
 
     # 1) Top Products (today) — preserve existing behavior/query
-    products_nrql = "SELECT count(*) FROM PageView WHERE pageUrl RLIKE '.*[0-9]+.*' FACET pageUrl ORDER BY count(*) LIMIT 100 SINCE today"
+    products_nrql = "SELECT count(*) FROM PageView WHERE pageUrl RLIKE '.*[0-9]+.*' FACET pageUrl ORDER BY count(*) SINCE today"
     print(f"NRQL (Top Products): {products_nrql}")
     resp_products = _fetch_nrql(headers, base_url, products_nrql)
     top_products = parse_response_data(resp_products) if resp_products else []
     print(f"Found {len(top_products)} top products")
 
     # 2) Top Pages (last 1 day)
-    pages_nrql = "SELECT count(*) FROM PageView FACET pageUrl ORDER BY count(*) LIMIT 50 SINCE 1 day ago"
+    pages_nrql = "SELECT count(*) FROM PageView FACET pageUrl ORDER BY count(*) SINCE 1 day ago"
     print(f"NRQL (Top Pages): {pages_nrql}")
     resp_pages = _fetch_nrql(headers, base_url, pages_nrql)
     top_pages = parse_response_data(resp_pages) if resp_pages else []
     print(f"Found {len(top_pages)} top pages")
+
+    # Store daily data in DB
+    today = datetime.utcnow().date().isoformat()
+    store_daily_data(today, resp_products, resp_pages)
 
     # 3) Broken Links Views (30 days) - Process URLs individually with parallel threading
     all_urls = _read_broken_links_urls(script_dir)
@@ -729,9 +773,9 @@ def main():
     print(f"\n✅ Aggregated view counts for {len(broken_links_views)} broken link URLs (using live API data)")
     print(f"{'='*60}\n")
 
-    # Limit sizes for rendering
-    top_products = top_products[:50]
-    top_pages = top_pages[:50]
+    # Limit sizes for rendering - removed for infinite scroll
+    # top_products = top_products[:50]
+    # top_pages = top_pages[:50]
 
     # Generate combined Page Views HTML
     page_views_html = build_page_views_container_html(top_products, top_pages, broken_links_views)
