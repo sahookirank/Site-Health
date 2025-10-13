@@ -344,16 +344,16 @@ def generate_broken_links_views_html(items):
 
 def build_page_views_container_html(top_products, top_pages, broken_links_views):
     """Compose the Page Views parent container with three sub-tabs"""
-    return f'''
+    html_template = '''
         <div id="PageViewsContainer" class="card">
             <div style="display:flex; gap:12px; padding:8px 0 0 0;">
                 <button class="pv-tab-link active" onclick="openPvTab(event, 'PV_Top_Products')">Top Products</button>
                 <button class="pv-tab-link" onclick="openPvTab(event, 'PV_Top_Pages')">Top Pages</button>
                 <button class="pv-tab-link" onclick="openPvTab(event, 'PV_Broken_Links')">Broken Links Views</button>
             </div>
-            <div id="PV_Top_Products" class="pv-tab-content" style="display:block;">{generate_html_content(top_products)}</div>
-            <div id="PV_Top_Pages" class="pv-tab-content">{generate_top_pages_html(top_pages)}</div>
-            <div id="PV_Broken_Links" class="pv-tab-content">{generate_broken_links_views_html(broken_links_views)}</div>
+            <div id="PV_Top_Products" class="pv-tab-content" style="display:block;">{top_products_html}</div>
+            <div id="PV_Top_Pages" class="pv-tab-content">{top_pages_html}</div>
+            <div id="PV_Broken_Links" class="pv-tab-content">{broken_links_html}</div>
         </div>
         <style>
             .pv-tab-link {{
@@ -415,6 +415,12 @@ def build_page_views_container_html(top_products, top_pages, broken_links_views)
             // });
         </script>
     '''
+    
+    return html_template.format(
+        top_products_html=generate_html_content(top_products),
+        top_pages_html=generate_top_pages_html(top_pages),
+        broken_links_html=generate_broken_links_views_html(broken_links_views)
+    )
 
 
 def _fetch_nrql(headers, base_url, nrql):
