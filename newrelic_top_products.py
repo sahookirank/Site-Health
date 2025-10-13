@@ -367,9 +367,9 @@ def build_page_views_container_html(top_products, top_pages, broken_links_views)
             function openPvTab(evt, tabId) {{
                 var container = document.getElementById('PageViewsContainer');
                 var contents = container.getElementsByClassName('pv-tab-content');
-                for (var i=0; i<contents.length; i++) {{ contents[i].style.display = 'none'; }}
+                for (var i=0; i<contents.length; i++) {{{{ contents[i].style.display = 'none'; }}}}
                 var links = container.getElementsByClassName('pv-tab-link');
-                for (var j=0; j<links.length; j++) {{ links[j].className = links[j].className.replace(' active',''); }}
+                for (var j=0; j<links.length; j++) {{{{ links[j].className = links[j].className.replace(' active',''); }}}}
                 document.getElementById(tabId).style.display = 'block';
                 evt.currentTarget.className += ' active';
                 // Initialize infinite scroll for the newly active tab
@@ -383,29 +383,25 @@ def build_page_views_container_html(top_products, top_pages, broken_links_views)
                 var visibleRows = 50; // Show 50 rows initially
                 var increment = 50; // Load 50 more rows at a time
                 // Show initial rows
-                for (var i = 0; i < Math.min(visibleRows, rows.length); i++) {{
-                    rows[i].style.display = '';
-                }}
+                for (var i = 0; i < Math.min(visibleRows, rows.length); i++) {{{{ rows[i].style.display = ''; }}}}
                 // Add scroll listener to the tab content
-                tabContent.addEventListener('scroll', function() {{
+                tabContent.addEventListener('scroll', function() {{{{
                     var scrollTop = tabContent.scrollTop;
                     var scrollHeight = tabContent.scrollHeight;
                     var clientHeight = tabContent.clientHeight;
                     // Load more when scrolled near bottom (100px threshold)
-                    if (scrollTop + clientHeight >= scrollHeight - 100 && visibleRows < rows.length) {{
+                    if (scrollTop + clientHeight >= scrollHeight - 100 && visibleRows < rows.length) {{{{
                         var newVisibleRows = Math.min(visibleRows + increment, rows.length);
-                        for (var i = visibleRows; i < newVisibleRows; i++) {{
-                            rows[i].style.display = '';
-                        }}
+                        for (var i = visibleRows; i < newVisibleRows; i++) {{{{ rows[i].style.display = ''; }}}}
                         visibleRows = newVisibleRows;
-                    }}
-                }});
+                    }}}}
+                }}}});
             }}
             // Initialize infinite scroll for the default active tab
             // Note: Now handled by main tab switching in report_generator.py
-            // document.addEventListener('DOMContentLoaded', function() {{
+            // document.addEventListener('DOMContentLoaded', function() {{{{
             //     initializeInfiniteScroll('PV_Top_Products');
-            // });
+            // }}}});
         </script>
     '''
     return html_template.format(
