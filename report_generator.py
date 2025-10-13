@@ -1699,15 +1699,22 @@ def generate_optimizely_section(optimizely_json_paths=None):
         combined_json = json.dumps(combined_display_data, ensure_ascii=False).replace('</', '<\/')
     except Exception:
         combined_json = '{}'
+    # Produce a safely-quoted JS string literal of the JSON so we can JSON.parse() it in the browser
+    try:
+        combined_json_literal = json.dumps(combined_json, ensure_ascii=False)
+    except Exception:
+        combined_json_literal = '"{}"'
 
     tab_buttons = []
     tab_contents = []
 
-    # Add a combined 'All regions' tab with export capability
-    combined_button_html = f'<button class="optly-tab" data-target="optly-tab-combined">Combined</button>'
-    tab_buttons.append(combined_button_html)
-    combined_content_inner = _optly_render_tab_content(combined_display_data, 'combined')
-    tab_contents.append(f'<div id="optly-tab-combined" class="optly-tab-content"><div class="optly-inner">{combined_content_inner}</div></div>')
+    # Add a combined 'All regions' tab with export capability only when there is more than one region
+    include_combined_tab = len(ordered_regions) > 1
+    if include_combined_tab:
+        combined_button_html = f'<button class="optly-tab" data-target="optly-tab-combined">Combined</button>'
+        tab_buttons.append(combined_button_html)
+        combined_content_inner = _optly_render_tab_content(combined_display_data, 'combined')
+        tab_contents.append(f'<div id="optly-tab-combined" class="optly-tab-content"><div class="optly-inner">{combined_content_inner}</div></div>')
 
     for idx, region in enumerate(ordered_regions):
         active_class = " active" if idx == 0 else ""
@@ -1724,13 +1731,16 @@ def generate_optimizely_section(optimizely_json_paths=None):
             f'<div id="optly-tab-{region.lower()}" class="optly-tab-content{active_class}"><div class="optly-inner">{content_inner}</div></div>'
         )
 
+    # Only render the export button when combined tab is present
+    export_button_html = '<button id="optly-export-csv" title="Export all Optimizely data" style="margin-left:12px; padding:8px 12px; border-radius:8px;">Export CSV</button>' if include_combined_tab else ''
+
     return f"""
         <div class="optly-container" id="optly-container">
             <div class="optly-search-container">
                 <div class="optly-search-box">
                         <input type="text" id="optly-search-input" placeholder="Search events, feature flags, and experiments...">
                         <button id="optly-search-clear" title="Clear search">✕</button>
-                        <button id="optly-export-csv" title="Export all Optimizely data" style="margin-left:12px; padding:8px 12px; border-radius:8px;">Export CSV</button>
+                        {export_button_html}
                     </div>
             </div>
             <div class="optly-tabs">
@@ -1802,8 +1812,8 @@ def generate_optimizely_section(optimizely_json_paths=None):
                     }});
                 }});
 
-                // Make the combined data available to the client for export
-                try {{ window.__OPTIMIZELY_COMBINED = {combined_json}; }} catch(e) {{ window.__OPTIMIZELY_COMBINED = {{}}; }}
+                // Make the combined data available to the client for export (use JSON.parse on a safely quoted string)
+                try {{ window.__OPTIMIZELY_COMBINED = JSON.parse({combined_json_literal}); }} catch(e) {{ window.__OPTIMIZELY_COMBINED = {{}}; }}
 
                 const searchInput = container.querySelector('#optly-search-input');
                 const clearButton = container.querySelector('#optly-search-clear');
@@ -2309,13 +2319,18 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
     optimizely_html = generate_optimizely_section(optimizely_json_path)
 
     # Build Changes tab HTML
-    def render_changes_section(title: str, items: list[tuple[str,str]], change_type: str):
+    def render_changes_section(title: str, items: list[tuple[str,str]], change_type: str, section_prefix: str | None = None):
         # items: list of (Region, URL)
         if not items:
             return "<p>No changes.</p>"
         
-        # Create unique table ID based on title and change type
-        table_id = f"changes-{change_type.lower()}-{title.lower().replace(' ', '-')}"
+        # Create unique table ID based on provided section prefix and change type so JS can find them
+        # Expected IDs used by the front-end: 'yesterday-added-table', 'yesterday-removed-table',
+        # 'week-added-table', 'week-removed-table'. If no prefix supplied fall back to legacy naming.
+        if section_prefix:
+            table_id = f"{section_prefix}-{change_type}-table"
+        else:
+            table_id = f"changes-{change_type.lower()}-{title.lower().replace(' ', '-')}"
         table_class = f"changes-table-{change_type.lower()} display"
         
         # Add change type badge to each row
@@ -2348,7 +2363,7 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                             <span class="toggle-icon" id="yesterday-added-toggle">▼</span>
                         </div>
                         <div class="collapsible-content" id="yesterday-added-section">
-                            {render_changes_section('Yesterday Added', changes['yesterday']['added'], 'added')}
+                            {render_changes_section('Yesterday Added', changes['yesterday']['added'], 'added', section_prefix='yesterday')}
                         </div>
                     </div>
                     <div class="collapsible-section">
@@ -2357,7 +2372,7 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                             <span class="toggle-icon" id="yesterday-removed-toggle">▼</span>
                         </div>
                         <div class="collapsible-content" id="yesterday-removed-section">
-                            {render_changes_section('Yesterday Removed', changes['yesterday']['removed'], 'removed')}
+                            {render_changes_section('Yesterday Removed', changes['yesterday']['removed'], 'removed', section_prefix='yesterday')}
                         </div>
                     </div>
         """
@@ -2389,7 +2404,7 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                             <span class="toggle-icon" id="week-added-toggle">▼</span>
                         </div>
                         <div class="collapsible-content" id="week-added-section">
-                            {render_changes_section('Added Week', changes['week']['added'], 'added')}
+                            {render_changes_section('Added Week', changes['week']['added'], 'added', section_prefix='week')}
                         </div>
                     </div>
                     
@@ -2399,7 +2414,7 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                             <span class="toggle-icon" id="week-removed-toggle">▼</span>
                         </div>
                         <div class="collapsible-content" id="week-removed-section">
-                            {render_changes_section('Removed Week', changes['week']['removed'], 'removed')}
+                            {render_changes_section('Removed Week', changes['week']['removed'], 'removed', section_prefix='week')}
                         </div>
                     </div>
         """
@@ -2672,53 +2687,78 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                 ['#auLinkTable', '#nzLinkTable'].forEach(function(tableId) {{
                     if (!$(tableId).length) return; // If table doesn't exist, skip
 
-                    var table = $(tableId).DataTable({{
-                        pageLength: 100,
-                        orderCellsTop: true,
-                        fixedHeader: true,
-                        initComplete: function () {{
-                            var api = this.api();
-                            // Check for the correct number of filterable columns (Timestamp, URL, Status, Response_Time, Error_Message)
-                            var filterHeaderCells = $(tableId + ' thead tr.filters th');
-                            if (filterHeaderCells.length !== 5) {{
-                                console.error('Expected 5 filterable columns for ' + tableId + ', found ' + filterHeaderCells.length + '. Skipping filter setup.');
-                                return;
-                            }}
+                    try {{
+                        var table = $(tableId).DataTable({{
+                            pageLength: 100,
+                            orderCellsTop: true,
+                            fixedHeader: true,
+                            initComplete: function () {{
+                                var api = this.api();
+                                var filterHeaderCells = $(tableId + ' thead tr.filters th');
+                                if (!filterHeaderCells.length) {{
+                                    // No filter inputs found for this table; nothing to wire up
+                                    return;
+                                }}
 
-                            api.columns().eq(0).each(function (colIdx) {{
-                                // Get the input element for the current column's filter
-                                var inputElement = $(filterHeaderCells[colIdx]).find('input');
-                                
-                                $(inputElement)
-                                    .off('keyup change') // Remove previous event handlers to prevent duplicates
-                                    .on('keyup change', function (e) {{
-                                        e.stopPropagation();
-                                        // Perform search, treating input as literal string (regex: false, smart: false)
-                                        var searchValue = this.value;
-                                        api.column(colIdx).search(searchValue, false, false).draw();
-                                        
-                                        // Restore cursor position if the element is still focused
-                                        if (document.activeElement === this) {{
-                                            var cursorPos = this.selectionStart;
-                                            this.focus();
-                                            this.setSelectionRange(cursorPos, cursorPos);
+                                var colCount = (api && api.columns) ? api.columns().count() : filterHeaderCells.length;
+                                for (var colIdx = 0; colIdx < colCount; colIdx++) {{
+                                    (function(colIdx) {{
+                                        var filterCell = filterHeaderCells.eq(colIdx);
+                                        var inputElement = filterCell.find('input');
+                                        if (!inputElement.length) return;
+
+                                        $(inputElement)
+                                            .off('keyup change')
+                                            .on('keyup change', function (e) {{
+                                                e.stopPropagation();
+                                                var searchValue = this.value;
+                                                try {{ api.column(colIdx).search(searchValue, false, false).draw(); }} catch (err) {{ console.error('Filter search failed for column', colIdx, err); }}
+
+                                                if (document.activeElement === this) {{
+                                                    var cursorPos = this.selectionStart;
+                                                    this.focus();
+                                                    this.setSelectionRange(cursorPos, cursorPos);
+                                                }}
+                                            }});
+                                    }})(colIdx);
+                                }}
+                            }},
+                            rowCallback: function(row, data, index){{
+                                // Find the 'Status' column index by inspecting header text to avoid hard-coded indexes
+                                var statusIndex = -1;
+                                try {{
+                                    $(tableId + ' thead tr').first().find('th').each(function(i, th) {{
+                                        if ($(th).text().trim().toLowerCase() === 'status') {{
+                                            statusIndex = i; return false; // break
                                         }}
                                     }});
-                            }});
-                        }},
-                        rowCallback: function(row, data, index){{
-                             var statusCell = data[2]; // Status is now at index 2 (Timestamp, URL, Status, ...)
-                             var status = parseInt(statusCell) || 0;
-                             $(row).removeClass('ok error redirect');
-                            if (status >= 400) {{
-                                $(row).addClass('error');
-                            }} else if (status >= 300) {{
-                                $(row).addClass('redirect');
-                            }} else if (status === 200) {{
-                                $(row).addClass('ok');
+                                }} catch (err) {{ /* ignore */ }}
+
+                                var status = 0;
+                                try {{
+                                    if (Array.isArray(data)) {{
+                                        if (statusIndex >= 0 && data.length > statusIndex) {{
+                                            status = parseInt(data[statusIndex]) || 0;
+                                        }} else {{
+                                            for (var i=0;i<data.length;i++) {{
+                                                var v = (''+data[i]).trim();
+                                                if (/^\d{{3}}$/.test(v)) {{ status = parseInt(v); break; }}
+                                            }}
+                                        }}
+                                    }} else if (typeof data === 'object' && data !== null) {{
+                                        status = parseInt(data['Status'] || data['status'] || 0) || 0;
+                                    }}
+                                }} catch (err) {{ status = 0; }}
+
+                                $(row).removeClass('ok error redirect');
+                                if (status >= 400) {{ $(row).addClass('error'); }}
+                                else if (status >= 300) {{ $(row).addClass('redirect'); }}
+                                else if (status === 200) {{ $(row).addClass('ok'); }}
                             }}
-                        }}
-                    }});
+                        }});
+                    }} catch (e) {{
+                        try {{ $(tableId).DataTable({{ pageLength: 100, orderCellsTop: true, fixedHeader: true }}); }} catch (e2) {{ console.error('DataTable initialization failed for ' + tableId, e, e2); }}
+                    }}
                 }});
                 
                 // Initialize DataTables for changes tables
@@ -2729,17 +2769,19 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                 
                 changesTables.forEach(function(tableId) {{
                     if (!$(tableId).length) return; // If table doesn't exist, skip
-                    
-                    $(tableId).DataTable({{
-                        pageLength: 50,
-                        orderCellsTop: true,
-                        fixedHeader: true,
-                        dom: 'Bfrtip',
-                        buttons: [
-                            'copy', 'csv', 'excel', 'pdf', 'print'
-                        ],
-                        order: [[2, 'asc']] // Sort by URL column
-                    }});
+                    try {{
+                        $(tableId).DataTable({{
+                            pageLength: 50,
+                            orderCellsTop: true,
+                            fixedHeader: true,
+                            dom: 'Bfrtip',
+                            buttons: [ 'copy', 'csv', 'excel', 'pdf', 'print' ],
+                            order: [[2, 'asc']]
+                        }});
+                    }} catch (err) {{
+                        // Buttons extension may not be available in all contexts – fallback to a simpler initialization
+                        try {{ $(tableId).DataTable({{ pageLength: 50, orderCellsTop: true, fixedHeader: true, order: [[2, 'asc']] }}); }} catch (err2) {{ console.error('Changes DataTable init failed for ' + tableId, err, err2); }}
+                    }}
                 }});
 
                 // Note: Page Views tables (#topProductsTable, #topPagesTable, #brokenLinksViewsTable) 

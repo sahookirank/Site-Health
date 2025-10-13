@@ -489,7 +489,7 @@
             <tr class="filters"><th><input type='text' placeholder='Filter ...' style='width: 90%;' /></th><th><input type='text' placeholder='Filter ...' style='width: 90%;' /></th><th><input type='text' placeholder='Filter ...' style='width: 90%;' /></th><th><input type='text' placeholder='Filter ...' style='width: 90%;' /></th><th><input type='text' placeholder='Filter ...' style='width: 90%;' /></th></tr>
         </thead>
         <tbody>
-                        {au_table_rows}
+                        {nz_table_rows}
                     </tbody>
     </table>
 
@@ -602,53 +602,68 @@
                 ['#auLinkTable', '#nzLinkTable'].forEach(function(tableId) {{
                     if (!$(tableId).length) return; // If table doesn't exist, skip
 
-                    var table = $(tableId).DataTable({{
-                        pageLength: 100,
-                        orderCellsTop: true,
-                        fixedHeader: true,
-                        initComplete: function () {{
-                            var api = this.api();
-                            // Check for the correct number of filterable columns (Timestamp, URL, Status, Response_Time, Error_Message)
-                            var filterHeaderCells = $(tableId + ' thead tr.filters th');
-                            if (filterHeaderCells.length !== 5) {{
-                                console.error('Expected 5 filterable columns for ' + tableId + ', found ' + filterHeaderCells.length + '. Skipping filter setup.');
-                                return;
-                            }}
+                    try {{
+                        var table = $(tableId).DataTable({{
+                            pageLength: 100,
+                            orderCellsTop: true,
+                            fixedHeader: true,
+                            initComplete: function () {{
+                                var api = this.api();
+                                var filterHeaderCells = $(tableId + ' thead tr.filters th');
+                                if (!filterHeaderCells.length) return; // no filter inputs
 
-                            api.columns().eq(0).each(function (colIdx) {{
-                                // Get the input element for the current column's filter
-                                var inputElement = $(filterHeaderCells[colIdx]).find('input');
-                                
-                                $(inputElement)
-                                    .off('keyup change') // Remove previous event handlers to prevent duplicates
-                                    .on('keyup change', function (e) {{
-                                        e.stopPropagation();
-                                        // Perform search, treating input as literal string (regex: false, smart: false)
-                                        var searchValue = this.value;
-                                        api.column(colIdx).search(searchValue, false, false).draw();
-                                        
-                                        // Restore cursor position if the element is still focused
-                                        if (document.activeElement === this) {{
-                                            var cursorPos = this.selectionStart;
-                                            this.focus();
-                                            this.setSelectionRange(cursorPos, cursorPos);
-                                        }}
+                                var colCount = (api && api.columns) ? api.columns().count() : filterHeaderCells.length;
+                                for (var colIdx = 0; colIdx < colCount; colIdx++) {{
+                                    (function(colIdx) {{
+                                        var filterCell = filterHeaderCells.eq(colIdx);
+                                        var inputElement = filterCell.find('input');
+                                        if (!inputElement.length) return;
+
+                                        $(inputElement)
+                                            .off('keyup change')
+                                            .on('keyup change', function (e) {{
+                                                e.stopPropagation();
+                                                var searchValue = this.value;
+                                                try {{ api.column(colIdx).search(searchValue, false, false).draw(); }} catch (err) {{ console.error('Filter search failed', err); }}
+                                                if (document.activeElement === this) {{
+                                                    var cursorPos = this.selectionStart;
+                                                    this.focus();
+                                                    this.setSelectionRange(cursorPos, cursorPos);
+                                                }}
+                                            }});
+                                    }})(colIdx);
+                                }}
+                            }},
+                            rowCallback: function(row, data, index){{
+                                var statusIndex = -1;
+                                try {{
+                                    $(tableId + ' thead tr').first().find('th').each(function(i, th) {{
+                                        if ($(th).text().trim().toLowerCase() === 'status') {{ statusIndex = i; return false; }}
                                     }});
-                            }});
-                        }},
-                        rowCallback: function(row, data, index){{
-                             var statusCell = data[2]; // Status is now at index 2 (Timestamp, URL, Status, ...)
-                             var status = parseInt(statusCell) || 0;
-                             $(row).removeClass('ok error redirect');
-                            if (status >= 400) {{
-                                $(row).addClass('error');
-                            }} else if (status >= 300) {{
-                                $(row).addClass('redirect');
-                            }} else if (status === 200) {{
-                                $(row).addClass('ok');
+                                }} catch (err) {{}}
+
+                                var status = 0;
+                                try {{
+                                    if (Array.isArray(data)) {{
+                                        if (statusIndex >= 0 && data.length > statusIndex) {{ status = parseInt(data[statusIndex]) || 0; }} else {{
+                                            for (var i=0;i<data.length;i++) {{
+                                                var v = (''+data[i]).trim(); if (/^\d{{3}}$/.test(v)) {{ status = parseInt(v); break; }}
+                                            }}
+                                        }}
+                                    }} else if (typeof data === 'object' && data !== null) {{
+                                        status = parseInt(data['Status'] || data['status'] || 0) || 0;
+                                    }}
+                                }} catch (err) {{ status = 0; }}
+
+                                $(row).removeClass('ok error redirect');
+                                if (status >= 400) {{ $(row).addClass('error'); }}
+                                else if (status >= 300) {{ $(row).addClass('redirect'); }}
+                                else if (status === 200) {{ $(row).addClass('ok'); }}
                             }}
-                        }}
-                    }});
+                        }});
+                    }} catch (e) {{
+                        try {{ $(tableId).DataTable({{ pageLength: 100, orderCellsTop: true, fixedHeader: true }}); }} catch (e2) {{ console.error('DataTable init failed for ' + tableId, e, e2); }}
+                    }}
                 }});
                 
                 // Initialize DataTables for changes tables
@@ -659,17 +674,18 @@
                 
                 changesTables.forEach(function(tableId) {{
                     if (!$(tableId).length) return; // If table doesn't exist, skip
-                    
-                    $(tableId).DataTable({{
-                        pageLength: 50,
-                        orderCellsTop: true,
-                        fixedHeader: true,
-                        dom: 'Bfrtip',
-                        buttons: [
-                            'copy', 'csv', 'excel', 'pdf', 'print'
-                        ],
-                        order: [[2, 'asc']] // Sort by URL column
-                    }});
+                    try {{
+                        $(tableId).DataTable({{
+                            pageLength: 50,
+                            orderCellsTop: true,
+                            fixedHeader: true,
+                            dom: 'Bfrtip',
+                            buttons: [ 'copy', 'csv', 'excel', 'pdf', 'print' ],
+                            order: [[2, 'asc']]
+                        }});
+                    }} catch (err) {{
+                        try {{ $(tableId).DataTable({{ pageLength: 50, orderCellsTop: true, fixedHeader: true, order: [[2, 'asc']] }}); }} catch (err2) {{ console.error('Changes DataTable init failed for ' + tableId, err, err2); }}
+                    }}
                 }});
             }});
             

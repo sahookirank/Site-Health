@@ -13,3 +13,8 @@ numpy
 lxml
 html5lib
 python-dotenv
+
+# Added for Appium (native iOS) + Percy example script
+Appium-Python-Client
+percy
+selenium

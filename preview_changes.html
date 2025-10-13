@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Preview — Changes Tab UI</title>
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <style>
+    :root{--brand:#0d6efd;--muted-bg:#f6f7f9;--border:#e5e7eb}
+    body{font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;margin:20px;background:var(--muted-bg);color:#1f2937}
+    header{margin-bottom:18px}
+    .card{background:#fff;border:1px solid var(--border);padding:14px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.04);margin-bottom:12px}
+    .collapsible-section{border-radius:8px;overflow:hidden;border:1px solid var(--border);margin-bottom:12px}
+    .collapsible-header{background:linear-gradient(135deg,#f8fafc,#eef2ff);padding:12px 16px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-weight:600}
+    .collapsible-content{padding:12px;display:none;background:#fff}
+    .collapsible-header.active{background:linear-gradient(135deg,#dbeafe,#bfdbfe);color:#1e40af}
+    .changes-summary{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+    .change-count{padding:10px 14px;border-radius:8px;font-weight:700}
+    .change-count.added{background:linear-gradient(135deg,#dcfce7,#bbf7d0);color:#166534;border:1px solid #86efac}
+    .change-count.removed{background:linear-gradient(135deg,#fef2f2,#fecaca);color:#991b1b;border:1px solid #fca5a5}
+    .toggle-icon{font-size:16px;transition:transform .2s}
+    table.dataTable thead th{background:#f8fafc}
+    .summary-row{background:#fff}
+    .summary-details td{background:#f8fafc}
+    #selected-date-details h4{margin-top:0}
+    .details-btn{padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:#f3f4f6;cursor:pointer}
+    .date-picker-row{display:flex;gap:8px;align-items:center}
+  </style>
+</head>
+<body>
+  <header style="text-align:center;">
+    <h1 style="margin:0;">Kmart Website Monitoring</h1>
+    <p style="margin:6px 0 0;color:#6b7280">This is a static preview of the new Changes tab UI (date picker, past 7-day summary, per-date details).</p>
+  </header>
+
+  <div class="card">
+    <div class="date-picker-row">
+      <label for="changes-date-picker" style="font-weight:600">Select Date:</label>
+      <!-- flatpickr will be initialised on this input and it will only allow snapshot dates -->
+      <input type="text" id="changes-date-picker" readonly aria-label="Select snapshot date" />
+      <button id="show-date-btn" class="details-btn">Show</button>
+      <div style="margin-left:12px;color:#6b7280;font-size:13px">Choose one of the last 7 snapshots</div>
+    </div>
+  </div>
+
+  <div id="selected-date-details" class="card" style="display:none"></div>
+
+  <div id="seven-day-summary" class="card">
+    <h3 style="margin-top:0">Past 7 Days Summary</h3>
+    <div id="seven-day-summary-table"></div>
+  </div>
+
+  <div class="collapsible-section">
+    <div class="collapsible-header" id="yesterday-header">
+      <span>Changes since Yesterday</span>
+      <span id="yesterday-toggle" class="toggle-icon">▼</span>
+    </div>
+    <div class="collapsible-content" id="yesterday-content">
+      <div class="changes-summary" id="yesterday-summary"></div>
+      <div id="yesterday-added-wrapper"></div>
+      <div id="yesterday-removed-wrapper"></div>
+    </div>
+  </div>
+
+  <div class="collapsible-section">
+    <div class="collapsible-header" id="week-header">
+      <span>Changes vs 7 Days Ago</span>
+      <span id="week-toggle" class="toggle-icon">▼</span>
+    </div>
+    <div class="collapsible-content" id="week-content">
+      <div class="changes-summary" id="week-summary"></div>
+      <div id="week-added-wrapper"></div>
+      <div id="week-removed-wrapper"></div>
+    </div>
+  </div>
+
+  <!-- Libraries -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+  <script>
+    // Sample historical snapshots (7 entries) — AU/NZ rows
+    window.__HISTORICAL_DATES = [
+      "2025-10-14","2025-10-13","2025-10-12","2025-10-11","2025-10-10","2025-10-09","2025-10-07"
+    ];
+
+    window.__HISTORICAL_DATA = {
+      "2025-10-14": [
+        {"Region":"AU","URL":"https://kmart.com.au/product/blue-shirt","Status":404,"Response_Time":0.64,"Error_Message":"Not Found","Timestamp":"2025-10-14T03:12:00Z"},
+        {"Region":"AU","URL":"https://kmart.com.au/product/green-toy","Status":500,"Response_Time":1.2,"Error_Message":"Internal Server Error","Timestamp":"2025-10-14T03:17:00Z"},
+        {"Region":"NZ","URL":"https://kmart.co.nz/page/x-phone","Status":404,"Response_Time":0.9,"Error_Message":"Not Found","Timestamp":"2025-10-14T04:01:00Z"},
+        {"Region":"NZ","URL":"https://kmart.co.nz/page/y-shoes","Status":500,"Response_Time":1.8,"Error_Message":"Internal Server Error","Timestamp":"2025-10-14T04:03:00Z"}
+      ],
+      "2025-10-13": [
+        {"Region":"AU","URL":"https://kmart.com.au/product/blue-shirt","Status":404,"Response_Time":0.65,"Error_Message":"Not Found","Timestamp":"2025-10-13T03:12:00Z"},
+        {"Region":"AU","URL":"https://kmart.com.au/product/red-dress","Status":404,"Response_Time":0.81,"Error_Message":"Not Found","Timestamp":"2025-10-13T03:20:00Z"},
+        {"Region":"NZ","URL":"https://kmart.co.nz/page/x-phone","Status":404,"Response_Time":0.92,"Error_Message":"Not Found","Timestamp":"2025-10-13T04:01:00Z"},
+        {"Region":"NZ","URL":"https://kmart.co.nz/page/z-tv","Status":404,"Response_Time":1.0,"Error_Message":"Not Found","Timestamp":"2025-10-13T04:05:00Z"}
+      ],
+      "2025-10-12": [
+        {"Region":"AU","URL":"https://kmart.com.au/product/red-dress","Status":404,"Response_Time":0.8,"Error_Message":"Not Found","Timestamp":"2025-10-12T03:20:00Z"},
+        {"Region":"AU","URL":"https://kmart.com.au/product/old-product","Status":403,"Response_Time":0.3,"Error_Message":"Forbidden","Timestamp":"2025-10-12T03:21:00Z"},
+        {"Region":"NZ","URL":"https://kmart.co.nz/page/z-tv","Status":404,"Response_Time":1.0,"Error_Message":"Not Found","Timestamp":"2025-10-12T04:05:00Z"}
+      ],
+      "2025-10-11": [
+        {"Region":"AU","URL":"https://kmart.com.au/product/red-dress","Status":404,"Response_Time":0.8,"Error_Message":"Not Found","Timestamp":"2025-10-11T03:20:00Z"},
+        {"Region":"NZ","URL":"https://kmart.co.nz/page/z-tv","Status":404,"Response_Time":1.0,"Error_Message":"Not Found","Timestamp":"2025-10-11T04:05:00Z"}
+      ],
+      "2025-10-10": [
+        {"Region":"NZ","URL":"https://kmart.co.nz/page/z-tv","Status":404,"Response_Time":1.0,"Error_Message":"Not Found","Timestamp":"2025-10-10T04:05:00Z"}
+      ],
+      "2025-10-09": [
+        {"Region":"AU","URL":"https://kmart.com.au/product/blue-shirt","Status":404,"Response_Time":0.65,"Error_Message":"Not Found","Timestamp":"2025-10-09T03:12:00Z"}
+      ],
+      "2025-10-07": [
+        {"Region":"AU","URL":"https://kmart.com.au/product/old-product","Status":403,"Response_Time":0.3,"Error_Message":"Forbidden","Timestamp":"2025-10-07T03:21:00Z"},
+        {"Region":"NZ","URL":"https://kmart.co.nz/page/old-nz","Status":500,"Response_Time":2.1,"Error_Message":"Internal Server Error","Timestamp":"2025-10-07T04:05:00Z"}
+      ]
+    };
+
+    (function() {
+      function parseIso(d) { return new Date(d + 'T00:00:00Z'); }
+      function formatDateLabel(d) { return d; }
+
+      var dates = (window.__HISTORICAL_DATES || []).slice();
+      // sort descending (newest first)
+      dates.sort(function(a,b){ return (new Date(b)) - (new Date(a)); });
+      if (!dates.length) return;
+
+      // Initialize date picker (flatpickr) to only enable available snapshot dates
+      var dateInput = document.getElementById('changes-date-picker');
+      if (dateInput) {
+        if (typeof flatpickr !== 'undefined') {
+          try {
+            flatpickr(dateInput, {
+              dateFormat: 'Y-m-d',
+              enable: dates,
+              defaultDate: dates[0] || null,
+              disableMobile: true
+            });
+          } catch (e) {
+            // fallback to native behaviour if flatpickr init fails
+            console.warn('flatpickr init failed, falling back to native date input', e);
+            dateInput.type = 'date';
+            if (dates.length) { dateInput.min = dates[dates.length-1]; dateInput.max = dates[0]; dateInput.value = dates[0]; }
+            dateInput.addEventListener('change', function() { if (dates.indexOf(this.value) === -1) { alert('Selected date not available. Please choose an available snapshot.'); this.value = dates[0]; } });
+          }
+        } else {
+          // No flatpickr present — use native date input with validation
+          dateInput.type = 'date';
+          if (dates.length) { dateInput.min = dates[dates.length-1]; dateInput.max = dates[0]; dateInput.value = dates[0]; }
+          dateInput.addEventListener('change', function() { if (dates.indexOf(this.value) === -1) { alert('Selected date not available. Please choose an available snapshot.'); this.value = dates[0]; } });
+        }
+      }
+
+      // pick today, yesterday comparator (most recent < today), week comparator (most recent <= today-7)
+      var today = dates[0];
+      function pickYesterday(dates, today){
+        for (var i=1;i<dates.length;i++){
+          if (new Date(dates[i]) < new Date(today)) return dates[i];
+        }
+        return null;
+      }
+      function pickWeekDate(dates, today){
+        var target = new Date(today);
+        target.setDate(target.getDate() - 7);
+        var candidate = null;
+        for (var i=0;i<dates.length;i++){
+          var d = dates[i];
+          if (new Date(d) <= target) {
+            candidate = d; break;
+          }
+        }
+        return candidate;
+      }
+
+      var yday = pickYesterday(dates,today);
+      var week = pickWeekDate(dates,today);
+
+      function buildSetForDate(dateKey){
+        var arr = window.__HISTORICAL_DATA[dateKey] || [];
+        var s = new Set();
+        arr.forEach(function(r){ s.add((r.Region||'') + '|||' + (r.URL||'')); });
+        return s;
+      }
+
+      function computeDiff(todayKey, otherKey){
+        if (!otherKey) return { added: [], removed: [] };
+        var tset = buildSetForDate(todayKey);
+        var oset = buildSetForDate(otherKey);
+        var added = [], removed = [];
+        tset.forEach(function(k){ if (!oset.has(k)) { var p = k.split('|||'); added.push({Region:p[0], URL: p.slice(1).join('|||')}); } });
+        oset.forEach(function(k){ if (!tset.has(k)) { var p = k.split('|||'); removed.push({Region:p[0], URL: p.slice(1).join('|||')}); } });
+        return { added: added, removed: removed };
+      }
+
+      function renderChangesSection(containerPrefix, diffs){
+        // render summary counts
+        var cs = document.getElementById(containerPrefix + '-summary');
+        if (cs) {
+          var addCount = diffs.added.length, remCount = diffs.removed.length;
+          cs.innerHTML = '<div class="change-count added">➕ Added: ' + addCount + '</div>' +
+            '<div class="change-count removed">➖ Removed: ' + remCount + '</div>';
+        }
+
+        // render added table
+        var addedHtml = '';
+        if (diffs.added.length === 0) addedHtml = '<p style="color:#6b7280">No added links.</p>';
+        else {
+          addedHtml = '<h4 style="margin-top:0">Added Links ('+diffs.added.length+')</h4>' +
+            '<table id="'+containerPrefix+'-added-table" class="display" style="width:100%"><thead><tr><th>Region</th><th>URL</th></tr></thead><tbody>';
+          diffs.added.forEach(function(i){ addedHtml += '<tr><td>'+escapeHtml(i.Region)+'</td><td><a href="'+escapeHtml(i.URL)+'" target="_blank">'+escapeHtml(i.URL)+'</a></td></tr>'; });
+          addedHtml += '</tbody></table>';
+        }
+        document.getElementById(containerPrefix+'-added-wrapper').innerHTML = addedHtml;
+
+        // render removed table
+        var removedHtml = '';
+        if (diffs.removed.length === 0) removedHtml = '<p style="color:#6b7280">No removed links.</p>';
+        else {
+          removedHtml = '<h4 style="margin-top:0">Removed Links ('+diffs.removed.length+')</h4>' +
+            '<table id="'+containerPrefix+'-removed-table" class="display" style="width:100%"><thead><tr><th>Region</th><th>URL</th></tr></thead><tbody>';
+          diffs.removed.forEach(function(i){ removedHtml += '<tr><td>'+escapeHtml(i.Region)+'</td><td><a href="'+escapeHtml(i.URL)+'" target="_blank">'+escapeHtml(i.URL)+'</a></td></tr>'; });
+          removedHtml += '</tbody></table>';
+        }
+        document.getElementById(containerPrefix+'-removed-wrapper').innerHTML = removedHtml;
+
+        // initialize DataTables for newly-created tables (if present)
+        try { if ($('#'+containerPrefix+'-added-table').length) $('#'+containerPrefix+'-added-table').DataTable({ pageLength: 10 }); } catch(e){}
+        try { if ($('#'+containerPrefix+'-removed-table').length) $('#'+containerPrefix+'-removed-table').DataTable({ pageLength: 10 }); } catch(e){}
+      }
+
+      // compute and render yesterday & week
+      var ydiff = computeDiff(today, yday);
+      var wdiff = computeDiff(today, week);
+      renderChangesSection('yesterday', ydiff);
+      renderChangesSection('week', wdiff);
+
+      // collapse toggle logic
+      document.querySelectorAll('.collapsible-header').forEach(function(h){ h.addEventListener('click', function(){ var content = this.nextElementSibling; this.classList.toggle('active'); var icon = this.querySelector('.toggle-icon'); if (content.style.display === 'block'){ content.style.display = 'none'; if (icon) icon.textContent = '▼'; } else { content.style.display = 'block'; if (icon) icon.textContent = '▲'; } }); });
+
+      // Build 7-day inline summary with added/removed counts (relative to previous snapshot)
+      (function buildSevenDaySummary(){
+        var wrap = document.getElementById('seven-day-summary-table');
+        var rows = [];
+        rows.push('<table style="width:100%"><thead><tr><th>Date</th><th>AU Added</th><th>AU Removed</th><th>NZ Added</th><th>NZ Removed</th><th>Details</th></tr></thead><tbody>');
+        for (var i=0;i<dates.length;i++){
+          var d = dates[i];
+          var curr = window.__HISTORICAL_DATA[d] || [];
+          var prev = (i+1<dates.length) ? window.__HISTORICAL_DATA[dates[i+1]] || [] : [];
+          var sep = '|||';
+          var currSet = new Set(); var prevSet = new Set();
+          curr.forEach(function(it){ currSet.add((it.Region||'')+sep+(it.URL||'')); });
+          prev.forEach(function(it){ prevSet.add((it.Region||'')+sep+(it.URL||'')); });
+          var added = []; var removed = [];
+          currSet.forEach(function(k){ if (!prevSet.has(k)) added.push(k); }); prevSet.forEach(function(k){ if (!currSet.has(k)) removed.push(k); });
+          var aAU=0,aNZ=0,rAU=0,rNZ=0;
+          added.forEach(function(k){ var p=k.split(sep); if ((p[0]||'').toUpperCase()==='AU') aAU++; else if ((p[0]||'').toUpperCase()==='NZ') aNZ++; });
+          removed.forEach(function(k){ var p=k.split(sep); if ((p[0]||'').toUpperCase()==='AU') rAU++; else if ((p[0]||'').toUpperCase()==='NZ') rNZ++; });
+          rows.push('<tr class="summary-row" data-date="'+d+'"><td>'+d+'</td><td>'+aAU+'</td><td>'+rAU+'</td><td>'+aNZ+'</td><td>'+rNZ+'</td><td><button class="details-btn" data-date="'+d+'">Toggle</button></td></tr>');
+          rows.push('<tr id="summary-'+d+'-details" class="summary-details" style="display:none"><td colspan="6"></td></tr>');
+        }
+        rows.push('</tbody></table>');
+        wrap.innerHTML = rows.join('');
+
+        // attach toggles
+        wrap.querySelectorAll('.details-btn').forEach(function(btn){ btn.addEventListener('click', function(){ var d = this.getAttribute('data-date'); var detailRow = document.getElementById('summary-'+d+'-details'); if (!detailRow) return; if (detailRow.style.display === 'table-row'){ detailRow.style.display='none'; return; }
+            var idx = dates.indexOf(d); var prevDate = (idx+1<dates.length)?dates[idx+1]:null; var curr = window.__HISTORICAL_DATA[d]||[]; var prev = prevDate? (window.__HISTORICAL_DATA[prevDate]||[]):[]; var sep='|||'; var currSet=new Set(), prevSet=new Set(); curr.forEach(function(it){ currSet.add((it.Region||'')+sep+(it.URL||'')); }); prev.forEach(function(it){ prevSet.add((it.Region||'')+sep+(it.URL||'')); }); var addedList=[], removedList=[]; currSet.forEach(function(k){ if (!prevSet.has(k)) addedList.push(k); }); prevSet.forEach(function(k){ if (!currSet.has(k)) removedList.push(k); });
+            function renderList(arr){ if (!arr.length) return '<div style="padding:10px;color:#6b7280">No items</div>'; var o='<ul style="padding-left:16px">'; arr.forEach(function(k){ var p=k.split(sep); var region=escapeHtml(p[0]||''); var url=escapeHtml(p.slice(1).join(sep)||''); o+='<li><strong>'+region+'</strong>: <a href="'+url+'" target="_blank">'+url+'</a></li>'; }); o+='</ul>'; return o; }
+            var html = '<div style="display:flex;gap:18px;flex-wrap:wrap">'; html+='<div style="flex:1;min-width:260px"><h4 style="margin-top:0">Added</h4>'+renderList(addedList)+'</div>'; html+='<div style="flex:1;min-width:260px"><h4 style="margin-top:0">Removed</h4>'+renderList(removedList)+'</div>'; html+='</div>'; detailRow.cells[0].innerHTML = html; detailRow.style.display='table-row'; }); });
+      })();
+
+      // Selected date viewer
+      document.getElementById('show-date-btn').addEventListener('click', function(){ var dt = document.getElementById('changes-date-picker').value; if (!dt) { dt = dates[0]; document.getElementById('changes-date-picker').value = dt; } renderSelectedDate(dt); });
+      // default date pick to newest
+      document.getElementById('changes-date-picker').value = dates[0];
+
+      function renderSelectedDate(dateStr){ var target = document.getElementById('selected-date-details'); var data = window.__HISTORICAL_DATA[dateStr] || []; if (!data.length){ target.style.display='block'; target.innerHTML = '<div style="padding:12px;color:#6b7280">No data for '+dateStr+'</div>'; return; } var html = '<h4>Snapshot: '+dateStr+' ('+data.length+' broken links)</h4>'; html += '<table id="selected-date-table" class="display" style="width:100%"><thead><tr><th>Region</th><th>Status</th><th>URL</th><th>Error Message</th><th>Timestamp</th></tr></thead><tbody>'; data.forEach(function(r){ html += '<tr><td>'+escapeHtml(r.Region||'')+'</td><td>'+escapeHtml(''+r.Status)+'</td><td><a href="'+escapeHtml(r.URL||'')+'" target="_blank">'+escapeHtml(r.URL||'')+'</a></td><td>'+escapeHtml(r.Error_Message||'')+'</td><td>'+escapeHtml(r.Timestamp||'')+'</td></tr>'; }); html += '</tbody></table>'; target.style.display='block'; target.innerHTML = html; try { $('#selected-date-table').DataTable({ pageLength: 10 }); } catch(e) {} }
+
+      // small helper
+      function escapeHtml(s){ return (''+ (s||'')).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+    })();
+  </script>
+</body>
+</html>
