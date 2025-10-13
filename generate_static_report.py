@@ -298,7 +298,7 @@ class OptimizelyEnhancedReportGenerator:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Optimizely Enhanced Report - Kmart</title>
+    <title>Optimizely Enhanced Report - Kmart Website Monitoring</title>
     <style>
         * {{
             margin: 0;
@@ -703,26 +703,15 @@ class OptimizelyEnhancedReportGenerator:
         </div>
         
         <div class="tabs">
-            <button class="tab active" onclick="openTab(event, 'au')">AU</button>
-            <button class="tab" onclick="openTab(event, 'au-new')">AU-NEW</button>
-            <button class="tab" onclick="openTab(event, 'nz')">NZ</button>
-            <button class="tab" onclick="openTab(event, 'nz-new')">NZ-NEW</button>
+            <button class="tab active" onclick="openTab(event, 'combined')">Combined Optimizely</button>
         </div>
         
-        <div id="au" class="tab-content active">
-            {tab_contents.get('au', '<div class="error">Failed to load AU data</div>')}
-        </div>
-        
-        <div id="au-new" class="tab-content">
-            {tab_contents.get('au-new', '<div class="error">Failed to load AU-NEW data</div>')}
-        </div>
-        
-        <div id="nz" class="tab-content">
-            {tab_contents.get('nz', '<div class="error">Failed to load NZ data</div>')}
-        </div>
-        
-        <div id="nz-new" class="tab-content">
-            {tab_contents.get('nz-new', '<div class="error">Failed to load NZ-NEW data</div>')}
+        <div id="combined" class="tab-content active">
+            <!-- Combined view (AU/NZ merged) -->
+            {tab_contents.get('au', '')}
+            {tab_contents.get('au-new', '')}
+            {tab_contents.get('nz', '')}
+            {tab_contents.get('nz-new', '')}
         </div>
         
     </div>

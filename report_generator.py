@@ -1572,21 +1572,26 @@ def _optly_render_group(title, items, region_key, item_type, open_by_default=Fal
             status = html.escape(str(item.get('status', 'N/A')))
             row_title = f"Experiment: {item_key} (ID: {item_id}) • {status}"
 
-        # Limit search payload to visible fields only (key, id, name, region)
-        allowed_keys = ['key', 'id', 'name', 'region']
-        parts = [row_title]
-        for k in allowed_keys:
+        # Build explicit search attributes: a title (visible row title) and
+        # a meta string composed of top-level properties only. This keeps the
+        # filter focused on visible fields (prevents matching deep nested
+        # JSON like variable names unless those are intentionally part of
+        # the top-level metadata).
+        search_title = row_title.lower()
+        meta_keys = ['key', 'name', 'region', 'id']
+        meta_parts = []
+        for k in meta_keys:
             try:
                 v = item.get(k, '') if isinstance(item, dict) else ''
             except Exception:
                 v = ''
             if v is None:
                 v = ''
-            parts.append(str(v))
-        search_payload = ' '.join(parts).lower()
+            meta_parts.append(str(v))
+        search_meta = ' '.join(meta_parts).lower()
         row_header_classes = "optly-row-header"
         rows.append(f'''
-            <div class="optly-table-row" data-search-text="{html.escape(search_payload)}">
+            <div class="optly-table-row" data-search-title="{html.escape(search_title)}" data-search-meta="{html.escape(search_meta)}">
                 <div class="{row_header_classes}" data-target="{row_id}">
                     <i class="optly-expand-icon">▶</i>
                     <span class="optly-row-title">{html.escape(row_title)}</span>
@@ -1708,31 +1713,15 @@ def generate_optimizely_section(optimizely_json_paths=None):
     tab_buttons = []
     tab_contents = []
 
-    # Add a combined 'All regions' tab with export capability only when there is more than one region
-    include_combined_tab = len(ordered_regions) > 1
-    if include_combined_tab:
-        combined_button_html = f'<button class="optly-tab" data-target="optly-tab-combined">Combined</button>'
-        tab_buttons.append(combined_button_html)
-        combined_content_inner = _optly_render_tab_content(combined_display_data, 'combined')
-        tab_contents.append(f'<div id="optly-tab-combined" class="optly-tab-content"><div class="optly-inner">{combined_content_inner}</div></div>')
+    # Always render a single combined tab (AU/NZ separate tabs removed) and
+    # expose the combined data for export. This avoids duplicated AU/NZ tabs
+    # where the contents are effectively identical.
+    combined_content_inner = _optly_render_tab_content(combined_display_data, 'combined')
+    tab_buttons.append('<button class="optly-tab active" data-target="optly-tab-combined">Optimizely</button>')
+    tab_contents.append(f'<div id="optly-tab-combined" class="optly-tab-content active"><div class="optly-inner">{combined_content_inner}</div></div>')
 
-    for idx, region in enumerate(ordered_regions):
-        active_class = " active" if idx == 0 else ""
-        button_html = f'<button class="optly-tab{active_class}" data-target="optly-tab-{region.lower()}">{html.escape(region)}</button>'
-        tab_buttons.append(button_html)
-
-        data, error = _load_optimizely_json(path_map.get(region))
-        if data is None:
-            content_inner = f'<div class="optly-error">{error or "Optimizely data unavailable."}</div>'
-        else:
-            content_inner = _optly_render_tab_content(data, region.lower())
-
-        tab_contents.append(
-            f'<div id="optly-tab-{region.lower()}" class="optly-tab-content{active_class}"><div class="optly-inner">{content_inner}</div></div>'
-        )
-
-    # Only render the export button when combined tab is present
-    export_button_html = '<button id="optly-export-csv" title="Export all Optimizely data" style="margin-left:12px; padding:8px 12px; border-radius:8px;">Export CSV</button>' if include_combined_tab else ''
+    # Always show export button so users can download the combined dataset
+    export_button_html = '<button id="optly-export-csv" title="Export all Optimizely data" style="margin-left:12px; padding:8px 12px; border-radius:8px;">Export CSV</button>'
 
     return f"""
         <div class="optly-container" id="optly-container">
@@ -1827,8 +1816,9 @@ def generate_optimizely_section(optimizely_json_paths=None):
 
                     const rows = Array.from(container.querySelectorAll('.optly-table-row'));
                     rows.forEach(row => {{
-                        const haystack = row.getAttribute('data-search-text') || '';
-                        if (!term || haystack.includes(term)) {{
+                        const titleHay = (row.getAttribute('data-search-title') || '').toLowerCase();
+                        const metaHay = (row.getAttribute('data-search-meta') || '').toLowerCase();
+                        if (!term || titleHay.includes(term) || metaHay.includes(term)) {{
                             row.classList.remove('hidden');
                         }} else {{
                             row.classList.add('hidden');
@@ -2011,6 +2001,41 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
         changes = _compute_changes(conn)
         print(f"Debug: Changes computed - Yesterday: {len(changes['yesterday']['added'])} added, {len(changes['yesterday']['removed'])} removed")
         print(f"Debug: Changes computed - Week: {len(changes['week']['added'])} added, {len(changes['week']['removed'])} removed")
+
+        # Build an in-page historical snapshot payload from the DB so the client-side
+        # date picker can enable only available snapshot dates and render per-date details.
+        historical_dates = [d.strftime('%Y-%m-%d') for d in changes.get('available_dates', [])]
+        historical_data = {}
+        try:
+            cur = conn.cursor()
+            for d in changes.get('available_dates', []):
+                table_name = f"broken_links_{d.strftime('%Y_%m_%d')}"
+                try:
+                    cur.execute(f"SELECT Region, URL, Status, Response_Time, Error_Message, Timestamp FROM {table_name}")
+                    rows = cur.fetchall()
+                except sqlite3.OperationalError:
+                    rows = []
+
+                # Convert rows to a serializable list of dicts
+                dd = []
+                for r in rows:
+                    try:
+                        status_val = int(r[2]) if r[2] is not None and str(r[2]).strip() != '' else 0
+                    except Exception:
+                        status_val = 0
+                    dd.append({
+                        'Region': r[0] or '',
+                        'URL': r[1] or '',
+                        'Status': status_val,
+                        'Response_Time': r[3] if r[3] is not None else '',
+                        'Error_Message': r[4] or '',
+                        'Timestamp': r[5] or ''
+                    })
+                historical_data[d.strftime('%Y-%m-%d')] = dd
+        except Exception as e:
+            print('Warning: failed to build historical snapshot payload:', e)
+            historical_dates = []
+            historical_data = {}
         
         # Build a single combined CSV: Region, URL, Change, Window
         combined_rows = []
@@ -2349,13 +2374,48 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
             </table>
         """
 
-    # Generate content for yesterday's changes
-    if changes['yesterday']['has_data']:
-        yesterday_content = f"""
+    # Build interactive Changes tab HTML. This embeds the historical snapshots (if any)
+    # so the client can present a date picker (only enabled for dates with data), a
+    # per-date viewer and a compact 7-day summary with expand / collapse details.
+    # The server still provides the pre-computed "yesterday" and "week" diffs and
+    # a CSV export of all changes (changes_all.csv).
+    hist_dates_json = json.dumps(historical_dates, ensure_ascii=False)
+    hist_data_json = json.dumps(historical_data, ensure_ascii=False).replace('</', '<\/')
+    hist_dates_literal = json.dumps(hist_dates_json, ensure_ascii=False)
+    hist_data_literal = json.dumps(hist_data_json, ensure_ascii=False)
+
+    # Provide a small helper JS block that initializes the date picker and renders
+    # the per-date table and summary. This code is adapted from preview_changes.html
+    # but uses the real data from the DB embedded above.
+    changes_html = f"""
+        <div id="Changes" class="tab-content">
+            <div class="card">
+                <div class="date-picker-row">
+                    <label for="changes-date-picker" style="font-weight:600">Select Date:</label>
+                    <input type="text" id="changes-date-picker" readonly aria-label="Select snapshot date" />
+                    <button id="show-date-btn" class="details-btn">Show</button>
+                    <button id="download-snapshot-btn" class="details-btn" style="margin-left:8px;">Download Snapshot CSV</button>
+                    <div style="margin-left:12px;color:#6c757d;font-size:13px">Choose one of the available snapshots</div>
+                </div>
+            </div>
+
+            <div id="selected-date-details" class="card" style="display:none"></div>
+
+            <div id="seven-day-summary" class="card">
+                <h3 style="margin-top:0">Past 7 Snapshots Summary</h3>
+                <div id="seven-day-summary-table"></div>
+            </div>
+
+            <div class="collapsible-section">
+                <div class="collapsible-header" onclick="toggleSection('yesterday-section')">
+                    <span>Changes since Yesterday</span>
+                    <span class="toggle-icon" id="yesterday-toggle">▼</span>
+                </div>
+                <div class="collapsible-content" id="yesterday-section">
                     <div class="changes-summary">
                         <div class="change-count added">➕ Added: {len(changes['yesterday']['added'])}</div>
                         <div class="change-count removed">➖ Removed: {len(changes['yesterday']['removed'])}</div>
-                        <a class=\"download-tab-button\" download href=\"changes_all.csv?{cache_buster}\">Download All Changes (CSV)</a>
+                        <a class="download-tab-button" download href="changes_all.csv?{cache_buster}">Download All Changes (CSV)</a>
                     </div>
                     <div class="collapsible-section">
                         <div class="collapsible-header" onclick="toggleSection('yesterday-added-section')">
@@ -2375,71 +2435,6 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                             {render_changes_section('Yesterday Removed', changes['yesterday']['removed'], 'removed', section_prefix='yesterday')}
                         </div>
                     </div>
-        """
-    else:
-        yesterday_content = f"""
-                    <div class="changes-summary">
-                        <div style="padding: 20px; text-align: center; color: #6c757d; font-style: italic;">
-                            📊 No historical data available to compare with yesterday's broken links.<br>
-                            <small style="margin-top: 8px; display: block;">
-                                Current database contains {changes.get('today_count', 'N/A')} broken links from today.
-                                Historical comparison will be available after running the link checker on multiple days.
-                            </small>
-                        </div>
-                    </div>
-        """
-    
-    # Generate content for week's changes
-    if changes['week']['has_data']:
-        week_content = f"""
-                    <div class="changes-summary">
-                        <div class="change-count added">➕ Added: {len(changes['week']['added'])}</div>
-                        <div class="change-count removed">➖ Removed: {len(changes['week']['removed'])}</div>
-                        <a class=\"download-tab-button\" download href=\"changes_all.csv?{cache_buster}\">Download All Changes (CSV)</a>
-                    </div>
-                    
-                    <div class="collapsible-section">
-                        <div class="collapsible-header" onclick="toggleSection('week-added-section')">
-                            <span>➕ Added Links ({len(changes['week']['added'])})</span>
-                            <span class="toggle-icon" id="week-added-toggle">▼</span>
-                        </div>
-                        <div class="collapsible-content" id="week-added-section">
-                            {render_changes_section('Added Week', changes['week']['added'], 'added', section_prefix='week')}
-                        </div>
-                    </div>
-                    
-                    <div class="collapsible-section">
-                        <div class="collapsible-header" onclick="toggleSection('week-removed-section')">
-                            <span>➖ Removed Links ({len(changes['week']['removed'])})</span>
-                            <span class="toggle-icon" id="week-removed-toggle">▼</span>
-                        </div>
-                        <div class="collapsible-content" id="week-removed-section">
-                            {render_changes_section('Removed Week', changes['week']['removed'], 'removed', section_prefix='week')}
-                        </div>
-                    </div>
-        """
-    else:
-        week_content = f"""
-                    <div class="changes-summary">
-                        <div style="padding: 20px; text-align: center; color: #6c757d; font-style: italic;">
-                            📊 No historical data available to compare with 7 days ago broken links.<br>
-                            <small style="margin-top: 8px; display: block;">
-                                Current database contains {changes.get('today_count', 'N/A')} broken links from today.
-                                Weekly comparison will be available after running the link checker for multiple days.
-                            </small>
-                        </div>
-                    </div>
-        """
-
-    changes_html = f"""
-        <div id="Changes" class="tab-content">
-            <div class="collapsible-section">
-                <div class="collapsible-header" onclick="toggleSection('yesterday-section')">
-                    <span>Changes since Yesterday</span>
-                    <span class="toggle-icon" id="yesterday-toggle">▼</span>
-                </div>
-                <div class="collapsible-content" id="yesterday-section">
-{yesterday_content}
                 </div>
             </div>
 
@@ -2449,9 +2444,130 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                     <span class="toggle-icon" id="week-toggle">▼</span>
                 </div>
                 <div class="collapsible-content" id="week-section">
-{week_content}
+                    <div class="changes-summary">
+                        <div class="change-count added">➕ Added: {len(changes['week']['added'])}</div>
+                        <div class="change-count removed">➖ Removed: {len(changes['week']['removed'])}</div>
+                        <a class="download-tab-button" download href="changes_all.csv?{cache_buster}">Download All Changes (CSV)</a>
+                    </div>
+                    <div class="collapsible-section">
+                        <div class="collapsible-header" onclick="toggleSection('week-added-section')">
+                            <span>➕ Added Links ({len(changes['week']['added'])})</span>
+                            <span class="toggle-icon" id="week-added-toggle">▼</span>
+                        </div>
+                        <div class="collapsible-content" id="week-added-section">
+                            {render_changes_section('Added Week', changes['week']['added'], 'added', section_prefix='week')}
+                        </div>
+                    </div>
+                    <div class="collapsible-section">
+                        <div class="collapsible-header" onclick="toggleSection('week-removed-section')">
+                            <span>➖ Removed Links ({len(changes['week']['removed'])})</span>
+                            <span class="toggle-icon" id="week-removed-toggle">▼</span>
+                        </div>
+                        <div class="collapsible-content" id="week-removed-section">
+                            {render_changes_section('Removed Week', changes['week']['removed'], 'removed', section_prefix='week')}
+                        </div>
+                    </div>
                 </div>
             </div>
+
+            <script>
+                // Expose historical snapshots for client-side viewer
+                try {{ window.__HISTORICAL_DATES = JSON.parse({hist_dates_literal}); }} catch(e) {{ window.__HISTORICAL_DATES = []; }}
+                try {{ window.__HISTORICAL_DATA = JSON.parse({hist_data_literal}); }} catch(e) {{ window.__HISTORICAL_DATA = {{}}; }}
+
+                (function() {{
+                    function escapeHtml(s) {{ return ('' + (s || '')).replace(/[&<>\"]/g, function(c) {{ return {{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}}[c]; }}); }}
+
+                    var dates = (window.__HISTORICAL_DATES || []).slice();
+                    dates.sort(function(a,b){{ return (new Date(b)) - (new Date(a)); }});
+                    if (!dates.length) return;
+
+                    var dateInput = document.getElementById('changes-date-picker');
+                    if (dateInput) {{
+                        if (typeof flatpickr !== 'undefined') {{
+                            try {{
+                                flatpickr(dateInput, {{ dateFormat: 'Y-m-d', enable: dates, defaultDate: dates[0] || null, disableMobile: true }});
+                            }} catch (e) {{
+                                console.warn('flatpickr init failed, falling back to native date input', e);
+                                dateInput.type = 'date';
+                                dateInput.min = dates[dates.length-1]; dateInput.max = dates[0]; dateInput.value = dates[0];
+                            }}
+                        }} else {{
+                            dateInput.type = 'date';
+                            dateInput.min = dates[dates.length-1]; dateInput.max = dates[0]; dateInput.value = dates[0];
+                        }}
+                    }}
+
+                    // Render a selected snapshot into a DataTable
+                    function renderSelectedDate(dateStr) {{
+                        var target = document.getElementById('selected-date-details');
+                        var data = (window.__HISTORICAL_DATA || {{}})[dateStr] || [];
+                        if (!data.length) {{
+                            target.style.display = 'block';
+                            target.innerHTML = '<div style="padding:12px;color:#6b7280">No data for ' + dateStr + '</div>';
+                            return;
+                        }}
+                        var html = '<h4>Snapshot: ' + dateStr + ' (' + data.length + ' broken links)</h4>';
+                        html += '<table id="selected-date-table" class="display" style="width:100%"><thead><tr><th>Region</th><th>Status</th><th>URL</th><th>Error Message</th><th>Timestamp</th></tr></thead><tbody>';
+                        data.forEach(function(r) {{ html += '<tr><td>'+escapeHtml(r.Region||'')+'</td><td>'+escapeHtml(''+r.Status)+'</td><td><a href="'+escapeHtml(r.URL||'')+'" target="_blank">'+escapeHtml(r.URL||'')+'</a></td><td>'+escapeHtml(r.Error_Message||'')+'</td><td>'+escapeHtml(r.Timestamp||'')+'</td></tr>'; }});
+                        html += '</tbody></table>';
+                        target.style.display = 'block';
+                        target.innerHTML = html;
+                        try {{ $('#selected-date-table').DataTable({{ pageLength: 10 }}); }} catch(e) {{}}
+                    }}
+
+                    document.getElementById('show-date-btn').addEventListener('click', function() {{
+                        var dt = document.getElementById('changes-date-picker').value;
+                        if (!dt) {{ dt = dates[0]; document.getElementById('changes-date-picker').value = dt; }}
+                        renderSelectedDate(dt);
+                    }});
+                    // default
+                    document.getElementById('changes-date-picker').value = dates[0];
+
+                    // Build the 7-day (or last 7 snapshots) summary
+                    (function buildSevenDaySummary(){{
+                        var wrap = document.getElementById('seven-day-summary-table');
+                        var rows = [];
+                        rows.push('<table style="width:100%"><thead><tr><th>Date</th><th>AU Added</th><th>AU Removed</th><th>NZ Added</th><th>NZ Removed</th><th>Details</th></tr></thead><tbody>');
+                        for (var i=0;i<Math.min(7, dates.length);i++){{
+                            var d = dates[i];
+                            var curr = (window.__HISTORICAL_DATA || {{}})[d] || [];
+                            var prev = (i+1<dates.length) ? (window.__HISTORICAL_DATA || {{}})[dates[i+1]] || [] : [];
+                            var sep = '|||';
+                            var currSet = new Set(); var prevSet = new Set();
+                            curr.forEach(function(it){{ currSet.add((it.Region||'')+sep+(it.URL||'')); }});
+                            prev.forEach(function(it){{ prevSet.add((it.Region||'')+sep+(it.URL||'')); }});
+                            var added = []; var removed = [];
+                            currSet.forEach(function(k){{ if (!prevSet.has(k)) added.push(k); }});
+                            prevSet.forEach(function(k){{ if (!currSet.has(k)) removed.push(k); }});
+                            var aAU=0,aNZ=0,rAU=0,rNZ=0;
+                            added.forEach(function(k){{ var p=k.split(sep); if ((p[0]||'').toUpperCase()==='AU') aAU++; else if ((p[0]||'').toUpperCase()==='NZ') aNZ++; }});
+                            removed.forEach(function(k){{ var p=k.split(sep); if ((p[0]||'').toUpperCase()==='AU') rAU++; else if ((p[0]||'').toUpperCase()==='NZ') rNZ++; }});
+                            rows.push('<tr class="summary-row" data-date="'+d+'"><td>'+d+'</td><td>'+aAU+'</td><td>'+rAU+'</td><td>'+aNZ+'</td><td>'+rNZ+'</td><td><button class="details-btn" data-date="'+d+'">Toggle</button></td></tr>');
+                            rows.push('<tr id="summary-'+d+'-details" class="summary-details" style="display:none"><td colspan="6"></td></tr>');
+                        }}
+                        rows.push('</tbody></table>');
+                        wrap.innerHTML = rows.join('');
+                        // attach toggles
+                        wrap.querySelectorAll('.details-btn').forEach(function(btn){{ btn.addEventListener('click', function(){{ var d = this.getAttribute('data-date'); var detailRow = document.getElementById('summary-'+d+'-details'); if (!detailRow) return; if (detailRow.style.display === 'table-row'){{ detailRow.style.display='none'; return; }} var idx = dates.indexOf(d); var prevDate = (idx+1<dates.length)?dates[idx+1]:null; var curr = (window.__HISTORICAL_DATA || {{}})[d]||[]; var prev = prevDate? (window.__HISTORICAL_DATA || {{}})[prevDate]||[]):[]; var sep='|||'; var currSet=new Set(), prevSet=new Set(); curr.forEach(function(it){{ currSet.add((it.Region||'')+sep+(it.URL||'')); }}); prev.forEach(function(it){{ prevSet.add((it.Region||'')+sep+(it.URL||'')); }}); var addedList=[], removedList=[]; currSet.forEach(function(k){{ if (!prevSet.has(k)) addedList.push(k); }}); prevSet.forEach(function(k){{ if (!currSet.has(k)) removedList.push(k); }}); function renderList(arr){{ if (!arr.length) return '<div style="padding:10px;color:#6b7280">No items</div>'; var o='<ul style="padding-left:16px">'; arr.forEach(function(k){{ var p=k.split(sep); var region=escapeHtml(p[0]||''); var url=escapeHtml(p.slice(1).join(sep)||''); o+='<li><strong>'+region+'</strong>: <a href="'+url+'" target="_blank">'+url+'</a></li>'; }}); o+='</ul>'; return o; }} var html = '<div style="display:flex;gap:18px;flex-wrap:wrap">'; html+='<div style="flex:1;min-width:260px"><h4 style="margin-top:0">Added</h4>'+renderList(addedList)+'</div>'; html+='<div style="flex:1;min-width:260px"><h4 style="margin-top:0">Removed</h4>'+renderList(removedList)+'</div>'; html+='</div>'; detailRow.cells[0].innerHTML = html; detailRow.style.display='table-row'; }); });
+                    } )();
+
+                    // Download currently selected snapshot as CSV
+                    document.getElementById('download-snapshot-btn').addEventListener('click', function() {{
+                        var dt = document.getElementById('changes-date-picker').value || (window.__HISTORICAL_DATES || [])[0];
+                        var data = (window.__HISTORICAL_DATA || {{}})[dt] || [];
+                        if (!data || !data.length) {{ alert('No data available for ' + dt); return; }}
+                        var rows = [['Region','Status','URL','Error_Message','Timestamp']];
+                        data.forEach(function(r){{ rows.push([r.Region, ''+r.Status, r.URL, r.Error_Message, r.Timestamp]); }});
+                        var csvLines = rows.map(function(r){{ return r.map(function(c){{ return '"' + (''+(c||'')).replace(/"/g,'""') + '"'; }}).join(','); }}).join('\n');
+                        var blob = new Blob([csvLines], {{ type: 'text/csv;charset=utf-8;' }});
+                        var url = URL.createObjectURL(blob);
+                        var a = document.createElement('a');
+                        a.href = url; a.download = 'snapshot_' + dt + '.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+                    }});
+
+                }})();
+            </script>
         </div>
     """
 
@@ -2460,7 +2576,7 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
     <html lang="en">
     <head>
         <meta charset="UTF-8">
-        <title>Broken Link Report</title>
+    <title>Kmart Website Monitoring</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
         
         <!-- Cache Control Meta Tags -->
@@ -2476,9 +2592,11 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
         <meta name="github-pages-cache" content="{cache_buster}">
         <meta name="generated-timestamp" content="{timestamp}">
         
-        <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css?{cache_buster}">
-        <script src="https://code.jquery.com/jquery-3.6.0.min.js?{cache_buster}"></script>
-        <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js?{cache_buster}"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css?{cache_buster}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css?{cache_buster}">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js?{cache_buster}"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js?{cache_buster}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
         <script src="auth.js?{cache_buster}"></script>
         <script src="cache_manager.js?{cache_buster}"></script>
         <style>
@@ -2491,7 +2609,7 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
         <button onclick="scrollToBottom()" id="scrollBottomBtn" title="Go to bottom">&#x2193;</button> <!-- Down arrow -->
         <header>
             <div style="display: flex; justify-content: space-between; align-items: center; max-width: var(--container-max); margin: 0 auto;">
-                <h1 style="margin: 0;">Kmart Link Check Report</h1>
+                <h1 style="margin: 0;">Kmart Website Monitoring</h1>
                 <div style="display: flex; gap: 12px; align-items: center;">
                     <span style="font-size: 12px; color: #666;">Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}</span>
                     <button onclick="refreshDashboard()" style="padding: 8px 16px; background: #0d6efd; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;" title="Refresh Dashboard">🔄 Refresh</button>
