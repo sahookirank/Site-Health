@@ -409,9 +409,10 @@ def build_page_views_container_html(top_products, top_pages, broken_links_views)
             }}
             
             // Initialize infinite scroll for the default active tab
-            document.addEventListener('DOMContentLoaded', function() {{
-                initializeInfiniteScroll('PV_Top_Products');
-            }});
+            // Note: Now handled by main tab switching in report_generator.py
+            // document.addEventListener('DOMContentLoaded', function() {{
+            //     initializeInfiniteScroll('PV_Top_Products');
+            // });
         </script>
     '''
 
