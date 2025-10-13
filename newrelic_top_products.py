@@ -303,7 +303,7 @@ def generate_top_pages_html(pages):
     return html_content.format(total_pages=len(pages), top_views=top_views, total_views=total_views)
 
 
-def generate_broken_links_views_html(items):
+def generate_broken_links_views_html(items, total_views_30d=None):
     html_content = '''
                 <div class="summary-container">
                     <span class="summary-item">🔗 Broken Link URLs Tracked: {total_urls}</span>
@@ -316,21 +316,25 @@ def generate_broken_links_views_html(items):
                             <th>Rank</th>
                             <th>URL</th>
                             <th>Views (30d)</th>
+                            <th>Percentage of Total</th>
                         </tr>
                     </thead>
                     <tbody>
 '''
     sorted_items = sorted(items, key=lambda x: x['count'], reverse=True)
     total_views = sum(i['count'] for i in sorted_items)
+    # Use the provided 30-day total views as the base for percentage calculations when available
+    percent_base = total_views_30d if total_views_30d else total_views
     for i, it in enumerate(sorted_items, 1):
         # Sanitize URL to ensure valid UTF-8
         safe_url = it['url'].encode('utf-8', 'ignore').decode('utf-8')
-        
+        percent = (it['count'] / percent_base * 100) if percent_base > 0 else 0
         html_content += f'''
                         <tr class="table-row" style="display: none;">
                             <td>{i}</td>
                             <td><a href="{safe_url}" target="_blank">{safe_url}</a></td>
                             <td><strong>{it['count']:,}</strong></td>
+                            <td>{percent:.2f}%</td>
                         </tr>
 '''
     html_content += '''
@@ -344,7 +348,7 @@ def generate_broken_links_views_html(items):
     )
 
 
-def build_page_views_container_html(top_products, top_pages, broken_links_views):
+def build_page_views_container_html(top_products, top_pages, broken_links_views, total_views_30d=None):
     """Compose the Page Views parent container with three sub-tabs"""
     html_template = '''
         <div id="PageViewsContainer" class="card">
@@ -409,7 +413,7 @@ def build_page_views_container_html(top_products, top_pages, broken_links_views)
     return html_template.format(
         top_products_html=generate_html_content(top_products),
         top_pages_html=generate_top_pages_html(top_pages),
-        broken_links_html=generate_broken_links_views_html(broken_links_views)
+        broken_links_html=generate_broken_links_views_html(broken_links_views, total_views_30d)
     )
 
 
@@ -671,6 +675,18 @@ def main():
     today = datetime.utcnow().date().isoformat()
     store_daily_data(today, resp_products, resp_pages)
 
+    # Get total views for 30 days (for percentage calculation)
+    total_views_nrql = "SELECT count(*) FROM PageView SINCE 30 days ago"
+    print(f"NRQL (Total Views 30d): {total_views_nrql}")
+    resp_total_views = _fetch_nrql(headers, base_url, total_views_nrql)
+    total_views_30d = 0
+    if resp_total_views and isinstance(resp_total_views, dict):
+        try:
+            total_views_30d = resp_total_views['data']['actor']['nrql']['results'][0]['count']
+        except Exception as e:
+            print(f"Error extracting total views for 30 days: {e}")
+    print(f"Total views for 30 days: {total_views_30d}")
+
     # 3) Broken Links Views (30 days) - Process URLs individually with parallel threading
     all_urls = _read_broken_links_urls(script_dir)
     print(f"Collected {len(all_urls)} broken link URLs from CSVs")
@@ -775,7 +791,7 @@ def main():
     # top_pages = top_pages[:50]
 
     # Generate combined Page Views HTML
-    page_views_html = build_page_views_container_html(top_products, top_pages, broken_links_views)
+    page_views_html = build_page_views_container_html(top_products, top_pages, broken_links_views, total_views_30d)
 
     # Save HTML content to file with proper encoding handling
     output_file = os.path.join(script_dir, 'page_views_content.html')
