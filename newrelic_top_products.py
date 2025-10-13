@@ -91,7 +91,7 @@ def get_dynamic_headers_and_payload():
     # rather than the last 24 hours which could include previous day's data
     payload = {
         "account_ids": [int(account_id)],
-        "nrql": "SELECT count(*) FROM PageView WHERE pageUrl RLIKE '.*[0-9]+.*' FACET pageUrl ORDER BY count(*) SINCE today"
+        "nrql": "SELECT count(*) FROM PageView WHERE pageUrl RLIKE '.*[0-9]+.*' FACET pageUrl ORDER BY count(*) LIMIT MAX SINCE today"
     }
     return headers, payload, base_url
 
@@ -654,14 +654,14 @@ def main():
     print(f"Current date/time: {datetime.now()}")
 
     # 1) Top Products (today) — preserve existing behavior/query
-    products_nrql = "SELECT count(*) FROM PageView WHERE pageUrl RLIKE '.*[0-9]+.*' FACET pageUrl ORDER BY count(*) SINCE today"
+    products_nrql = "SELECT count(*) FROM PageView WHERE pageUrl RLIKE '.*[0-9]+.*' FACET pageUrl ORDER BY count(*) LIMIT MAX SINCE today"
     print(f"NRQL (Top Products): {products_nrql}")
     resp_products = _fetch_nrql(headers, base_url, products_nrql)
     top_products = parse_response_data(resp_products) if resp_products else []
     print(f"Found {len(top_products)} top products")
 
     # 2) Top Pages (last 1 day)
-    pages_nrql = "SELECT count(*) FROM PageView FACET pageUrl ORDER BY count(*) SINCE 1 day ago"
+    pages_nrql = "SELECT count(*) FROM PageView FACET pageUrl ORDER BY count(*) LIMIT MAX SINCE 1 day ago"
     print(f"NRQL (Top Pages): {pages_nrql}")
     resp_pages = _fetch_nrql(headers, base_url, pages_nrql)
     top_pages = parse_response_data(resp_pages) if resp_pages else []
