@@ -2510,6 +2510,16 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                 }}
                 document.getElementById(reportName).style.display = "block";
                 evt.currentTarget.className += " active";
+                
+                // Initialize Page Views infinite scroll when Page Views tab becomes active
+                if (reportName === 'Page_Views') {{
+                    // Small delay to ensure DOM is updated
+                    setTimeout(function() {{
+                        if (typeof initializeInfiniteScroll === 'function') {{
+                            initializeInfiniteScroll('PV_Top_Products');
+                        }}
+                    }}, 100);
+                }}
             }}
 
             // Page Load Initialization
@@ -2636,15 +2646,8 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                     }});
                 }});
 
-                // Initialize DataTables for Page Views inner tables if present
-                ['#topProductsTable', '#topPagesTable', '#brokenLinksViewsTable'].forEach(function(tid) {{
-                    if (!$(tid).length) return;
-                    $(tid).DataTable({{
-                        pageLength: 50,
-                        orderCellsTop: true,
-                        fixedHeader: true
-                    }});
-                }});
+                // Note: Page Views tables (#topProductsTable, #topPagesTable, #brokenLinksViewsTable) 
+                // use custom infinite scroll instead of DataTables
             }});
             
             // Scroll buttons logic

@@ -1202,6 +1202,12 @@ jobs:
           echo "❌ No CSV file was generated" >> $GITHUB_STEP_SUMMARY
         fi
 
+    - name: Store daily NRQL data in SQLite DB
+      run: |
+        echo "Storing daily NRQL data in SQLite DB..."
+        # Adjust the filenames below to match your actual output files from NRQL fetch
+        python store_daily_data.py "$(date +%Y-%m-%d)" products.json pages.json
+
     - name: Trigger GitHub Pages deployment
       if: success()
       continue-on-error: true
