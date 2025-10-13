@@ -1572,7 +1572,18 @@ def _optly_render_group(title, items, region_key, item_type, open_by_default=Fal
             status = html.escape(str(item.get('status', 'N/A')))
             row_title = f"Experiment: {item_key} (ID: {item_id}) • {status}"
 
-        search_payload = f"{row_title} {json.dumps(item, ensure_ascii=False)}".lower()
+        # Limit search payload to visible fields only (key, id, name, region)
+        allowed_keys = ['key', 'id', 'name', 'region']
+        parts = [row_title]
+        for k in allowed_keys:
+            try:
+                v = item.get(k, '') if isinstance(item, dict) else ''
+            except Exception:
+                v = ''
+            if v is None:
+                v = ''
+            parts.append(str(v))
+        search_payload = ' '.join(parts).lower()
         row_header_classes = "optly-row-header"
         rows.append(f'''
             <div class="optly-table-row" data-search-text="{html.escape(search_payload)}">
@@ -1653,8 +1664,50 @@ def generate_optimizely_section(optimizely_json_paths=None):
         if region not in ordered_regions:
             ordered_regions.append(region)
 
+    # Build combined data (all regions) for a single unified combined tab and CSV export
+    combined_events = []
+    combined_flags = []
+    combined_experiments = []
+    first_summary = None
+    errors = []
+    for region in ordered_regions:
+        data, error = _load_optimizely_json(path_map.get(region))
+        if data is None:
+            errors.append(f"{region}: {error}")
+            continue
+        if first_summary is None:
+            first_summary = data
+        # Append region label on each item so UI can show where it came from
+        for ev in data.get('events', []):
+            ev_copy = dict(ev)
+            ev_copy['region'] = region
+            combined_events.append(ev_copy)
+        for ff in data.get('featureFlags', []):
+            ff_copy = dict(ff)
+            ff_copy['region'] = region
+            combined_flags.append(ff_copy)
+        for ex in data.get('experiments', []):
+            ex_copy = dict(ex)
+            ex_copy['region'] = region
+            combined_experiments.append(ex_copy)
+
+    combined_display_data = dict(first_summary or {})
+    combined_display_data['events'] = combined_events
+    combined_display_data['featureFlags'] = combined_flags
+    combined_display_data['experiments'] = combined_experiments
+    try:
+        combined_json = json.dumps(combined_display_data, ensure_ascii=False).replace('</', '<\/')
+    except Exception:
+        combined_json = '{}'
+
     tab_buttons = []
     tab_contents = []
+
+    # Add a combined 'All regions' tab with export capability
+    combined_button_html = f'<button class="optly-tab" data-target="optly-tab-combined">Combined</button>'
+    tab_buttons.append(combined_button_html)
+    combined_content_inner = _optly_render_tab_content(combined_display_data, 'combined')
+    tab_contents.append(f'<div id="optly-tab-combined" class="optly-tab-content"><div class="optly-inner">{combined_content_inner}</div></div>')
 
     for idx, region in enumerate(ordered_regions):
         active_class = " active" if idx == 0 else ""
@@ -1675,9 +1728,10 @@ def generate_optimizely_section(optimizely_json_paths=None):
         <div class="optly-container" id="optly-container">
             <div class="optly-search-container">
                 <div class="optly-search-box">
-                    <input type="text" id="optly-search-input" placeholder="Search events, feature flags, and experiments...">
-                    <button id="optly-search-clear" title="Clear search">✕</button>
-                </div>
+                        <input type="text" id="optly-search-input" placeholder="Search events, feature flags, and experiments...">
+                        <button id="optly-search-clear" title="Clear search">✕</button>
+                        <button id="optly-export-csv" title="Export all Optimizely data" style="margin-left:12px; padding:8px 12px; border-radius:8px;">Export CSV</button>
+                    </div>
             </div>
             <div class="optly-tabs">
                 {''.join(tab_buttons)}
@@ -1748,8 +1802,12 @@ def generate_optimizely_section(optimizely_json_paths=None):
                     }});
                 }});
 
+                // Make the combined data available to the client for export
+                try {{ window.__OPTIMIZELY_COMBINED = {combined_json}; }} catch(e) {{ window.__OPTIMIZELY_COMBINED = {{}}; }}
+
                 const searchInput = container.querySelector('#optly-search-input');
                 const clearButton = container.querySelector('#optly-search-clear');
+                const exportBtn = container.querySelector('#optly-export-csv');
 
                 const filterRows = () => {{
                     const term = (searchInput.value || '').toLowerCase().trim();
@@ -1802,6 +1860,44 @@ def generate_optimizely_section(optimizely_json_paths=None):
                             filterRows();
                             searchInput.focus();
                         }}
+                    }});
+                }}
+
+                // Export combined Optimizely data to CSV (combines events, flags and experiments)
+                if (exportBtn) {{
+                    exportBtn.addEventListener('click', function() {{
+                        try {{
+                            const combined = window.__OPTIMIZELY_COMBINED || {{}};
+                            const rows = [];
+                            const header = ['type','region','id','key','name','status','payload'];
+                            rows.push(header);
+                            function pushRow(type, item) {{
+                                const region = item && item.region ? String(item.region) : '';
+                                const id = (item && item.id != null) ? String(item.id) : ((item && item['id'] != null) ? String(item['id']) : '');
+                                const key = (item && item.key != null) ? String(item.key) : '';
+                                const name = (item && item.name != null) ? String(item.name) : ((item && item.title != null) ? String(item.title) : '');
+                                const status = (item && item.status != null) ? String(item.status) : '';
+                                var payload = '';
+                                try {{ payload = JSON.stringify(item); }} catch (err) {{ payload = ''; }}
+                                rows.push([type, region, id, key, name, status, payload]);
+                            }}
+                            (combined.events || []).forEach(ev => pushRow('event', ev));
+                            (combined.featureFlags || []).forEach(ff => pushRow('flag', ff));
+                            (combined.experiments || []).forEach(ex => pushRow('experiment', ex));
+
+                            // Convert rows to CSV
+                            const csvLines = rows.map(r => r.map(c => '"' + ('' + (c || '')).replace(/"/g,'""') + '"').join(','));
+                            const csv = csvLines.join('\n');
+                            const blob = new Blob([csv], {{ type: 'text/csv;charset=utf-8;' }});
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = 'optimizely_export.csv';
+                            document.body.appendChild(a);
+                            a.click();
+                            a.remove();
+                            URL.revokeObjectURL(url);
+                        }} catch (e) {{ console.error('Export failed', e); alert('Export failed: ' + e); }}
                     }});
                 }}
             }})();
