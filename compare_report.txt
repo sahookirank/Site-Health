@@ -1,0 +1,30 @@
+Repository comparison report
+Remote repo: sahookirank/Link-Checker branch: main
+Local path: /Users/ksahoo/Documents/dashboard-changes/Dashboard-Changes
+
+Summary:
+  Remote files total: 29
+  Local files total:  40
+  Missing in local:   0
+  Extra in local:     11
+  Size mismatches:    4
+
+Files present locally but not in remote:
+  __pycache__/newrelic_top_products.cpython-311.pyc (local size: 55759)
+  __pycache__/newrelic_top_products.cpython-312.pyc (local size: 39692)
+  __pycache__/newrelic_top_products.cpython-313.pyc (local size: 49911)
+  __pycache__/store_daily_data.cpython-311.pyc (local size: 2297)
+  __pycache__/store_daily_data.cpython-312.pyc (local size: 2054)
+  changes_all.csv (local size: 225023)
+  combined_report.html (local size: 621968)
+  page_views_daily.db (local size: 16384)
+  query.json (local size: 11009730)
+  scripts/compare_with_remote.py (local size: 4025)
+  store_daily_data.py (local size: 1206)
+
+Files present in both but with size differences (remote_size, local_size):
+  .github/workflows/product-data-fetch.yml: 55694 != 55977
+  newrelic_top_products.py: 33499 != 37041
+  page_views_content.html: 4732 != 643
+  report_generator.py: 118308 != 118526
+
