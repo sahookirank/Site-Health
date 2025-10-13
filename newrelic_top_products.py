@@ -351,71 +351,63 @@ def build_page_views_container_html(top_products, top_pages, broken_links_views)
                 <button class="pv-tab-link" onclick="openPvTab(event, 'PV_Top_Pages')">Top Pages</button>
                 <button class="pv-tab-link" onclick="openPvTab(event, 'PV_Broken_Links')">Broken Links Views</button>
             </div>
-            <div id="PV_Top_Products" class="pv-tab-content" style="display:block;">{{top_products_html}}</div>
-            <div id="PV_Top_Pages" class="pv-tab-content">{{top_pages_html}}</div>
-            <div id="PV_Broken_Links" class="pv-tab-content">{{broken_links_html}}</div>
+            <div id="PV_Top_Products" class="pv-tab-content" style="display:block;">{top_products_html}</div>
+            <div id="PV_Top_Pages" class="pv-tab-content">{top_pages_html}</div>
+            <div id="PV_Broken_Links" class="pv-tab-content">{broken_links_html}</div>
         </div>
         <style>
-            .pv-tab-link {{{{
+            .pv-tab-link {{
                 background-color: #f3f4f6; border: 1px solid #e5e7eb; padding: 8px 16px; cursor: pointer; border-radius: 8px;
                 font-weight: 600; font-size: 14px; letter-spacing: .2px; transition: all .15s ease;
-            }}}}
-            .pv-tab-link.active, .pv-tab-link:hover {{{{ background-color: #e9effe; border-color: #c2d3ff; color: #0b3fbf; }}}}
-            .pv-tab-content {{{{ display:none; padding: 8px 0; max-height: 600px; overflow-y: auto; }}}}
+            }}
+            .pv-tab-link.active, .pv-tab-link:hover {{ background-color: #e9effe; border-color: #c2d3ff; color: #0b3fbf; }}
+            .pv-tab-content {{ display:none; padding: 8px 0; max-height: 600px; overflow-y: auto; }}
         </style>
         <script>
-            function openPvTab(evt, tabId) {{{{
+            function openPvTab(evt, tabId) {{
                 var container = document.getElementById('PageViewsContainer');
                 var contents = container.getElementsByClassName('pv-tab-content');
-                for (var i=0; i<contents.length; i++) {{{{ contents[i].style.display = 'none'; }}}}
+                for (var i=0; i<contents.length; i++) {{ contents[i].style.display = 'none'; }}
                 var links = container.getElementsByClassName('pv-tab-link');
-                for (var j=0; j<links.length; j++) {{{{ links[j].className = links[j].className.replace(' active',''); }}}}
+                for (var j=0; j<links.length; j++) {{ links[j].className = links[j].className.replace(' active',''); }}
                 document.getElementById(tabId).style.display = 'block';
                 evt.currentTarget.className += ' active';
-                
                 // Initialize infinite scroll for the newly active tab
                 initializeInfiniteScroll(tabId);
-            }}}}
-            
-            function initializeInfiniteScroll(tabId) {{{{
+            }}
+            function initializeInfiniteScroll(tabId) {{
                 var tabContent = document.getElementById(tabId);
                 var table = tabContent.querySelector('table');
                 if (!table) return;
-                
                 var rows = table.querySelectorAll('.table-row');
                 var visibleRows = 50; // Show 50 rows initially
                 var increment = 50; // Load 50 more rows at a time
-                
                 // Show initial rows
-                for (var i = 0; i < Math.min(visibleRows, rows.length); i++) {{{{
+                for (var i = 0; i < Math.min(visibleRows, rows.length); i++) {{
                     rows[i].style.display = '';
-                }}}}
-                
+                }}
                 // Add scroll listener to the tab content
-                tabContent.addEventListener('scroll', function() {{{{
+                tabContent.addEventListener('scroll', function() {{
                     var scrollTop = tabContent.scrollTop;
                     var scrollHeight = tabContent.scrollHeight;
                     var clientHeight = tabContent.clientHeight;
-                    
                     // Load more when scrolled near bottom (100px threshold)
-                    if (scrollTop + clientHeight >= scrollHeight - 100 && visibleRows < rows.length) {{{{
+                    if (scrollTop + clientHeight >= scrollHeight - 100 && visibleRows < rows.length) {{
                         var newVisibleRows = Math.min(visibleRows + increment, rows.length);
-                        for (var i = visibleRows; i < newVisibleRows; i++) {{{{
+                        for (var i = visibleRows; i < newVisibleRows; i++) {{
                             rows[i].style.display = '';
-                        }}}}
+                        }}
                         visibleRows = newVisibleRows;
-                    }}}}
-                }}}});
-            }}}}
-            
+                    }}
+                }});
+            }}
             // Initialize infinite scroll for the default active tab
             // Note: Now handled by main tab switching in report_generator.py
-            // document.addEventListener('DOMContentLoaded', function() {{{{
+            // document.addEventListener('DOMContentLoaded', function() {{
             //     initializeInfiniteScroll('PV_Top_Products');
-            // }}}});
+            // });
         </script>
     '''
-    
     return html_template.format(
         top_products_html=generate_html_content(top_products),
         top_pages_html=generate_top_pages_html(top_pages),
