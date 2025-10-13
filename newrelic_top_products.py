@@ -223,6 +223,7 @@ def generate_html_content(products):
     total_views = sum(p['count'] for p in products)
     top_views = products[0]['count'] if products else 0
     
+    # Render all products, not just top 10
     for i, product in enumerate(products, 1):
         # Extract product name from URL for better display
         url_parts = product['url'].split('/')
@@ -281,6 +282,7 @@ def generate_top_pages_html(pages):
 '''
     total_views = sum(p['count'] for p in pages)
     top_views = pages[0]['count'] if pages else 0
+    # Render all pages, not just top 10
     for i, page in enumerate(pages, 1):
         # Sanitize URL and timestamp to ensure valid UTF-8
         safe_url = page['url'].encode('utf-8', 'ignore').decode('utf-8')
