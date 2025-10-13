@@ -2549,7 +2549,45 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                         rows.push('</tbody></table>');
                         wrap.innerHTML = rows.join('');
                         // attach toggles
-                        wrap.querySelectorAll('.details-btn').forEach(function(btn){{ btn.addEventListener('click', function(){{ var d = this.getAttribute('data-date'); var detailRow = document.getElementById('summary-'+d+'-details'); if (!detailRow) return; if (detailRow.style.display === 'table-row'){{ detailRow.style.display='none'; return; }} var idx = dates.indexOf(d); var prevDate = (idx+1<dates.length)?dates[idx+1]:null; var curr = (window.__HISTORICAL_DATA || {{}})[d]||[]; var prev = prevDate? (window.__HISTORICAL_DATA || {{}})[prevDate]||[]):[]; var sep='|||'; var currSet=new Set(), prevSet=new Set(); curr.forEach(function(it){{ currSet.add((it.Region||'')+sep+(it.URL||'')); }}); prev.forEach(function(it){{ prevSet.add((it.Region||'')+sep+(it.URL||'')); }}); var addedList=[], removedList=[]; currSet.forEach(function(k){{ if (!prevSet.has(k)) addedList.push(k); }}); prevSet.forEach(function(k){{ if (!currSet.has(k)) removedList.push(k); }}); function renderList(arr){{ if (!arr.length) return '<div style="padding:10px;color:#6b7280">No items</div>'; var o='<ul style="padding-left:16px">'; arr.forEach(function(k){{ var p=k.split(sep); var region=escapeHtml(p[0]||''); var url=escapeHtml(p.slice(1).join(sep)||''); o+='<li><strong>'+region+'</strong>: <a href="'+url+'" target="_blank">'+url+'</a></li>'; }}); o+='</ul>'; return o; }} var html = '<div style="display:flex;gap:18px;flex-wrap:wrap">'; html+='<div style="flex:1;min-width:260px"><h4 style="margin-top:0">Added</h4>'+renderList(addedList)+'</div>'; html+='<div style="flex:1;min-width:260px"><h4 style="margin-top:0">Removed</h4>'+renderList(removedList)+'</div>'; html+='</div>'; detailRow.cells[0].innerHTML = html; detailRow.style.display='table-row'; }); });
+                        wrap.querySelectorAll('.details-btn').forEach(function(btn){{
+                            btn.addEventListener('click', function(){{
+                                var d = this.getAttribute('data-date');
+                                var detailRow = document.getElementById('summary-'+d+'-details');
+                                if (!detailRow) return;
+                                if (detailRow.style.display === 'table-row'){{ detailRow.style.display='none'; return; }}
+                                var idx = dates.indexOf(d);
+                                var prevDate = (idx+1<dates.length) ? dates[idx+1] : null;
+                                var curr = (window.__HISTORICAL_DATA || {{}})[d] || [];
+                                // Correctly compute previous snapshot array (ternary with balanced parens)
+                                var prev = prevDate ? (window.__HISTORICAL_DATA || {{}})[prevDate] || [] : [];
+                                var sep = '|||';
+                                var currSet = new Set();
+                                var prevSet = new Set();
+                                curr.forEach(function(it){{ currSet.add((it.Region||'') + sep + (it.URL||'')); }});
+                                prev.forEach(function(it){{ prevSet.add((it.Region||'') + sep + (it.URL||'')); }});
+                                var addedList = [], removedList = [];
+                                currSet.forEach(function(k){{ if (!prevSet.has(k)) addedList.push(k); }});
+                                prevSet.forEach(function(k){{ if (!currSet.has(k)) removedList.push(k); }});
+                                function renderList(arr){{
+                                    if (!arr.length) return '<div style="padding:10px;color:#6b7280">No items</div>';
+                                    var o = '<ul style="padding-left:16px">';
+                                    arr.forEach(function(k){{
+                                        var p = k.split(sep);
+                                        var region = escapeHtml(p[0] || '');
+                                        var url = escapeHtml(p.slice(1).join(sep) || '');
+                                        o += '<li><strong>' + region + '</strong>: <a href="' + url + '" target="_blank">' + url + '</a></li>';
+                                    }});
+                                    o += '</ul>';
+                                    return o;
+                                }}
+                                var html = '<div style="display:flex;gap:18px;flex-wrap:wrap">';
+                                html += '<div style="flex:1;min-width:260px"><h4 style="margin-top:0">Added</h4>' + renderList(addedList) + '</div>';
+                                html += '<div style="flex:1;min-width:260px"><h4 style="margin-top:0">Removed</h4>' + renderList(removedList) + '</div>';
+                                html += '</div>';
+                                detailRow.cells[0].innerHTML = html;
+                                detailRow.style.display = 'table-row';
+                            }});
+                        }});
                     } )();
 
                     // Download currently selected snapshot as CSV
