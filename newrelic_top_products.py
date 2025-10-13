@@ -373,7 +373,7 @@ def build_page_views_container_html(top_products, top_pages, broken_links_views)
                 document.getElementById(tabId).style.display = 'block';
                 evt.currentTarget.className += ' active';
                 // Initialize infinite scroll for the newly active tab
-                initializeInfiniteScroll(tabId);
+                setTimeout(function() {{{{ initializeInfiniteScroll(tabId); }}}}, 100);
             }}
             function initializeInfiniteScroll(tabId) {{
                 var tabContent = document.getElementById(tabId);
