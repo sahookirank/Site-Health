@@ -1,0 +1,30 @@
+/* Styles extracted from report_generator.py for the reporting UI */
+:root {
+  --container-max: 1400px;
+  --brand: #0d6efd;
+  --muted-bg: #f6f7f9;
+  --muted: #6c757d;
+}
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin:0; background:#f6f7f9; color:#1f2937 }
+.header { background: linear-gradient(180deg, #fff, #fafbfc); border-bottom:1px solid #e5e7eb; padding:24px 16px 16px; }
+.container { max-width:var(--container-max); margin:0 auto; padding:0 16px 24px }
+.tab-buttons { display:flex; gap:12px; padding:12px; border-bottom:1px solid #e5e7eb; background:#fff }
+.tab-link { background:#f3f4f6; border:1px solid #e5e7eb; padding:12px 24px; cursor:pointer; border-radius:10px; font-weight:700 }
+.tab-link.active, .tab-link:hover { background:#e9effe; border-color:#c2d3ff; color:#0b3fbf }
+.card { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:14px }
+/* Optimizely specific */
+.optly-container { margin-top: 16px; background: #ffffff; border-radius: 12px; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08); overflow: hidden; border: 1px solid rgba(148, 163, 184, 0.25); }
+.optly-inner { padding: 20px 24px 28px; }
+.optly-search-container { background: linear-gradient(135deg, #f8fafc, #eef2ff); padding: 20px 24px; border-bottom: 1px solid rgba(148, 163, 184, 0.2); }
+.optly-search-box { max-width: 520px; margin:0 auto; position:relative }
+.optly-tab { flex:1; min-width:160px; padding:18px 12px; text-align:center; font-weight:600 }
+.optly-tab.active { background:#fff; color:#1e3a8a; box-shadow: inset 0 -3px 0 #3b82f6 }
+.optly-expand-icon { transition: transform 0.25s ease }
+/* Changes UI */
+.changes-summary { display:flex; gap:16px; margin-bottom:16px; flex-wrap:wrap }
+.change-count { padding:12px 16px; border-radius:8px; font-weight:600; font-size:14px }
+.change-count.added { background: linear-gradient(135deg, #dcfce7, #bbf7d0); color:#166534 }
+.change-count.removed { background: linear-gradient(135deg, #fef2f2, #fecaca); color:#991b1b }
+/* Product */
+.product-table { width:100%; min-width:600px; border-collapse:collapse }
+.product-table th { background:var(--brand); color:white; padding:12px }
