@@ -298,6 +298,48 @@ def generate_category_hierarchy_visualization(df, region):
     
     return html_content
 
+def generate_html_table_from_df(df: pd.DataFrame, table_id: str) -> str:
+    """Render a pandas DataFrame as an HTML table suitable for DataTables.
+
+    - Escapes all text for safe HTML inclusion.
+    - Wraps URL columns in <a> tags.
+    - Adds a second header row with filter inputs (used by the client-side JS).
+    """
+    if df is None or df.empty:
+        return f"<div class='card'><p style='padding:12px;color:#6b7280'>No data available.</p></div>"
+
+    cols = list(df.columns)
+    # Build header row
+    header_cells = ''.join([f"<th>{html.escape(str(c))}</th>" for c in cols])
+    filter_cells = ''.join(["<th><input type='text' placeholder='Filter ...' style='width: 90%;' /></th>" for _ in cols])
+
+    # Build body rows
+    rows_html = []
+    for _, row in df.iterrows():
+        cells = []
+        for c in cols:
+            v = row.get(c, '')
+            try:
+                if pd.isna(v):
+                    v = ''
+            except Exception:
+                pass
+            if str(c).lower() == 'url':
+                url = str(v or '')
+                safe_url = html.escape(url)
+                cell = f"<td><a href=\"{safe_url}\" target=\"_blank\">{safe_url}</a></td>"
+            else:
+                cell = f"<td>{html.escape(str(v))}</td>"
+            cells.append(cell)
+        rows_html.append('<tr>' + ''.join(cells) + '</tr>')
+
+    table_html = (
+        f"<table id='{html.escape(table_id)}' class='display' style='width:100%'>"
+        f"<thead><tr>{header_cells}</tr><tr class='filters'>{filter_cells}</tr></thead>"
+        f"<tbody>" + ''.join(rows_html) + "</tbody></table>"
+    )
+    return table_html
+
 def _connect_db(db_path: str = 'broken_links.db'):
     conn = sqlite3.connect(db_path)
     return conn
