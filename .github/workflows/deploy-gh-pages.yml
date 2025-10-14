@@ -301,13 +301,13 @@ jobs:
           USER_SECRET: ${{ secrets.USER }}
         run: |
           echo "📁 Preparing deployment directory..."
-          mkdir -p gh-pages-deploy
+          mkdir -p public
 
           # Validate and copy HTML report
           if [ -f "index.html" ]; then
             # Validate HTML file is not empty
-            if [ -s "index.html" ]; then
-              cp index.html gh-pages-deploy/
+              if [ -s "index.html" ]; then
+              cp index.html public/
               echo "✓ Copied HTML report ($(du -h index.html | cut -f1))"
             else
               echo "❌ HTML report is empty"
@@ -315,7 +315,7 @@ jobs:
             fi
           else
             echo "❌ HTML report not found, creating fallback page..."
-            cat > gh-pages-deploy/index.html << 'EOF'
+            cat > public/index.html << 'EOF'
           <!DOCTYPE html>
           <html>
           <head>
@@ -339,23 +339,23 @@ jobs:
 
           # Copy all CSV files for download
           for csv_file in *.csv; do
-            if [ -f "$csv_file" ]; then
-              cp "$csv_file" gh-pages-deploy/
+              if [ -f "$csv_file" ]; then
+              cp "$csv_file" public/
               echo "✓ Copied $csv_file"
             fi
           done
 
           # Copy Optimizely report if present
-          if [ -f "optimizely_enhanced_report.html" ]; then
-            cp optimizely_enhanced_report.html gh-pages-deploy/
+            if [ -f "optimizely_enhanced_report.html" ]; then
+            cp optimizely_enhanced_report.html public/
             echo "✓ Copied optimizely_enhanced_report.html"
           else
             echo "⚠️ optimizely_enhanced_report.html not found; Optimizely tab iframe may not load"
           fi
 
           # Ensure Optimizely JSON is published for dashboard usage
-          if [ -f "kmart.json" ]; then
-            cp kmart.json gh-pages-deploy/
+            if [ -f "kmart.json" ]; then
+            cp kmart.json public/
             echo "✓ Copied kmart.json for Optimizely tab data"
           else
             echo "❌ kmart.json missing; Optimizely tab data will fail to load"
@@ -363,7 +363,7 @@ jobs:
           fi
 
           # Create download links page
-          cat > gh-pages-deploy/downloads.html << 'EOF'
+          cat > public/downloads.html << 'EOF'
           <!DOCTYPE html>
           <html>
           <head>
@@ -382,7 +382,7 @@ jobs:
           for csv_file in gh-pages-deploy/*.csv; do
             if [ -f "$csv_file" ]; then
               filename=$(basename "$csv_file")
-              echo "<a href=\"$filename\" class=\"download-link\" download>📄 $filename</a>" >> gh-pages-deploy/downloads.html
+              echo "<a href=\"$filename\" class=\"download-link\" download>📄 $filename</a>" >> public/downloads.html
             fi
           done
 
@@ -391,14 +391,14 @@ jobs:
           # --- Authentication assets and page guard ---
           # Copy auth UI and logic
           if [ -f "auth.html" ]; then
-            cp auth.html gh-pages-deploy/
+            cp auth.html public/
             echo "✓ Copied auth.html"
           else
             echo "⚠️ auth.html not found in repo root"
           fi
 
           if [ -f "auth.js" ]; then
-            cp auth.js gh-pages-deploy/
+            cp auth.js public/
             echo "✓ Copied auth.js"
           else
             echo "⚠️ auth.js not found in repo root"
@@ -407,34 +407,34 @@ jobs:
           # Create auth-config.json from secret if available; fallback to repo file or dev config
           if [ -n "$USER_SECRET" ]; then
             HASH=$(printf "%s" "$USER_SECRET" | sha256sum | cut -d' ' -f1)
-            echo "{" > gh-pages-deploy/auth-config.json
-            echo '  "REPO_SECRET_NAME": "USER",' >> gh-pages-deploy/auth-config.json
-            echo "  \"EXPECTED_SECRET_HASH\": \"$HASH\"," >> gh-pages-deploy/auth-config.json
-            echo '  "SESSION_TIMEOUT": 86400000,' >> gh-pages-deploy/auth-config.json
-            echo '  "SESSION_STORAGE_KEY": "auth_session",' >> gh-pages-deploy/auth-config.json
-            echo '  "SUCCESS_REDIRECT": "index.html"' >> gh-pages-deploy/auth-config.json
-            echo "}" >> gh-pages-deploy/auth-config.json
+            echo "{" > public/auth-config.json
+            echo '  "REPO_SECRET_NAME": "USER",' >> public/auth-config.json
+            echo "  \"EXPECTED_SECRET_HASH\": \"$HASH\"," >> public/auth-config.json
+            echo '  "SESSION_TIMEOUT": 86400000,' >> public/auth-config.json
+            echo '  "SESSION_STORAGE_KEY": "auth_session",' >> public/auth-config.json
+            echo '  "SUCCESS_REDIRECT": "index.html"' >> public/auth-config.json
+            echo "}" >> public/auth-config.json
             echo "✓ Created auth-config.json from secret"
           elif [ -f "auth-config.json" ]; then
-            cp auth-config.json gh-pages-deploy/
+            cp auth-config.json public/
             echo "✓ Copied existing auth-config.json"
           else
-            echo "{" > gh-pages-deploy/auth-config.json
-            echo '  "REPO_SECRET_NAME": "USER",' >> gh-pages-deploy/auth-config.json
-            echo '  "EXPECTED_SECRET_HASH": "",' >> gh-pages-deploy/auth-config.json
-            echo '  "SESSION_TIMEOUT": 86400000,' >> gh-pages-deploy/auth-config.json
-            echo '  "SESSION_STORAGE_KEY": "auth_session",' >> gh-pages-deploy/auth-config.json
-            echo '  "SUCCESS_REDIRECT": "index.html"' >> gh-pages-deploy/auth-config.json
-            echo "}" >> gh-pages-deploy/auth-config.json
+            echo "{" > public/auth-config.json
+            echo '  "REPO_SECRET_NAME": "USER",' >> public/auth-config.json
+            echo '  "EXPECTED_SECRET_HASH": "",' >> public/auth-config.json
+            echo '  "SESSION_TIMEOUT": 86400000,' >> public/auth-config.json
+            echo '  "SESSION_STORAGE_KEY": "auth_session",' >> public/auth-config.json
+            echo '  "SUCCESS_REDIRECT": "index.html"' >> public/auth-config.json
+            echo "}" >> public/auth-config.json
             echo "⚠️ Created dev auth-config.json (no expected hash)"
           fi
 
           # Create a lightweight guard script that enforces auth on deployed pages
-          echo "(function(){try{var KEY='auth_session',TIMEOUT=86400000;var raw=localStorage.getItem(KEY),s=null;try{s=raw?JSON.parse(raw):null}catch(e){};var valid=s&&s.authenticated&&s.ts&&(Date.now()-s.ts)<TIMEOUT;var p=location.pathname;var isAuth=/\\/auth\\.html$/.test(p);if(!valid&&!isAuth){location.replace('auth.html');return;}document.addEventListener('DOMContentLoaded',function(){if(valid&&!isAuth){var a=document.createElement('a');a.href='auth.html?signout=1';a.textContent='Sign out';a.style='position:fixed;right:12px;top:12px;padding:6px 10px;background:#eee;border-radius:6px;color:#111;text-decoration:none;font:12px system-ui;z-index:9999;';document.body.appendChild(a);}});}catch(e){}})();" > gh-pages-deploy/guard.js
+          echo "(function(){try{var KEY='auth_session',TIMEOUT=86400000;var raw=localStorage.getItem(KEY),s=null;try{s=raw?JSON.parse(raw):null}catch(e){};var valid=s&&s.authenticated&&s.ts&&(Date.now()-s.ts)<TIMEOUT;var p=location.pathname;var isAuth=/\/auth\.html$/.test(p);if(!valid&&!isAuth){location.replace('auth.html');return;}document.addEventListener('DOMContentLoaded',function(){if(valid&&!isAuth){var a=document.createElement('a');a.href='auth.html?signout=1';a.textContent='Sign out';a.style='position:fixed;right:12px;top:12px;padding:6px 10px;background:#eee;border-radius:6px;color:#111;text-decoration:none;font:12px system-ui;z-index:9999;';document.body.appendChild(a);}});}catch(e){}})();" > public/guard.js
           echo "✓ Created guard.js"
 
           # Inject guard.js into all HTML pages in deployment directory
-          for f in gh-pages-deploy/*.html; do
+          for f in public/*.html; do
             [ -f "$f" ] || continue
             sed -i '0,/<head>/s//<head><script src="guard.js"><\/script>/' "$f" || true
             echo "✓ Injected guard into $(basename "$f")"
@@ -448,7 +448,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './gh-pages-deploy'
+          path: './public'
 
       - name: Deploy to GitHub Pages
         id: deployment
@@ -471,8 +471,8 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Files Deployed:**" >> $GITHUB_STEP_SUMMARY
 
-          if [ -d "gh-pages-deploy" ]; then
-            for file in gh-pages-deploy/*; do
+          if [ -d "public" ]; then
+            for file in public/*; do
               if [ -f "$file" ]; then
                 filename=$(basename "$file")
                 size=$(du -h "$file" | cut -f1)
