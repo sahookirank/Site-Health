@@ -1,5 +1,12 @@
 import pandas as pd
 import argparse
+import os
+import json
+import html
+import sqlite3
+import sys
+import subprocess
+from datetime import date, datetime, timedelta
 STYLE_DEFINITIONS = ""  # CSS moved to assets/report.css
 
 def extract_category_hierarchy(df, region):
