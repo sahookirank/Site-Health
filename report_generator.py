@@ -1,198 +1,47 @@
 import pandas as pd
 import argparse
-STYLE_DEFINITIONS = ""
+STYLE_DEFINITIONS = ""  # CSS moved to assets/report.css
 
 def extract_category_hierarchy(df, region):
-    """Extract hierarchical category data from URLs and store in temporary file."""
-    if df.empty:
+    """Extract hierarchical category data from URLs.
+
+    Returns a mapping of top-level category -> {'count', 'subcategories', 'urls'}.
+    The function intentionally avoids heavy plotting libraries so the caller
+    can choose how to render the hierarchy (or skip rendering entirely).
+    """
+    if df is None or df.empty:
         return {}
-    
+
+    from urllib.parse import urlparse
+
     category_hierarchy = {}
-    
     for _, row in df.iterrows():
         try:
-            url = row['URL']
+            url = str(row.get('URL', '') or '')
             parsed = urlparse(url)
             path = parsed.path.strip('/')
-            
-            if path:
-                segments = path.split('/')
-                # Look for category patterns
-                for i, segment in enumerate(segments):
-                    if 'category' in segment.lower() or 'categories' in segment.lower():
-                        # This is a category segment
-                        if i + 1 < len(segments):
-                            category_name = segments[i + 1].replace('-', ' ').replace('_', ' ').title()
-                            
-                            if category_name not in category_hierarchy:
-                                category_hierarchy[category_name] = {
-                                    'count': 0,
-                                    'subcategories': set(),
-                                    'urls': []
-                                }
-                            
-                            category_hierarchy[category_name]['count'] += 1
-                            category_hierarchy[category_name]['urls'].append(url)
-                            
-                            # Check for subcategories
-                            if i + 2 < len(segments):
-                                subcategory = segments[i + 2].replace('-', ' ').replace('_', ' ').title()
-                                category_hierarchy[category_name]['subcategories'].add(subcategory)
-                    
-                    # Also check for direct category names in path
-                    elif segment.lower() in ['home', 'clothing', 'electronics', 'toys', 'beauty', 'garden', 'sports', 'outdoor', 'tech', 'baby', 'kids']:
-                        category_name = segment.replace('-', ' ').replace('_', ' ').title()
-                        
-                        if category_name not in category_hierarchy:
-                            category_hierarchy[category_name] = {
-                                'count': 0,
-                                'subcategories': set(),
-                                'urls': []
-                            }
-                        
-                        category_hierarchy[category_name]['count'] += 1
-                        category_hierarchy[category_name]['urls'].append(url)
-                        
-                        # Check for subcategories
-                        if i + 1 < len(segments):
-                            subcategory = segments[i + 1].replace('-', ' ').replace('_', ' ').title()
-                            category_hierarchy[category_name]['subcategories'].add(subcategory)
-        except Exception:
-            continue
-    
-    # Convert sets to lists for JSON serialization
-    for category in category_hierarchy:
-        category_hierarchy[category]['subcategories'] = list(category_hierarchy[category]['subcategories'])
-    
-    # Return category hierarchy directly without saving to temp file
-    return category_hierarchy
-
-def generate_site_architecture_visualization(df, region):
-    """Generate interactive site architecture visualization using Plotly and NetworkX."""
-    if df.empty:
-        return "<p>No data available for visualization.</p>"
-    
-    # Extract domain and path information
-    urls = df['URL'].dropna().tolist()
-    
-    # Create a network graph
-    G = nx.DiGraph()
-    
-    # Parse URLs and create hierarchical structure
-    domain_paths = {}
-    for url in urls:
-        try:
-            parsed = urlparse(url)
-            domain = parsed.netloc
-            path = parsed.path.strip('/')
-            
-            if domain not in domain_paths:
-                domain_paths[domain] = set()
-            
-            # Split path into segments
-            if path:
-                segments = path.split('/')
-                # Add hierarchical relationships
-                current_path = ''
-                for i, segment in enumerate(segments):
-                    parent_path = current_path
-                    current_path = '/'.join(segments[:i+1]) if current_path else segment
-                    
-                    if parent_path:
-                        G.add_edge(f"{domain}/{parent_path}", f"{domain}/{current_path}")
-                    else:
-                        G.add_edge(domain, f"{domain}/{current_path}")
-                    
-                    domain_paths[domain].add(current_path)
+            if not path:
+                top = 'root'
+                sub = ''
             else:
-                G.add_node(domain)
+                segments = [s for s in path.split('/') if s]
+                top = segments[0] if segments else 'root'
+                sub = '/'.join(segments[1:]) if len(segments) > 1 else ''
+
+            entry = category_hierarchy.setdefault(top, {'count': 0, 'subcategories': set(), 'urls': []})
+            entry['count'] += 1
+            if sub:
+                entry['subcategories'].add(sub)
+            if url and len(entry['urls']) < 10:
+                entry['urls'].append(url)
         except Exception:
             continue
-    
-    if not G.nodes():
-        return "<p>No valid URLs found for visualization.</p>"
-    
-    # Create layout
-    try:
-        pos = nx.spring_layout(G, k=3, iterations=50)
-    except:
-        pos = {node: (0, 0) for node in G.nodes()}
-    
-    # Extract node and edge information
-    node_x = []
-    node_y = []
-    node_text = []
-    node_colors = []
-    
-    for node in G.nodes():
-        x, y = pos[node]
-        node_x.append(x)
-        node_y.append(y)
-        node_text.append(node)
-        # Color nodes based on type (domain vs path)
-        if '/' in node and node.count('/') > 1:
-            node_colors.append('#ff7f0e')  # Orange for deep paths
-        elif '/' in node:
-            node_colors.append('#2ca02c')  # Green for first-level paths
-        else:
-            node_colors.append('#1f77b4')  # Blue for domains
-    
-    edge_x = []
-    edge_y = []
-    for edge in G.edges():
-        x0, y0 = pos[edge[0]]
-        x1, y1 = pos[edge[1]]
-        edge_x.extend([x0, x1, None])
-        edge_y.extend([y0, y1, None])
-    
-    # Create Plotly figure
-    fig = go.Figure()
-    
-    # Add edges
-    fig.add_trace(go.Scatter(
-        x=edge_x, y=edge_y,
-        line=dict(width=1, color='#888'),
-        hoverinfo='none',
-        mode='lines',
-        name='Connections'
-    ))
-    
-    # Add nodes
-    fig.add_trace(go.Scatter(
-        x=node_x, y=node_y,
-        mode='markers+text',
-        hoverinfo='text',
-        text=node_text,
-        textposition="middle center",
-        marker=dict(
-            size=20,
-            color=node_colors,
-            line=dict(width=2, color='white')
-        ),
-        name='Pages'
-    ))
-    
-    fig.update_layout(
-        title=dict(text=f'{region} Site Architecture', font=dict(size=16)),
-        showlegend=False,
-        hovermode='closest',
-        margin=dict(b=20,l=5,r=5,t=40),
-        annotations=[
-            dict(
-                text=f"Interactive visualization of {region} site structure",
-                showarrow=False,
-                xref="paper", yref="paper",
-                x=0.005, y=-0.002,
-                xanchor="left", yanchor="bottom",
-                font=dict(color="#888", size=12)
-            )
-        ],
-        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-        plot_bgcolor='white'
-    )
-    
-    return fig.to_html(include_plotlyjs='cdn', div_id=f'{region.lower()}_architecture')
+
+    # Convert subcategory sets to sorted lists for predictable rendering
+    for cat, data in category_hierarchy.items():
+        data['subcategories'] = sorted(list(data['subcategories']))
+
+    return category_hierarchy
 
 def generate_navigation_hierarchy_chart(df, region):
     """Generate a hierarchical chart showing navigation structure."""
@@ -274,19 +123,20 @@ def generate_category_hierarchy_visualization(df, region):
         <h3>{region} Category Hierarchy</h3>
         <div class="categories-grid">
     """
-    
+
+    # Append a card for each top-level category
     for category, data in category_data.items():
         subcategories_html = ""
-        if data['subcategories']:
+        if data.get('subcategories'):
             subcategories_html = "<ul class='subcategories-list'>" + "".join([
                 f"<li>{sub}</li>" for sub in data['subcategories']
             ]) + "</ul>"
-        
+
         html_content += f"""
         <div class="category-card">
             <div class="category-header" onclick="toggleCategoryDetails('{region.lower()}_{category.replace(' ', '_')}')">
                 <span class="category-name">{category}</span>
-                <span class="category-count">({data['count']} links)</span>
+                <span class="category-count">({data.get('count', 0)} links)</span>
                 <span class="expand-icon" id="{region.lower()}_{category.replace(' ', '_')}_icon">▼</span>
             </div>
             <div class="category-details" id="{region.lower()}_{category.replace(' ', '_')}_details">
@@ -294,13 +144,13 @@ def generate_category_hierarchy_visualization(df, region):
                 <div class="category-urls">
                     <strong>Sample URLs:</strong>
                     <ul>
-                        {''.join([f'<li><a href="{url}" target="_blank">{url[:50]}...</a></li>' for url in data['urls'][:3]])}
+                        {''.join([f'<li><a href="{url}" target="_blank">{url[:50]}...</a></li>' for url in data.get('urls', [])[:3]])}
                     </ul>
                 </div>
             </div>
         </div>
         """
-    
+
     html_content += """
         </div>
     </div>
@@ -637,246 +487,7 @@ def _compute_changes(conn: sqlite3.Connection):
         'available_dates': available_dates
     }
 
-OPTIMIZELY_TAB_STYLES = ""
-                font-weight: 600;
-                letter-spacing: .2px;
-                color: #3b82f6;
-                background: transparent;
-                border: none;
-                cursor: pointer;
-                transition: all 0.2s ease;
-                position: relative;
-            }
-            .optly-tab:hover {
-                background: rgba(59, 130, 246, 0.06);
-            }
-            .optly-tab.active {
-                background: #fff;
-                color: #1e3a8a;
-                box-shadow: inset 0 -3px 0 #3b82f6;
-            }
-            .optly-tab-content {
-                display: none;
-            }
-            .optly-tab-content.active {
-                display: block;
-            }
-            .optly-data-section {
-                margin-bottom: 28px;
-            }
-            .optly-section-title {
-                font-size: 20px;
-                font-weight: 700;
-                color: #1e293b;
-                margin-bottom: 18px;
-                display: flex;
-                align-items: center;
-                gap: 10px;
-            }
-            .optly-section-title::before {
-                content: '';
-                width: 6px;
-                height: 22px;
-                border-radius: 999px;
-                background: linear-gradient(135deg, #3b82f6, #6366f1);
-            }
-            .optly-info-grid {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-                gap: 16px;
-                margin-bottom: 10px;
-            }
-            .optly-info-card {
-                background: linear-gradient(135deg, #eef2ff, #e0e7ff);
-                padding: 16px;
-                border-radius: 12px;
-                border: 1px solid rgba(99, 102, 241, 0.1);
-            }
-            .optly-info-label {
-                font-size: 13px;
-                font-weight: 600;
-                text-transform: uppercase;
-                letter-spacing: .8px;
-                color: #4c1d95;
-                margin-bottom: 6px;
-            }
-            .optly-info-value {
-                font-family: 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-                font-size: 15px;
-                color: #1e293b;
-                word-break: break-all;
-            }
-            .optly-badge {
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                padding: 4px 10px;
-                border-radius: 999px;
-                font-size: 12px;
-                font-weight: 700;
-                background: rgba(59, 130, 246, 0.15);
-                color: #1d4ed8;
-                margin-left: 12px;
-            }
-            .optly-collapsible {
-                width: 100%;
-                background: linear-gradient(135deg, #3b82f6, #6366f1);
-                color: #fff;
-                border: none;
-                border-radius: 12px;
-                padding: 14px 18px;
-                text-align: left;
-                font-size: 15px;
-                font-weight: 600;
-                cursor: pointer;
-                transition: transform 0.15s ease, box-shadow 0.2s ease;
-                margin-bottom: 12px;
-            }
-            .optly-collapsible:hover {
-                box-shadow: 0 10px 18px rgba(99, 102, 241, 0.25);
-                transform: translateY(-1px);
-            }
-            .optly-collapsible.active {
-                box-shadow: 0 12px 20px rgba(59, 130, 246, 0.25);
-            }
-            .optly-collapse-content {
-                max-height: 0;
-                overflow: hidden;
-                transition: max-height 0.3s ease;
-                border-radius: 12px;
-            }
-            .optly-collapse-content.active {
-                max-height: none;
-                margin-bottom: 12px;
-            }
-            .optly-expandable-table {
-                background: #fff;
-                border-radius: 12px;
-                border: 1px solid rgba(148, 163, 184, 0.25);
-                box-shadow: inset 0 1px 0 rgba(148, 163, 184, 0.2);
-            }
-            .optly-table-row {
-                border-bottom: 1px solid rgba(226, 232, 240, 0.8);
-            }
-            .optly-table-row:last-child {
-                border-bottom: none;
-            }
-            .optly-table-row.hidden {
-                display: none;
-            }
-            .optly-row-header {
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                padding: 16px 20px;
-                cursor: pointer;
-                background: linear-gradient(135deg, rgba(248, 250, 252, 0.98), rgba(236, 241, 251, 0.98));
-                transition: background 0.2s ease;
-            }
-            .optly-row-header:hover {
-                background: linear-gradient(135deg, rgba(226, 232, 240, 0.65), rgba(226, 232, 240, 0.45));
-            }
-            .optly-row-header.expanded {
-                background: rgba(219, 234, 254, 0.9);
-            }
-            .optly-row-title {
-                font-weight: 600;
-                color: #1e293b;
-            }
-            .optly-row-content {
-                max-height: 0;
-                overflow: hidden;
-                transition: max-height 0.3s ease;
-                background: #fff;
-            }
-            .optly-row-content.expanded {
-                max-height: none;
-                padding: 18px 22px 24px;
-                border-top: 1px solid rgba(226, 232, 240, 0.8);
-            }
-            .optly-expand-icon {
-                transition: transform 0.25s ease;
-                font-style: normal;
-                color: #1e3a8a;
-                font-weight: 700;
-            }
-            .optly-expand-icon.expanded {
-                transform: rotate(90deg);
-            }
-            .optly-json-container {
-                background: #0f172a;
-                color: #e2e8f0;
-                border-radius: 12px;
-                padding: 18px;
-                font-size: 13px;
-                line-height: 1.6;
-                font-family: 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-                box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.2);
-            }
-            .optly-json-object,
-            .optly-json-array {
-                margin-left: 18px;
-            }
-            .optly-json-item {
-                margin: 4px 0;
-            }
-            .optly-json-key {
-                color: #60a5fa;
-                font-weight: 600;
-                cursor: pointer;
-                display: inline-flex;
-                align-items: center;
-                gap: 6px;
-            }
-            .optly-json-key.optly-has-children:hover {
-                background: rgba(59, 130, 246, 0.15);
-                border-radius: 6px;
-                padding: 2px 6px;
-            }
-            .optly-json-key:not(.optly-has-children) {
-                cursor: default;
-            }
-            .optly-json-value {
-                color: #facc15;
-                margin-left: 6px;
-            }
-            .optly-json-children {
-                margin-left: 18px;
-                margin-top: 6px;
-            }
-            .optly-json-children.collapsed {
-                display: none;
-            }
-            .optly-no-results {
-                text-align: center;
-                padding: 32px 16px;
-                color: #475569;
-                font-style: italic;
-                font-size: 14px;
-            }
-            .optly-error {
-                margin: 24px;
-                padding: 18px 20px;
-                border-radius: 12px;
-                border: 1px solid rgba(248, 113, 113, 0.4);
-                background: rgba(254, 226, 226, 0.6);
-                color: #991b1b;
-            }
-            @media (max-width: 768px) {
-                .optly-tabs {
-                    flex-direction: column;
-                }
-                .optly-tab {
-                    min-width: auto;
-                }
-                .optly-info-grid {
-                    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-                }
-                .optly-inner {
-                    padding: 16px 18px 24px;
-                }
-            }
-    """
+OPTIMIZELY_TAB_STYLES = ""  # Styles moved to assets/report.css
 
 def _load_optimizely_json(path):
     if not path:
@@ -1820,7 +1431,10 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
     # Provide a small helper JS block that initializes the date picker and renders
     # the per-date table and summary. This code is adapted from preview_changes.html
     # but uses the real data from the DB embedded above.
-    changes_html = f"""
+    # Build a safe template for the Changes tab. Use unique tokens and
+    # substitute them below to avoid f-string brace-escaping problems when
+    # the template contains lots of JavaScript/CSS braces.
+    changes_template = """
         <div id="Changes" class="tab-content">
             <div class="card">
                 <div class="date-picker-row">
@@ -1846,26 +1460,26 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                 </div>
                 <div class="collapsible-content" id="yesterday-section">
                     <div class="changes-summary">
-                        <div class="change-count added">➕ Added: {len(changes['yesterday']['added'])}</div>
-                        <div class="change-count removed">➖ Removed: {len(changes['yesterday']['removed'])}</div>
-                        <a class="download-tab-button" download href="changes_all.csv?{cache_buster}">Download All Changes (CSV)</a>
+                        <div class="change-count added">➕ Added: __YESTERDAY_ADDED_COUNT__</div>
+                        <div class="change-count removed">➖ Removed: __YESTERDAY_REMOVED_COUNT__</div>
+                        <a class="download-tab-button" download href="changes_all.csv?__CACHE_BUSTER__">Download All Changes (CSV)</a>
                     </div>
                     <div class="collapsible-section">
                         <div class="collapsible-header" onclick="toggleSection('yesterday-added-section')">
-                            <span>Added Links ({len(changes['yesterday']['added'])})</span>
+                            <span>Added Links (__YESTERDAY_ADDED_COUNT__)</span>
                             <span class="toggle-icon" id="yesterday-added-toggle">▼</span>
                         </div>
                         <div class="collapsible-content" id="yesterday-added-section">
-                            {render_changes_section('Yesterday Added', changes['yesterday']['added'], 'added', section_prefix='yesterday')}
+                            __YESTERDAY_ADDED_HTML__
                         </div>
                     </div>
                     <div class="collapsible-section">
                         <div class="collapsible-header" onclick="toggleSection('yesterday-removed-section')">
-                            <span>Removed Links ({len(changes['yesterday']['removed'])})</span>
+                            <span>Removed Links (__YESTERDAY_REMOVED_COUNT__)</span>
                             <span class="toggle-icon" id="yesterday-removed-toggle">▼</span>
                         </div>
                         <div class="collapsible-content" id="yesterday-removed-section">
-                            {render_changes_section('Yesterday Removed', changes['yesterday']['removed'], 'removed', section_prefix='yesterday')}
+                            __YESTERDAY_REMOVED_HTML__
                         </div>
                     </div>
                 </div>
@@ -1877,27 +1491,27 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                     <span class="toggle-icon" id="week-toggle">▼</span>
                 </div>
                 <div class="collapsible-content" id="week-section">
-                    <div class="changes-summary">
-                        <div class="change-count added">➕ Added: {len(changes['week']['added'])}</div>
-                        <div class="change-count removed">➖ Removed: {len(changes['week']['removed'])}</div>
-                        <a class="download-tab-button" download href="changes_all.csv?{cache_buster}">Download All Changes (CSV)</a>
+                        <div class="changes-summary">
+                        <div class="change-count added">➕ Added: __WEEK_ADDED_COUNT__</div>
+                        <div class="change-count removed">➖ Removed: __WEEK_REMOVED_COUNT__</div>
+                        <a class="download-tab-button" download href="changes_all.csv?__CACHE_BUSTER__">Download All Changes (CSV)</a>
                     </div>
                     <div class="collapsible-section">
                         <div class="collapsible-header" onclick="toggleSection('week-added-section')">
-                            <span>➕ Added Links ({len(changes['week']['added'])})</span>
+                            <span>➕ Added Links (__WEEK_ADDED_COUNT__)</span>
                             <span class="toggle-icon" id="week-added-toggle">▼</span>
                         </div>
                         <div class="collapsible-content" id="week-added-section">
-                            {render_changes_section('Added Week', changes['week']['added'], 'added', section_prefix='week')}
+                            __WEEK_ADDED_HTML__
                         </div>
                     </div>
                     <div class="collapsible-section">
                         <div class="collapsible-header" onclick="toggleSection('week-removed-section')">
-                            <span>➖ Removed Links ({len(changes['week']['removed'])})</span>
+                            <span>➖ Removed Links (__WEEK_REMOVED_COUNT__)</span>
                             <span class="toggle-icon" id="week-removed-toggle">▼</span>
                         </div>
                         <div class="collapsible-content" id="week-removed-section">
-                            {render_changes_section('Removed Week', changes['week']['removed'], 'removed', section_prefix='week')}
+                            __WEEK_REMOVED_HTML__
                         </div>
                     </div>
                 </div>
@@ -1905,8 +1519,8 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
 
             <script>
                 // Expose historical snapshots for client-side viewer
-                try {{ window.__HISTORICAL_DATES = JSON.parse({hist_dates_literal}); }} catch(e) {{ window.__HISTORICAL_DATES = []; }}
-                try {{ window.__HISTORICAL_DATA = JSON.parse({hist_data_literal}); }} catch(e) {{ window.__HISTORICAL_DATA = {{}}; }}
+                try {{ window.__HISTORICAL_DATES = JSON.parse(__HIST_DATES_LITERAL__); }} catch(e) {{ window.__HISTORICAL_DATES = []; }}
+                try {{ window.__HISTORICAL_DATA = JSON.parse(__HIST_DATA_LITERAL__); }} catch(e) {{ window.__HISTORICAL_DATA = {{}}; }}
 
                 (function() {{
                     function escapeHtml(s) {{ return ('' + (s || '')).replace(/[&<>\"]/g, function(c) {{ return {{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}}[c]; }}); }}
@@ -2042,7 +1656,35 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
         </div>
     """
 
-    html_content = f"""
+    # Precompute values and HTML fragments used in the template so we can
+    # safely substitute them without having to use an f-string.
+    y_added_count = len(changes['yesterday']['added'])
+    y_removed_count = len(changes['yesterday']['removed'])
+    w_added_count = len(changes['week']['added'])
+    w_removed_count = len(changes['week']['removed'])
+    y_added_html = render_changes_section('Yesterday Added', changes['yesterday']['added'], 'added', section_prefix='yesterday')
+    y_removed_html = render_changes_section('Yesterday Removed', changes['yesterday']['removed'], 'removed', section_prefix='yesterday')
+    w_added_html = render_changes_section('Added Week', changes['week']['added'], 'added', section_prefix='week')
+    w_removed_html = render_changes_section('Removed Week', changes['week']['removed'], 'removed', section_prefix='week')
+
+    changes_html = (changes_template
+                    .replace('__YESTERDAY_ADDED_COUNT__', str(y_added_count))
+                    .replace('__YESTERDAY_REMOVED_COUNT__', str(y_removed_count))
+                    .replace('__WEEK_ADDED_COUNT__', str(w_added_count))
+                    .replace('__WEEK_REMOVED_COUNT__', str(w_removed_count))
+                    .replace('__YESTERDAY_ADDED_HTML__', y_added_html)
+                    .replace('__YESTERDAY_REMOVED_HTML__', y_removed_html)
+                    .replace('__WEEK_ADDED_HTML__', w_added_html)
+                    .replace('__WEEK_REMOVED_HTML__', w_removed_html)
+                    .replace('__HIST_DATES_LITERAL__', hist_dates_literal)
+                    .replace('__HIST_DATA_LITERAL__', hist_data_literal)
+                    .replace('__CACHE_BUSTER__', cache_buster)
+                    )
+
+    # Use a neutral HTML template (not an f-string) and substitute a few
+    # well-known tokens below. This avoids the need to escape JavaScript and
+    # CSS braces inside a Python f-string.
+    html_template = """
     <!DOCTYPE html>
     <html lang="en">
     <head>
@@ -2054,25 +1696,26 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
         <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
         <meta http-equiv="Pragma" content="no-cache">
         <meta http-equiv="Expires" content="0">
-        <meta http-equiv="Last-Modified" content="{datetime.now().strftime('%a, %d %b %Y %H:%M:%S GMT')}">
+        <meta http-equiv="Last-Modified" content="__LAST_MODIFIED__">
         
         <!-- Dynamic refresh meta tag - disabled by default -->
         <!-- <meta http-equiv="refresh" content="300"> Auto-refresh every 5 minutes -->
         
         <!-- GitHub Pages specific cache busting -->
-        <meta name="github-pages-cache" content="{cache_buster}">
-        <meta name="generated-timestamp" content="{timestamp}">
+        <meta name="github-pages-cache" content="__CACHE_BUSTER__">
+        <meta name="generated-timestamp" content="__TIMESTAMP__">
         
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css?{cache_buster}">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css?{cache_buster}">
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js?{cache_buster}"></script>
-    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js?{cache_buster}"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css?__CACHE_BUSTER__">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css?__CACHE_BUSTER__">
+    <link rel="stylesheet" href="assets/report.css?__CACHE_BUSTER__">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js?__CACHE_BUSTER__"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js?__CACHE_BUSTER__"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-        <script src="auth.js?{cache_buster}"></script>
-        <script src="cache_manager.js?{cache_buster}"></script>
+        <script src="auth.js?__CACHE_BUSTER__"></script>
+        <script src="cache_manager.js?__CACHE_BUSTER__"></script>
         <style>
-            {STYLE_DEFINITIONS}
-            {OPTIMIZELY_TAB_STYLES}
+            __STYLE_DEFINITIONS__
+            __OPTIMIZELY_TAB_STYLES__
         </style>
     </head>
     <body>
@@ -2082,7 +1725,7 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
             <div style="display: flex; justify-content: space-between; align-items: center; max-width: var(--container-max); margin: 0 auto;">
                 <h1 style="margin: 0;">Kmart Website Monitoring</h1>
                 <div style="display: flex; gap: 12px; align-items: center;">
-                    <span style="font-size: 12px; color: #666;">Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}</span>
+                    <span style="font-size: 12px; color: #666;">Generated: __GENERATED_TIMESTAMP__</span>
                     <button onclick="refreshDashboard()" style="padding: 8px 16px; background: #0d6efd; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;" title="Refresh Dashboard">🔄 Refresh</button>
                     <button onclick="clearBrowserCache()" style="padding: 8px 16px; background: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;" title="Clear Cache & Refresh">🗑️ Clear Cache</button>
                 </div>
@@ -2104,36 +1747,36 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
 
             <div id="AU_Report" class="tab-content" style="display: block;">
                 <div class="summary-container">
-                    <span class="summary-item">🔍 Total Links Checked (AU): {total_links_au}</span>
-                    <span class="summary-item">❌ Broken Links (AU): {broken_links_au}</span>
-                    <span class="summary-item">✅ Valid Links (AU): {total_links_au - broken_links_au}</span>
-                    <span class="summary-item"><a href="au_link_check_results.csv?{cache_buster}" download class="download-tab-button">Download AU Full CSV</a></span>
+                    <span class="summary-item">🔍 Total Links Checked (AU): __TOTAL_LINKS_AU__</span>
+                    <span class="summary-item">❌ Broken Links (AU): __BROKEN_LINKS_AU__</span>
+                    <span class="summary-item">✅ Valid Links (AU): __VALID_LINKS_AU__</span>
+                    <span class="summary-item"><a href="au_link_check_results.csv?__CACHE_BUSTER__" download class="download-tab-button">Download AU Full CSV</a></span>
                 </div>
-                {au_table_html}
+                __AU_TABLE_HTML__
             </div>
 
             <div id="NZ_Report" class="tab-content">
                 <div class="summary-container">
-                    <span class="summary-item">🔍 Total Links Checked (NZ): {total_links_nz}</span>
-                    <span class="summary-item">❌ Broken Links (NZ): {broken_links_nz}</span>
-                    <span class="summary-item">✅ Valid Links (NZ): {total_links_nz - broken_links_nz}</span>
-                    <span class="summary-item"><a href="nz_link_check_results.csv?{cache_buster}" download class="download-tab-button">Download NZ Full CSV</a></span>
+                    <span class="summary-item">🔍 Total Links Checked (NZ): __TOTAL_LINKS_NZ__</span>
+                    <span class="summary-item">❌ Broken Links (NZ): __BROKEN_LINKS_NZ__</span>
+                    <span class="summary-item">✅ Valid Links (NZ): __VALID_LINKS_NZ__</span>
+                    <span class="summary-item"><a href="nz_link_check_results.csv?__CACHE_BUSTER__" download class="download-tab-button">Download NZ Full CSV</a></span>
                 </div>
-                {nz_table_html}
+                __NZ_TABLE_HTML__
             </div>
 
-            {changes_html}
+            __CHANGES_HTML__
 
-            <div id="Product_Availability" class="tab-content">
-                {product_table_html}
+                <div id="Product_Availability" class="tab-content">
+                __PRODUCT_TABLE_HTML__
             </div>
 
             <div id="Page_Views" class="tab-content">
-                {page_views_html}
+                __PAGE_VIEWS_HTML__
             </div>
 
             <div id="Optimizely" class="tab-content">
-                {optimizely_html}
+                __OPTIMIZELY_HTML__
             </div>
 
             <!-- Categories tab content disabled -->
@@ -2141,10 +1784,10 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
         </div>
         
         <!-- Cache Status Footer -->
-        <footer id="cache-status" style="text-align: center; padding: 20px; margin-top: 40px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #6c757d;">
+                <footer id="cache-status" style="text-align: center; padding: 20px; margin-top: 40px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #6c757d;">
             <div style="margin-bottom: 8px;">
-                🕐 Dashboard loaded: <span id="load-time">{datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}</span> | 
-                📊 Data version: <span id="data-version">{cache_buster}</span>
+                🕐 Dashboard loaded: <span id="load-time">__GENERATED_TIMESTAMP__</span> | 
+                📊 Data version: <span id="data-version">__CACHE_BUSTER__</span>
             </div>
             <div style="margin-top: 8px;">
                 ⌨️ Quick actions: <strong>Ctrl/Cmd+R</strong> to refresh, <strong>Ctrl/Cmd+Shift+R</strong> to clear cache
@@ -2471,9 +2114,38 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                 }}
             }};
         </script>
+        <!-- Load page-specific JavaScript (extracted to assets/) -->
+        <script src="assets/changes.js?__CACHE_BUSTER__"></script>
+        <script src="assets/optimizely.js?__CACHE_BUSTER__"></script>
     </body>
     </html>
     """
+
+    # Final substitution into the HTML template. Use simple replace() calls
+    # to avoid accidental evaluation of JavaScript/CSS braces.
+    generated_ts = datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')
+    last_mod = datetime.now().strftime('%a, %d %b %Y %H:%M:%S GMT')
+    html_content = (
+        html_template
+        .replace('__LAST_MODIFIED__', last_mod)
+        .replace('__CACHE_BUSTER__', cache_buster)
+        .replace('__TIMESTAMP__', str(timestamp))
+        .replace('__GENERATED_TIMESTAMP__', generated_ts)
+        .replace('__TOTAL_LINKS_AU__', str(total_links_au))
+        .replace('__BROKEN_LINKS_AU__', str(broken_links_au))
+        .replace('__VALID_LINKS_AU__', str(total_links_au - broken_links_au))
+        .replace('__AU_TABLE_HTML__', au_table_html)
+        .replace('__TOTAL_LINKS_NZ__', str(total_links_nz))
+        .replace('__BROKEN_LINKS_NZ__', str(broken_links_nz))
+        .replace('__VALID_LINKS_NZ__', str(total_links_nz - broken_links_nz))
+        .replace('__NZ_TABLE_HTML__', nz_table_html)
+        .replace('__CHANGES_HTML__', changes_html)
+        .replace('__PRODUCT_TABLE_HTML__', product_table_html)
+        .replace('__PAGE_VIEWS_HTML__', page_views_html)
+        .replace('__OPTIMIZELY_HTML__', optimizely_html)
+        .replace('__STYLE_DEFINITIONS__', STYLE_DEFINITIONS)
+        .replace('__OPTIMIZELY_TAB_STYLES__', OPTIMIZELY_TAB_STYLES)
+    )
 
     # Sanitize the final HTML content to ensure valid UTF-8
     html_content = html_content.encode('utf-8', 'ignore').decode('utf-8')
