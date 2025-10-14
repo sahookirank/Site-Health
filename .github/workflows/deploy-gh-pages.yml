@@ -379,14 +379,14 @@ jobs:
               <p>Click the links below to download the CSV files:</p>
           EOF
 
-          for csv_file in gh-pages-deploy/*.csv; do
+          for csv_file in public/*.csv; do
             if [ -f "$csv_file" ]; then
               filename=$(basename "$csv_file")
               echo "<a href=\"$filename\" class=\"download-link\" download>📄 $filename</a>" >> public/downloads.html
             fi
           done
 
-          echo "</body></html>" >> gh-pages-deploy/downloads.html
+          echo "</body></html>" >> public/downloads.html
 
           # --- Authentication assets and page guard ---
           # Copy auth UI and logic
