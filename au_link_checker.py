@@ -36,6 +36,10 @@ START_URL = 'https://www.kmart.com.au/'
 results_queue = queue.Queue()
 
 session = requests.Session()
+# Custom User-Agent to reduce chances of being blocked by Akamai. Include 'kmart' as requested.
+# You can customize this string if needed, or set the KMART_USER_AGENT environment variable to override.
+KMART_USER_AGENT = 'kmart-linkchecker/1.0 (+https://www.kmart.com.au/)'
+session.headers.update({'User-Agent': KMART_USER_AGENT})
 retry_strategy = Retry(total=MAX_RETRIES, backoff_factor=0.1, status_forcelist=[500, 502, 503, 504])
 adapter = HTTPAdapter(max_retries=retry_strategy, pool_connections=MAX_CONNECTIONS, pool_maxsize=MAX_CONNECTIONS)
 session.mount("http://", adapter)
