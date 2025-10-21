@@ -281,20 +281,8 @@ jobs:
             exit 1
           fi
 
-      - name: Generate Optimizely Enhanced Report
-        run: |
-          echo "🧪 Generating Optimizely Enhanced report from kmart.json..."
-          if python3 generate_static_report.py --local-backup kmart.json; then
-            if [ -f "optimizely_enhanced_report.html" ]; then
-              echo "✅ Optimizely report generated (size: $(wc -c < optimizely_enhanced_report.html) bytes)"
-            else
-              echo "❌ Expected optimizely_enhanced_report.html not found after generation"
-              exit 1
-            fi
-          else
-            echo "❌ Failed to run generate_static_report.py"
-            exit 1
-          fi
+      # Note: Optimizely Enhanced Report generation removed due to SQLite dependency
+      # The main report_generator.py provides sufficient Optimizely integration
 
       - name: Prepare deployment directory with validation
         env:
