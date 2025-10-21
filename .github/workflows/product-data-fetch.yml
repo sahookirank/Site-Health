@@ -416,12 +416,12 @@ jobs:
                 }
                 
                 try:
-          response = self.session.post(
-            self.search_endpoint,
-            headers=self.search_headers,
-            json=payload,
-            timeout=30
-          )
+                    response = self.session.post(
+                        self.search_endpoint,
+                        headers=self.search_headers,
+                        json=payload,
+                        timeout=30
+                    )
                     
                     if response.status_code == 200:
                         data = response.json()
@@ -661,12 +661,12 @@ jobs:
                 }
                 
                 try:
-          response = self.session.post(
-            self.graphql_endpoint,
-            headers=self.graphql_headers,
-            json=payload,
-            timeout=30
-          )
+                    response = self.session.post(
+                        self.graphql_endpoint,
+                        headers=self.graphql_headers,
+                        json=payload,
+                        timeout=30
+                    )
                     
                     if response.status_code == 200:
                         return response.json()
