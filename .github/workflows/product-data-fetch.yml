@@ -254,20 +254,20 @@ jobs:
                 # Track last API error details for better reporting
                 self.last_search_error = None
                 self.last_graphql_error = None
-                
+
                 # Get secrets from environment
                 self.auth_token = os.getenv('COMMERCETOOL_AUTH_TOKEN')
                 self.project_key = 'kmart-production'  # Fixed project key
-                
-        if not self.auth_token:
-          logger.error("COMMERCETOOL_AUTH_TOKEN not found in environment")
-          sys.exit(1)
 
-        # Create a requests session and set the COMMERCETOOL_AUTH_TOKEN as a cookie
-        # The API will receive the token via the Cookie header automatically from the session
-        self.session = requests.Session()
-        self.session.cookies.set('COMMERCETOOL_AUTH_TOKEN', self.auth_token)
-                
+                if not self.auth_token:
+                    logger.error("COMMERCETOOL_AUTH_TOKEN not found in environment")
+                    sys.exit(1)
+
+                # Create a requests session and set the COMMERCETOOL_AUTH_TOKEN as a cookie
+                # The API will receive the token via the Cookie header automatically from the session
+                self.session = requests.Session()
+                self.session.cookies.set('COMMERCETOOL_AUTH_TOKEN', self.auth_token)
+
                 # Headers for API requests
                 self.search_headers = {
                     "accept": "application/json",
