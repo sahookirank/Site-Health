@@ -231,12 +231,8 @@ jobs:
           else:
               csv_files['product_export'] = pd.DataFrame(columns=['SKU', 'ID', 'DETAIL'])
 
-          print(f'Loaded CSV files: {list(csv_files.keys())}')
-          for name, df in csv_files.items():
-              print(f'  {name}: {len(df)} rows')
-
           # Generate HTML report matching test_combined_report.html design
-          html_template = '''<!DOCTYPE html>
+          html_template = \"""<!DOCTYPE html>
           <html lang="en">
           <head>
               <meta charset="UTF-8">
@@ -375,15 +371,15 @@ jobs:
 
               <div class="container">
                   <div class="summary-container">
-                      <span class="summary-item">🇦🇺 AU Links: {au_count}</span>
-                      <span class="summary-item">🇳🇿 NZ Links: {nz_count}</span>
+                      <span class="summary-item">🇦.au AU Links: {au_count}</span>
+                      <span class="summary-item">🇳.nz NZ Links: {nz_count}</span>
                       <span class="summary-item">📦 Products: {product_count}</span>
                       <span class="summary-item">📅 Generated: {timestamp}</span>
                   </div>
 
                   <div class="tabs">
-                      <div class="tab active" onclick="openTab(event, 'AU_Broken_Links')">🇦🇺 AU Broken Links</div>
-                      <div class="tab" onclick="openTab(event, 'NZ_Broken_Links')">🇳🇿 NZ Broken Links</div>
+                      <div class="tab active" onclick="openTab(event, 'AU_Broken_Links')">🇦.au AU Broken Links</div>
+                      <div class="tab" onclick="openTab(event, 'NZ_Broken_Links')">🇳.nz NZ Broken Links</div>
                       <div class="tab" onclick="openTab(event, 'Product_Availability')">📦 Product Availability</div>
                   </div>
 
@@ -486,8 +482,8 @@ jobs:
                   }
               </script>
           </body>
-          </html>'''
-
+          </html>
+          \"""
           # Generate table rows
           def generate_table_rows(df, columns):
               rows = []
