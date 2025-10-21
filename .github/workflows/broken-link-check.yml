@@ -328,7 +328,11 @@ jobs:
 
       - name: Fetch Optimizely Flag Details
         run: |
-          echo "Fetching Optimizely flag details..."
-          python3 -c "import requests, os; \
+          python -c "import requests, time, os; \
           headers = {'Authorization': f'Bearer {os.getenv('OPTIMIZELY_API_TOKEN')}', 'Content-Type': 'application/json'}; \
-          print('Fetching flags...')"
+          flags = ['flag1', 'flag2']; \
+          for flag in flags: \
+              response = requests.get(f'https://api.app.optimizely.com/flags/projects/17801440189/flags/{flag}', headers=headers); \
+              if response.status_code == 429: \
+                  time.sleep(60); \
+              print(response.json())"
