@@ -259,9 +259,14 @@ jobs:
                 self.auth_token = os.getenv('COMMERCETOOL_AUTH_TOKEN')
                 self.project_key = 'kmart-production'  # Fixed project key
                 
-                if not self.auth_token:
-                    logger.error("COMMERCETOOL_AUTH_TOKEN not found in environment")
-                    sys.exit(1)
+        if not self.auth_token:
+          logger.error("COMMERCETOOL_AUTH_TOKEN not found in environment")
+          sys.exit(1)
+
+        # Create a requests session and set the COMMERCETOOL_AUTH_TOKEN as a cookie
+        # The API will receive the token via the Cookie header automatically from the session
+        self.session = requests.Session()
+        self.session.cookies.set('COMMERCETOOL_AUTH_TOKEN', self.auth_token)
                 
                 # Headers for API requests
                 self.search_headers = {
@@ -281,7 +286,7 @@ jobs:
                     "x-correlation-id": "mc/kmart-production/941dc8ba-fd2b-4be3-a375-2d5ef173394d/a55d13f1-5b22-4168-9adb-6dedf00fd383",
                     "x-project-key": self.project_key,
                     "x-user-agent": "apollo-client Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 products/application-shell/24.5.0 (+ https://git.io/fjuyC; +support@commercetools.com)",
-                    "authorization": f"Bearer {self.auth_token}" if self.auth_token else "",
+                    # Authentication is sent via cookie (set on self.session), not via this header
                     "cache-control": "no-cache"
                 }
                 
@@ -304,7 +309,7 @@ jobs:
                     "x-graphql-target": "ctp",
                     "x-project-key": self.project_key,
                     "x-user-agent": "apollo-client Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 products/application-shell/24.5.0 (+ https://git.io/fjuyC; +support@commercetools.com)",
-                    "authorization": f"Bearer {self.auth_token}" if self.auth_token else "",
+                    # Authentication is sent via cookie (set on self.session), not via this header
                     "cache-control": "no-cache"
                 }
         
@@ -411,12 +416,12 @@ jobs:
                 }
                 
                 try:
-                    response = requests.post(
-                        self.search_endpoint,
-                        headers=self.search_headers,
-                        json=payload,
-                        timeout=30
-                    )
+          response = self.session.post(
+            self.search_endpoint,
+            headers=self.search_headers,
+            json=payload,
+            timeout=30
+          )
                     
                     if response.status_code == 200:
                         data = response.json()
@@ -656,15 +661,15 @@ jobs:
                 }
                 
                 try:
-                    response = requests.post(
-                        self.graphql_endpoint,
-                        headers=self.graphql_headers,
-                        json=payload,
-                        timeout=30
-                    )
+          response = self.session.post(
+            self.graphql_endpoint,
+            headers=self.graphql_headers,
+            json=payload,
+            timeout=30
+          )
                     
                     if response.status_code == 200:
-                        return response.json();
+                        return response.json()
                     else:
                         logger.warning(f"GraphQL API returned status {response.status_code} for product ID {product_id}")
                         logger.warning(f"Response: {response.text[:500]}")
@@ -1256,22 +1261,3 @@ jobs:
             // Don't fail the entire workflow
             core.warning('Failed to trigger GitHub Pages deployment, but product data artifacts are available for manual processing');
           }
-    - name: Migrate DB Schema
-      run: |
-        python -c "import sqlite3; conn = sqlite3.connect('optimizely_flags.db'); cur = conn.cursor(); cur.execute('ALTER TABLE optimizely_flags ADD COLUMN updated_time TEXT'); conn.commit(); conn.close()"
-      continue-on-error: true
-
-    - name: Set Optimizely API Token
-      env:
-        OPTIMIZELY_API_TOKEN: ${{ secrets.OPTIMIZELY_API_TOKEN }}
-
-    - name: Fetch Optimizely Flag Details
-      run: |
-        python -c "import requests, time; \
-        headers = {'Authorization': f'Bearer {os.getenv('OPTIMIZELY_API_TOKEN')}', 'Content-Type': 'application/json'}; \
-        flags = ['flag1', 'flag2']; \
-        for flag in flags: \
-            response = requests.get(f'https://api.app.optimizely.com/flags/projects/17801440189/flags/{flag}', headers=headers); \
-            if response.status_code == 429: \
-                time.sleep(60); \
-            print(response.json())"
