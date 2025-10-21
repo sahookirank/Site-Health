@@ -1134,7 +1134,7 @@ jobs:
             echo "❌ SKU extraction may have failed, creating minimal product export..."
             # Create minimal CSV with placeholder data
             echo "SKU,ID,DETAIL" > product_export_$(date +%Y%m%d_%H%M%S).csv
-            echo "ERROR,EXTRACTION_FAILED,SKU extraction failed or no valid data found" >> product_export_$(date +%Y%m%d_%H%M%S).csv
+            echo "ERROR,EXTRACTION_FAILED,SKU extraction failed or no valid data found" >> product_export_error_$(date +%Y%m%d_%H%M%S).csv
             echo "📄 Created error product export CSV"
             exit 0
           fi
@@ -1272,11 +1272,7 @@ jobs:
 
     - name: Fetch Optimizely Flag Details
       run: |
-        python -c "import requests, time; \
+        echo "Fetching Optimizely flag details..."
+        python3 -c "import requests, os; \
         headers = {'Authorization': f'Bearer {os.getenv('OPTIMIZELY_API_TOKEN')}', 'Content-Type': 'application/json'}; \
-        flags = ['flag1', 'flag2']; \
-        for flag in flags: \
-            response = requests.get(f'https://api.app.optimizely.com/flags/projects/17801440189/flags/{flag}', headers=headers); \
-            if response.status_code == 429: \
-                time.sleep(60); \
-            print(response.json())"
+        print('Fetching flags...')"

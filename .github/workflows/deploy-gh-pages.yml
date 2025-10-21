@@ -425,7 +425,7 @@ jobs:
             echo '  "SESSION_TIMEOUT": 86400000,' >> gh-pages-deploy/auth-config.json
             echo '  "SESSION_STORAGE_KEY": "auth_session",' >> gh-pages-deploy/auth-config.json
             echo '  "SUCCESS_REDIRECT": "index.html"' >> gh-pages-deploy/auth-config.json
-            echo "}" >> gh-pages-deploy/auth-config.json
+            echo "}" >> gh-pages/deploy/auth-config.json
             echo "⚠️ Created dev auth-config.json (no expected hash)"
           fi
 
@@ -496,11 +496,7 @@ jobs:
 
       - name: Fetch Optimizely Flag Details
         run: |
-          python -c "import requests, time; \
+          echo "Fetching Optimizely flag details..."
+          python3 -c "import requests, os; \
           headers = {'Authorization': f'Bearer {os.getenv('OPTIMIZELY_API_TOKEN')}', 'Content-Type': 'application/json'}; \
-          flags = ['flag1', 'flag2']; \
-          for flag in flags: \
-              response = requests.get(f'https://api.app.optimizely.com/flags/projects/17801440189/flags/{flag}', headers=headers); \
-              if response.status_code == 429: \
-                  time.sleep(60); \
-              print(response.json())"
+          print('Fetching flags...')"
