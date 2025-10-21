@@ -237,14 +237,14 @@ jobs:
 
           # Generate HTML report matching test_combined_report.html design
           html_template = '''<!DOCTYPE html>
-          <html lang=\"en\">
+          <html lang="en">
           <head>
-              <meta charset=\"UTF-8\">
+              <meta charset="UTF-8">
               <title>Broken Link Report</title>
-              <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
-              <link rel=\"stylesheet\" href=\"https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css\">
-              <script src=\"https://code.jquery.com/jquery-3.6.0.min.js\"></script>
-              <script src=\"https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js\"></script>
+              <meta name="viewport" content="width=device-width, initial-scale=1">
+              <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
+              <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+              <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
               <style>
                   :root {
                       --container-max: 1400px;
@@ -255,7 +255,7 @@ jobs:
                       --border: #e5e7eb;
                   }
                   body {
-                      font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif;
+                      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
                       margin: 0;
                       background-color: var(--muted-bg);
                       color: #1f2937;
@@ -373,25 +373,25 @@ jobs:
                   <h1>🔗 Broken Link Report</h1>
               </header>
 
-              <div class=\"container\">
-                  <div class=\"summary-container\">
-                      <span class=\"summary-item\">🇦🇺 AU Links: {au_count}</span>
-                      <span class=\"summary-item\">🇳🇿 NZ Links: {nz_count}</span>
-                      <span class=\"summary-item\">📦 Products: {product_count}</span>
-                      <span class=\"summary-item\">📅 Generated: {timestamp}</span>
+              <div class="container">
+                  <div class="summary-container">
+                      <span class="summary-item">🇦🇺 AU Links: {au_count}</span>
+                      <span class="summary-item">🇳🇿 NZ Links: {nz_count}</span>
+                      <span class="summary-item">📦 Products: {product_count}</span>
+                      <span class="summary-item">📅 Generated: {timestamp}</span>
                   </div>
 
-                  <div class=\"tabs\">
-                      <div class=\"tab active\" onclick=\"openTab(event, 'AU_Broken_Links')\">🇦🇺 AU Broken Links</div>
-                      <div class=\"tab\" onclick=\"openTab(event, 'NZ_Broken_Links')\">🇳🇿 NZ Broken Links</div>
-                      <div class=\"tab\" onclick=\"openTab(event, 'Product_Availability')\">📦 Product Availability</div>
+                  <div class="tabs">
+                      <div class="tab active" onclick="openTab(event, 'AU_Broken_Links')">🇦🇺 AU Broken Links</div>
+                      <div class="tab" onclick="openTab(event, 'NZ_Broken_Links')">🇳🇿 NZ Broken Links</div>
+                      <div class="tab" onclick="openTab(event, 'Product_Availability')">📦 Product Availability</div>
                   </div>
 
-                  <div id=\"AU_Broken_Links\" class=\"tab-content active\">
-                      <div class=\"card\">
+                  <div id="AU_Broken_Links" class="tab-content active">
+                      <div class="card">
                           <h3>AU Broken Links</h3>
-                          <div class=\"table-container\">
-                              <table id=\"au-table\" class=\"display\" style=\"width:100%\">
+                          <div class="table-container">
+                              <table id="au-table" class="display" style="width:100%">
                                   <thead>
                                       <tr>
                                           <th>URL</th>
@@ -408,11 +408,11 @@ jobs:
                       </div>
                   </div>
 
-                  <div id=\"NZ_Broken_Links\" class=\"tab-content\">
-                      <div class=\"card\">
+                  <div id="NZ_Broken_Links" class="tab-content">
+                      <div class="card">
                           <h3>NZ Broken Links</h3>
-                          <div class=\"table-container\">
-                              <table id=\"nz-table\" class=\"display\" style=\"width:100%\">
+                          <div class="table-container">
+                              <table id="nz-table" class="display" style="width:100%">
                                   <thead>
                                       <tr>
                                           <th>URL</th>
@@ -429,11 +429,11 @@ jobs:
                       </div>
                   </div>
 
-                  <div id=\"Product_Availability\" class=\"tab-content\">
-                      <div class=\"card\">
+                  <div id="Product_Availability" class="tab-content">
+                      <div class="card">
                           <h3>Product Availability</h3>
-                          <div class=\"table-container\">
-                              <table id=\"product-table\" class=\"display\" style=\"width:100%\">
+                          <div class="table-container">
+                              <table id="product-table" class="display" style="width:100%">
                                   <thead>
                                       <tr>
                                           <th>SKU</th>
@@ -452,18 +452,18 @@ jobs:
 
               <script>
                   // Initialize DataTables
-                  \$(document).ready(function() {
-                      \$('#au-table').DataTable({
+                  $(document).ready(function() {
+                      $('#au-table').DataTable({
                           pageLength: 25,
                           responsive: true,
                           order: [[1, 'desc']]
                       });
-                      \$('#nz-table').DataTable({
+                      $('#nz-table').DataTable({
                           pageLength: 25,
                           responsive: true,
                           order: [[1, 'desc']]
                       });
-                      \$('#product-table').DataTable({
+                      $('#product-table').DataTable({
                           pageLength: 25,
                           responsive: true,
                           order: [[0, 'asc']]
@@ -498,7 +498,7 @@ jobs:
                       row_html += f'<td>{value}</td>'
                   row_html += '</tr>'
                   rows.append(row_html)
-              return '\\n'.join(rows)
+              return '\n'.join(rows)
 
           # Generate content
           au_rows = generate_table_rows(csv_files['au_broken_links'], ['URL', 'Status', 'Response_Time', 'Error'])
