@@ -259,14 +259,9 @@ jobs:
                 self.auth_token = os.getenv('COMMERCETOOL_AUTH_TOKEN')
                 self.project_key = 'kmart-production'  # Fixed project key
                 
-        if not self.auth_token:
-          logger.error("COMMERCETOOL_AUTH_TOKEN not found in environment")
-          sys.exit(1)
-
-        # Create a requests session and set the COMMERCETOOL_AUTH_TOKEN as a cookie
-        # The API will receive the token via the Cookie header automatically from the session
-        self.session = requests.Session()
-        self.session.cookies.set('COMMERCETOOL_AUTH_TOKEN', self.auth_token)
+                if not self.auth_token:
+                    logger.error("COMMERCETOOL_AUTH_TOKEN not found in environment")
+                    sys.exit(1)
                 
                 # Headers for API requests
                 self.search_headers = {
@@ -286,7 +281,7 @@ jobs:
                     "x-correlation-id": "mc/kmart-production/941dc8ba-fd2b-4be3-a375-2d5ef173394d/a55d13f1-5b22-4168-9adb-6dedf00fd383",
                     "x-project-key": self.project_key,
                     "x-user-agent": "apollo-client Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 products/application-shell/24.5.0 (+ https://git.io/fjuyC; +support@commercetools.com)",
-                    # Authentication is sent via cookie (set on self.session), not via this header
+                    "authorization": f"Bearer {self.auth_token}" if self.auth_token else "",
                     "cache-control": "no-cache"
                 }
                 
@@ -309,7 +304,7 @@ jobs:
                     "x-graphql-target": "ctp",
                     "x-project-key": self.project_key,
                     "x-user-agent": "apollo-client Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 products/application-shell/24.5.0 (+ https://git.io/fjuyC; +support@commercetools.com)",
-                    # Authentication is sent via cookie (set on self.session), not via this header
+                    "authorization": f"Bearer {self.auth_token}" if self.auth_token else "",
                     "cache-control": "no-cache"
                 }
         
@@ -416,12 +411,12 @@ jobs:
                 }
                 
                 try:
-          response = self.session.post(
-            self.search_endpoint,
-            headers=self.search_headers,
-            json=payload,
-            timeout=30
-          )
+                    response = requests.post(
+                        self.search_endpoint,
+                        headers=self.search_headers,
+                        json=payload,
+                        timeout=30
+                    )
                     
                     if response.status_code == 200:
                         data = response.json()
@@ -661,12 +656,12 @@ jobs:
                 }
                 
                 try:
-          response = self.session.post(
-            self.graphql_endpoint,
-            headers=self.graphql_headers,
-            json=payload,
-            timeout=30
-          )
+                    response = requests.post(
+                        self.graphql_endpoint,
+                        headers=self.graphql_headers,
+                        json=payload,
+                        timeout=30
+                    )
                     
                     if response.status_code == 200:
                         return response.json();
