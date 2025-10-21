@@ -274,6 +274,49 @@ class OptimizelyEnhancedReportGenerator:
         
         return html
     
+    def get_flag_details_from_db(self, db_path='optimizely_flags.db'):
+        import sqlite3
+        conn = sqlite3.connect(db_path)
+        cur = conn.cursor()
+        cur.execute('SELECT flag_name, updated_time FROM optimizely_flags')
+        flags = cur.fetchall()
+        conn.close()
+        return flags
+
+    def fetch_all_flag_details(self, db_path='optimizely_flags.db'):
+        import requests
+        flags = self.get_flag_details_from_db(db_path)
+        flag_details = []
+        for flag_name, updated_time in flags:
+            url = f"https://api.app.optimizely.com/flags/projects/17801440189/flags/{flag_name}"
+            try:
+                response = requests.get(url)
+                if response.status_code == 200:
+                    details = response.json()
+                    details['updated_time'] = updated_time
+                    flag_details.append(details)
+            except Exception as e:
+                print(f"Error fetching details for flag {flag_name}: {e}")
+        # Sort by updated_time descending
+        flag_details.sort(key=lambda x: x.get('updated_time', ''), reverse=True)
+        return flag_details
+
+    def generate_flag_details_html(self, flag_details):
+        html = '<div class="data-section"><h2 class="section-title">Optimizely Flags - Detailed View</h2>'
+        for flag in flag_details:
+            html += f'''<div class="info-card">
+                <div class="info-label">Flag Name</div><div class="info-value">{flag.get('name','')}</div>
+                <div class="info-label">Flag Key</div><div class="info-value">{flag.get('key','')}</div>
+                <div class="info-label">Description</div><div class="info-value">{flag.get('description','')}</div>
+                <div class="info-label">Updated Time</div><div class="info-value">{flag.get('updated_time','')}</div>
+                <button class="collapsible" onclick="toggleSection(this)">Show Details</button>
+                <div class="content">
+                    <div class="json-container">{json.dumps(flag, indent=2)}</div>
+                </div>
+            </div>'''
+        html += '</div>'
+        return html
+
     def generate_html_report(self):
         """Generate complete HTML report with enhanced structure"""
         print("Generating enhanced HTML report...")
@@ -281,8 +324,10 @@ class OptimizelyEnhancedReportGenerator:
         if not self.load_data():
             return None
         
+        flag_details = self.fetch_all_flag_details()
         # Generate tab contents
         tab_contents = {
+            'optimizely': self.generate_flag_details_html(flag_details),
             'au': self.generate_data_section_html(self.data, 'au'),
             'au-new': self.generate_data_section_html(self.data, 'au-new'),
             'nz': self.generate_data_section_html(self.data, 'nz'),
@@ -703,13 +748,18 @@ class OptimizelyEnhancedReportGenerator:
         </div>
         
         <div class="tabs">
-            <button class="tab active" onclick="openTab(event, 'au')">AU</button>
+            <button class="tab active" onclick="openTab(event, 'optimizely')">Optimizely Flags</button>
+            <button class="tab" onclick="openTab(event, 'au')">AU</button>
             <button class="tab" onclick="openTab(event, 'au-new')">AU-NEW</button>
             <button class="tab" onclick="openTab(event, 'nz')">NZ</button>
             <button class="tab" onclick="openTab(event, 'nz-new')">NZ-NEW</button>
         </div>
         
-        <div id="au" class="tab-content active">
+        <div id="optimizely" class="tab-content active">
+            {tab_contents.get('optimizely', '<div class="error">Failed to load Optimizely flag details</div>')}
+        </div>
+        
+        <div id="au" class="tab-content">
             {tab_contents.get('au', '<div class="error">Failed to load AU data</div>')}
         </div>
         

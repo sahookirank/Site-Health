@@ -316,3 +316,23 @@ jobs:
               // Don't fail the entire workflow
               core.warning('Failed to trigger downstream workflow, but CSV artifacts are available for manual processing');
             }
+
+      - name: Migrate DB Schema
+        run: |
+          python -c "import sqlite3; conn = sqlite3.connect('optimizely_flags.db'); cur = conn.cursor(); cur.execute('ALTER TABLE optimizely_flags ADD COLUMN updated_time TEXT'); conn.commit(); conn.close()"
+        continue-on-error: true
+
+      - name: Set Optimizely API Token
+        env:
+          OPTIMIZELY_API_TOKEN: ${{ secrets.OPTIMIZELY_API_TOKEN }}
+
+      - name: Fetch Optimizely Flag Details
+        run: |
+          python -c "import requests, time, os; \
+          headers = {'Authorization': f'Bearer {os.getenv('OPTIMIZELY_API_TOKEN')}', 'Content-Type': 'application/json'}; \
+          flags = ['flag1', 'flag2']; \
+          for flag in flags: \
+              response = requests.get(f'https://api.app.optimizely.com/flags/projects/17801440189/flags/{flag}', headers=headers); \
+              if response.status_code == 429: \
+                  time.sleep(60); \
+              print(response.json())"
