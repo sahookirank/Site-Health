@@ -339,3 +339,22 @@ jobs:
               // Don't fail the entire workflow
               core.warning('Failed to trigger downstream workflow, but CSV artifacts are available for manual processing');
             }
+
+      - name: Append new data to broken_links.db
+        run: |
+          if [ -f broken_links.db ]; then
+            echo "Appending new data to broken_links.db..."
+            python scripts/fetch_and_merge_artifacts.py
+          else
+            echo "No baseline broken_links.db found; creating a new one."
+            python scripts/fetch_and_merge_artifacts.py
+
+      - name: Upload updated broken_links.db to gh-pages
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git checkout gh-pages
+          cp broken_links.db ./data/broken_links.db
+          git add ./data/broken_links.db
+          git commit -m "Update broken_links.db with new data"
+          git push origin gh-pages

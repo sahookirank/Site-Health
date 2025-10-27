@@ -541,6 +541,9 @@ def generate_html(screenshots, screenshot_db=None, before_date=None, after_date=
         yesterday = (datetime.now().date() - timedelta(days=1)).strftime('%Y-%m-%d')
         before_date = yesterday if yesterday in available_dates else after_date
 
+    # Ensure after_date is always the current date
+    after_date = datetime.now().strftime('%Y-%m-%d')
+
     # Fetch screenshots for both dates
     before_screenshots = screenshot_db.get_all_screenshots_for_date(before_date) if screenshot_db else []
     after_screenshots = screenshot_db.get_all_screenshots_for_date(after_date) if screenshot_db else []
