@@ -368,22 +368,29 @@ jobs:
             echo "⚠️ broken_links.db not found; skipping copy"
           fi
 
-          # Copy screenshots directory for dashboard integration
+          # Copy screenshots directory (excluding HTML file since it's copied separately)
           if [ -d "screenshots" ]; then
-            cp -r screenshots gh-pages-deploy/
-            echo "✓ Copied screenshots directory ($(du -h screenshots | cut -f1))"
+            # Create screenshots directory in deployment
+            mkdir -p gh-pages-deploy/screenshots
+
+            # Copy all screenshot images (but not the HTML file)
+            for file in screenshots/*; do
+              if [ -f "$file" ] && [ "$(basename "$file")" != "screenshots.html" ]; then
+                cp "$file" gh-pages-deploy/screenshots/
+              fi
+            done
+            echo "✓ Copied screenshot images to screenshots/ directory"
           else
             echo "❌ Screenshots directory not found"
             exit 1
           fi
 
-          # Copy screenshot HTML report
-          if [ -f "screenshots/screenshots.html" ]; then
-            cp screenshots/screenshots.html gh-pages-deploy/
-            echo "✓ Copied screenshots.html ($(du -h screenshots/screenshots.html | cut -f1))"
+          # Copy screenshot database for historical data
+          if [ -f "screenshots.db" ]; then
+            cp screenshots.db gh-pages-deploy/
+            echo "✓ Copied screenshots.db ($(du -h screenshots.db | cut -f1))"
           else
-            echo "❌ Screenshots HTML report not found"
-            exit 1
+            echo "⚠️ screenshots.db not found; screenshot history will not be available"
           fi
 
           # Ensure Optimizely JSON is published for dashboard usage

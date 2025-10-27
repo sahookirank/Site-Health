@@ -31,9 +31,10 @@ IMPORTANT LOGIN NOTES:
 import asyncio
 import os
 import random
-from datetime import datetime
+from datetime import datetime, timedelta
 from playwright.async_api import async_playwright
 from pathlib import Path
+from screenshot_database import ScreenshotDatabase, save_screenshot_to_db, get_image_data_url
 OUTPUT_DIR = "screenshots"
 # Public URLs to capture before login
 PUBLIC_URLS = [
@@ -229,6 +230,17 @@ async def capture_search_screenshot(page):
                 )
 
                 print(f"Search screenshot captured: {filename}")
+                # Save to database
+                screenshot_db = ScreenshotDatabase()
+                metadata = {
+                    'original_url': 'search-overlay',
+                    'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    'success': True,
+                    'file_size': os.path.getsize(filepath),
+                    'search_clicked': True
+                }
+                save_screenshot_to_db(screenshot_db, 'home-search', 'search-overlay', filename, filepath, metadata)
+
                 return {
                     'url': 'search-overlay',
                     'filename': filename,
@@ -249,6 +261,17 @@ async def capture_search_screenshot(page):
                 )
 
                 print(f"Search screenshot captured (without input click): {filename}")
+                # Save to database
+                screenshot_db = ScreenshotDatabase()
+                metadata = {
+                    'original_url': 'search-overlay',
+                    'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    'success': True,
+                    'file_size': os.path.getsize(filepath),
+                    'search_clicked': False
+                }
+                save_screenshot_to_db(screenshot_db, 'home-search', 'search-overlay', filename, filepath, metadata)
+
                 return {
                     'url': 'search-overlay',
                     'filename': filename,
@@ -264,12 +287,15 @@ async def capture_search_screenshot(page):
         return None
 
 async def take_screenshot(page, url, custom_name=None):
+    """Take a screenshot of a webpage and save to both filesystem and database"""
     if custom_name:
         filename = custom_name
+        page_name = custom_name  # Use the same name for database storage
     else:
         filename = url.replace('https://', '').replace('/', '_').replace('?', '_')
         if len(filename) > 50:  # Limit filename length
             filename = filename[:50]
+        page_name = filename  # Fallback for database
 
     filename = f"{filename}.jpg"
     filepath = os.path.join(OUTPUT_DIR, filename)
@@ -322,6 +348,18 @@ async def take_screenshot(page, url, custom_name=None):
         if not os.path.exists(filepath) or os.path.getsize(filepath) == 0:
             raise Exception("Screenshot file was not created or is empty")
 
+        # Save to database for persistence
+        screenshot_db = ScreenshotDatabase()
+        metadata = {
+            'original_url': url,
+            'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            'success': True,
+            'file_size': os.path.getsize(filepath)
+        }
+
+        # Save to database
+        save_screenshot_to_db(screenshot_db, page_name, url, filename, filepath, metadata)
+
         return {
             'url': url,
             'filename': filename,
@@ -341,6 +379,12 @@ async def take_screenshot(page, url, custom_name=None):
         }
 
 async def main():
+    # Initialize database
+    screenshot_db = ScreenshotDatabase()
+
+    # Clean up old screenshots (keep last 30 days)
+    screenshot_db.cleanup_old_screenshots(keep_days=30)
+
     # Create screenshots directory if it doesn't exist
     Path(OUTPUT_DIR).mkdir(exist_ok=True)
 
@@ -462,199 +506,296 @@ async def main():
         await browser.close()
 
         # Generate HTML
-        generate_html(results)
+        generate_html(results, screenshot_db=screenshot_db)
 
         print(f"\nScreenshots captured and saved to {OUTPUT_DIR}/")
         print("Open 'screenshots.html' in your browser to view the results.")
 
-def generate_html(screenshots):
-    html_content = """<!DOCTYPE html>
+def generate_html(screenshots, screenshot_db=None, before_date=None, after_date=None):
+    """Generate HTML with comparison layout for screenshots"""
+
+    # Get available dates for date pickers
+    available_dates = screenshot_db.get_available_dates() if screenshot_db else []
+    min_date, max_date = screenshot_db.get_date_range() if screenshot_db else (None, None)
+
+    # Default to today if no dates specified
+    if after_date is None:
+        after_date = datetime.now().strftime('%Y-%m-%d')
+
+    if before_date is None:
+        # Get yesterday if available, otherwise use today
+        yesterday = (datetime.now().date() - timedelta(days=1)).strftime('%Y-%m-%d')
+        before_date = yesterday if yesterday in available_dates else after_date
+
+    # Fetch screenshots for both dates
+    before_screenshots = screenshot_db.get_all_screenshots_for_date(before_date) if screenshot_db else []
+    after_screenshots = screenshot_db.get_all_screenshots_for_date(after_date) if screenshot_db else []
+
+    # Create lookup dictionaries for easy access
+    before_lookup = {s['page_name']: s for s in before_screenshots}
+    after_lookup = {s['page_name']: s for s in after_screenshots}
+
+    # Get all unique page names
+    all_pages = set(before_lookup.keys()) | set(after_lookup.keys())
+    all_pages = sorted(all_pages)
+
+    html_content = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kmart Website Screenshots</title>
+    <title>Kmart Website Screenshots - Comparison</title>
     <style>
-        body {
+        body {{
             font-family: Arial, sans-serif;
             line-height: 1.6;
-            max-width: 1200px;
+            max-width: 1600px;
             margin: 0 auto;
             padding: 20px;
             background-color: #f5f5f5;
-        }
-        h1 {
+        }}
+        h1 {{
             color: #e31837;
             text-align: center;
             margin-bottom: 30px;
-        }
-        .screenshot-container {
+        }}
+        .comparison-container {{
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }}
+        .date-column {{
+            flex: 1;
             background: white;
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
             overflow: hidden;
-        }
-        .screenshot-info {
+        }}
+        .date-header {{
+            background: #e31837;
+            color: white;
             padding: 15px;
-            border-bottom: 1px solid #eee;
-            cursor: pointer;
+            text-align: center;
+            font-weight: bold;
+            font-size: 18px;
+        }}
+        .date-selector {{
+            padding: 15px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }}
+        .date-selector label {{
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }}
+        .date-selector select {{
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 14px;
+        }}
+        .screenshot-item {{
+            margin: 15px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            overflow: hidden;
+            background: white;
+        }}
+        .screenshot-header {{
+            padding: 12px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
             display: flex;
             justify-content: space-between;
             align-items: center;
-        }
-        .screenshot-info a {
-            color: #0066cc;
-            text-decoration: none;
-            word-break: break-all;
-            flex-grow: 1;
-        }
-        .screenshot-info a:hover {
-            text-decoration: underline;
-        }
-        .screenshot-content {
-            display: none;
-            padding: 10px;
-            background: #f9f9f9;
-        }
-        .screenshot-content.expanded {
-            display: block;
-            animation: fadeIn 0.3s ease-in-out;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        .screenshot {
-            max-width: 100%;
+        }}
+        .page-name {{
+            font-weight: bold;
+            color: #495057;
+        }}
+        .status-badge {{
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }}
+        .status-success {{
+            background: #d4edda;
+            color: #155724;
+        }}
+        .status-error {{
+            background: #f8d7da;
+            color: #721c24;
+        }}
+        .screenshot-image {{
+            width: 100%;
             height: auto;
-            border: 1px solid #eee;
-            box-sizing: border-box;
             display: block;
-            margin: 10px 0;
-        }
-        .screenshot-error {
-            padding: 20px;
-            color: #d32f2f;
+            border-top: 1px solid #dee2e6;
+        }}
+        .no-screenshot {{
+            padding: 40px 20px;
             text-align: center;
-            background-color: #ffebee;
-            border: 1px dashed #ef9a9a;
-            margin: 10px 0;
-            border-radius: 4px;
-        }
-        .timestamp {
-            color: #666;
-            font-size: 0.9em;
-            margin: 10px 0;
-        }
-        .no-screenshots {
-            text-align: center;
-            color: #666;
-            padding: 40px;
-            background: white;
+            color: #6c757d;
+            background: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            margin: 15px;
             border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .toggle-button {
-            background: #e31837;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            padding: 5px 10px;
-            margin-left: 15px;
-            cursor: pointer;
-            font-size: 0.9em;
-            flex-shrink: 0;
-        }
-        .toggle-button:hover {
-            background: #c4142b;
-        }
-        .status-indicator {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            margin-right: 8px;
-        }
-        .status-success {
-            background-color: #4caf50;
-        }
-        .status-error {
-            background-color: #f44336;
-        }
-        .loading {
+        }}
+        .comparison-info {{
             text-align: center;
-            padding: 20px;
-            color: #666;
+            margin: 20px 0;
+            padding: 15px;
+            background: #e9ecef;
+            border-radius: 8px;
+            color: #495057;
+        }}
+        .loading {{
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
             font-style: italic;
-        }
+        }}
+        @media (max-width: 768px) {{
+            .comparison-container {{
+                flex-direction: column;
+            }}
+        }}
     </style>
 </head>
 <body>
-    <h1>Kmart Website Screenshots</h1>
-    <div class="screenshots">
-"""
+    <h1>Kmart Website Screenshots - Visual Comparison</h1>
 
-    if not screenshots:
-        html_content += """
-        <div class="no-screenshots">
-            <p>No screenshots were captured. Please check the console for errors.</p>
-        </div>
-        """
-    else:
-        for item in screenshots:
-            file_path = os.path.join(OUTPUT_DIR, item['filename'])
-            file_exists = os.path.exists(file_path) and os.path.getsize(file_path) > 0
-            
-            html_content += f"""
-            <div class="screenshot-container">
-                <div class="screenshot-info">
-                    <span class="status-indicator {'status-success' if file_exists else 'status-error'}"></span>
-                    <a href="{item['url']}" target="_blank" onclick="event.stopPropagation();">{item['url']}</a>
-                    <button class="toggle-button" onclick="toggleScreenshot(this)">Show Screenshot</button>
-                </div>
-                <div class="screenshot-content">
-                    <div class="timestamp">Captured on: {item['timestamp']}</div>
-            """
-            
-            if file_exists:
-                html_content += f'<div class="screenshot-wrapper"><img src="{item["filename"]}" alt="Screenshot of {item["url"]}" class="screenshot" onerror="this.onerror=null;this.parentElement.innerHTML+=\'<div class=\\\'screenshot-error\\\'>Failed to load screenshot</div>\';"></div>'
-            else:
-                html_content += '<div class="screenshot-error">Screenshot not available or failed to load</div>'
-            
-            html_content += """
-                </div>
-            </div>
-            """
-
-    html_content += """
+    <div class="comparison-info">
+        <strong>Comparison Mode:</strong> Showing visual differences between website screenshots over time
+        <br>
+        <strong>Available Dates:</strong> {len(available_dates)} dates with screenshots
+        {f'<br><strong>Date Range:</strong> {min_date} to {max_date}' if min_date and max_date else ''}
     </div>
+
+    <div class="comparison-container">
+        <!-- Before Date Column -->
+        <div class="date-column">
+            <div class="date-header">Before ({before_date})</div>
+            <div class="date-selector">
+                <label for="beforeDateSelect">Select Date:</label>
+                <select id="beforeDateSelect" onchange="updateComparison()">
+                    {"".join(f'<option value="{date}" {"selected" if date == before_date else ""}>{date}</option>' for date in available_dates)}
+                </select>
+            </div>"""
+
+    # Generate screenshot items for before date
+    for page_name in all_pages:
+        before_shot = before_lookup.get(page_name)
+
+        html_content += f'''
+            <div class="screenshot-item">
+                <div class="screenshot-header">
+                    <span class="page-name">{page_name.replace('-', ' ').title()}</span>
+                    <span class="status-badge {'status-success' if before_shot else 'status-error'}">
+                        {'✓ Available' if before_shot else '✗ Missing'}
+                    </span>
+                </div>'''
+
+        if before_shot:
+            image_data_url = get_image_data_url(before_shot['image_data'], before_shot['filename'])
+            html_content += f'''
+                <img src="{image_data_url}"
+                     alt="Screenshot of {before_shot['url']} on {before_date}"
+                     class="screenshot-image"
+                     loading="lazy">'''
+        else:
+            html_content += '''
+                <div class="no-screenshot">
+                    No screenshot available for this page on the selected date
+                </div>'''
+
+        html_content += '''
+            </div>'''
+
+    html_content += '''
+        </div>
+
+        <!-- After Date Column -->
+        <div class="date-column">
+            <div class="date-header">After ({after_date})</div>
+            <div class="date-selector">
+                <label for="afterDateSelect">Select Date:</label>
+                <select id="afterDateSelect" onchange="updateComparison()">
+                    {"".join(f'<option value="{date}" {"selected" if date == after_date else ""}>{date}</option>' for date in available_dates)}
+                </select>
+            </div>'''
+
+    # Generate screenshot items for after date
+    for page_name in all_pages:
+        after_shot = after_lookup.get(page_name)
+
+        html_content += f'''
+            <div class="screenshot-item">
+                <div class="screenshot-header">
+                    <span class="page-name">{page_name.replace('-', ' ').title()}</span>
+                    <span class="status-badge {'status-success' if after_shot else 'status-error'}">
+                        {'✓ Available' if after_shot else '✗ Missing'}
+                    </span>
+                </div>'''
+
+        if after_shot:
+            image_data_url = get_image_data_url(after_shot['image_data'], after_shot['filename'])
+            html_content += f'''
+                <img src="{image_data_url}"
+                     alt="Screenshot of {after_shot['url']} on {after_date}"
+                     class="screenshot-image"
+                     loading="lazy">'''
+        else:
+            html_content += '''
+                <div class="no-screenshot">
+                    No screenshot available for this page on the selected date
+                </div>'''
+
+        html_content += '''
+            </div>'''
+
+    html_content += '''
+        </div>
+    </div>
+
     <script>
-        function toggleScreenshot(button) {
-            const container = button.closest('.screenshot-container');
-            const content = container.querySelector('.screenshot-content');
-            const isExpanded = content.classList.contains('expanded');
-            
-            // Close all other open items
-            document.querySelectorAll('.screenshot-content.expanded').forEach(item => {
-                if (item !== content) {
-                    item.classList.remove('expanded');
-                    const otherBtn = item.closest('.screenshot-container').querySelector('.toggle-button');
-                    if (otherBtn) otherBtn.textContent = 'Show Screenshot';
-                }
-            });
-            
-            // Toggle current item
-            content.classList.toggle('expanded');
-            button.textContent = isExpanded ? 'Show Screenshot' : 'Hide Screenshot';
+        function updateComparison() {
+            const beforeDate = document.getElementById('beforeDateSelect').value;
+            const afterDate = document.getElementById('afterDateSelect').value;
+
+            // Update URL parameters to reflect date selection
+            const url = new URL(window.location);
+            url.searchParams.set('before', beforeDate);
+            url.searchParams.set('after', afterDate);
+            window.location.href = url.toString();
         }
+
+        // Auto-reload if URL parameters change (for bookmarking)
+        window.addEventListener('load', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const beforeParam = urlParams.get('before');
+            const afterParam = urlParams.get('after');
+
+            if (beforeParam) {
+                document.getElementById('beforeDateSelect').value = beforeParam;
+            }
+            if (afterParam) {
+                document.getElementById('afterDateSelect').value = afterParam;
+            }
+        });
     </script>
 </body>
-</html>
-    """
-    
+</html>'''
+
     with open(os.path.join(OUTPUT_DIR, 'screenshots.html'), 'w', encoding='utf-8') as f:
         f.write(html_content)
+
+    print(f"✅ Generated comparison HTML with {len(all_pages)} pages")
+    print(f"   Before date: {before_date} ({len(before_screenshots)} screenshots)")
+    print(f"   After date: {after_date} ({len(after_screenshots)} screenshots)")
 
 if __name__ == "__main__":
     asyncio.run(main())
