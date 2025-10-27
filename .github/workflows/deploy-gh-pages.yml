@@ -385,12 +385,14 @@ jobs:
             exit 1
           fi
 
-          # Copy screenshot database for historical data
-          if [ -f "screenshots.db" ]; then
-            cp screenshots.db gh-pages-deploy/
-            echo "✓ Copied screenshots.db ($(du -h screenshots.db | cut -f1))"
+          # Copy screenshot HTML report into the screenshots directory
+          if [ -f "screenshots/screenshots.html" ]; then
+            mkdir -p gh-pages-deploy/screenshots
+            cp screenshots/screenshots.html gh-pages-deploy/screenshots/
+            echo "✓ Copied screenshots.html to screenshots/ directory ($(du -h screenshots/screenshots.html | cut -f1))"
           else
-            echo "⚠️ screenshots.db not found; screenshot history will not be available"
+            echo "❌ Screenshots HTML report not found"
+            exit 1
           fi
 
           # Ensure Optimizely JSON is published for dashboard usage
