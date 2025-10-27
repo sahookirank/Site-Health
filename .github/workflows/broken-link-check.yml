@@ -348,6 +348,7 @@ jobs:
           else
             echo "No baseline broken_links.db found; creating a new one."
             python scripts/fetch_and_merge_artifacts.py
+          fi
 
       - name: Upload updated broken_links.db to gh-pages
         run: |
