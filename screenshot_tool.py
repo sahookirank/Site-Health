@@ -36,18 +36,19 @@ from playwright.async_api import async_playwright
 from pathlib import Path
 from screenshot_database import ScreenshotDatabase, save_screenshot_to_db, get_image_data_url
 OUTPUT_DIR = "screenshots"
-# Public URLs to capture before login
+# Public URLs to capture before login (only URLs that definitely work without login)
 PUBLIC_URLS = [
     "https://www.kmart.com.au/",
-    "https://www.kmart.com.au/category/home-and-living/shop-all-home-and-living/",
-    "https://www.kmart.com.au/product/red-stripe-ceramic-candle-43543175/",
-    "https://www.kmart.com.au/category/clearance/shop-all-clearance/"
+    # Note: Category and product pages may require login - moved to authenticated if needed
 ]
 
-# Authenticated URLs to capture after login
+# Authenticated URLs to capture after login (pages that may require login)
 AUTHENTICATED_URLS = [
     "https://www.kmart.com.au/checkout/bag",
-    "https://www.kmart.com.au/wishlist/"
+    "https://www.kmart.com.au/wishlist/",
+    "https://www.kmart.com.au/category/home-and-living/shop-all-home-and-living/",  # May require login
+    "https://www.kmart.com.au/product/red-stripe-ceramic-candle-43543175/",  # May require login
+    "https://www.kmart.com.au/category/clearance/shop-all-clearance/"  # May require login
 ]
 
 # Combined URLs for backward compatibility
@@ -402,10 +403,12 @@ async def main():
         # Create a new context with a user agent and viewport
         context = await browser.new_context(
             viewport={'width': 1366, 'height': 768},
-            user_agent='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36',
+            user_agent='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             java_script_enabled=True,
             ignore_https_errors=True,
-            bypass_csp=True
+            bypass_csp=True,
+            locale='en-AU',
+            timezone_id='Australia/Sydney'
         )
 
         # Create a single page for login and reuse it for screenshots
@@ -413,10 +416,19 @@ async def main():
 
         # Set extra HTTP headers using the correct method
         await page.set_extra_http_headers(headers={
-            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Language': 'en-AU,en-US;q=0.9,en;q=0.8',
             'Accept-Encoding': 'gzip, deflate, br',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Referer': 'https://www.google.com/'
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache',
+            'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+            'Sec-Ch-Ua-Mobile': '?0',
+            'Sec-Ch-Ua-Platform': '"macOS"',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-User': '?1',
+            'Upgrade-Insecure-Requests': '1'
         })
 
         # Step 1: Capture public URLs before login
@@ -426,20 +438,22 @@ async def main():
         # Define specific names for each screenshot
         screenshot_names = {
             PUBLIC_URLS[0]: "home-page",  # https://www.kmart.com.au/
-            PUBLIC_URLS[1]: "home-living-category",  # https://www.kmart.com.au/category/home-and-living/shop-all-home-and-living/
-            PUBLIC_URLS[2]: "ceramic-candle-product",  # https://www.kmart.com.au/product/red-stripe-ceramic-candle-43543175/
-            PUBLIC_URLS[3]: "clearance-category",  # https://www.kmart.com.au/category/clearance/shop-all-clearance/
             AUTHENTICATED_URLS[0]: "shopping-bag",  # https://www.kmart.com.au/checkout/bag
-            AUTHENTICATED_URLS[1]: "wishlist"  # https://www.kmart.com.au/wishlist/
+            AUTHENTICATED_URLS[1]: "wishlist",  # https://www.kmart.com.au/wishlist/
+            AUTHENTICATED_URLS[2]: "home-living-category",  # https://www.kmart.com.au/category/home-and-living/shop-all-home-and-living/
+            AUTHENTICATED_URLS[3]: "ceramic-candle-product",  # https://www.kmart.com.au/product/red-stripe-ceramic-candle-43543175/
+            AUTHENTICATED_URLS[4]: "clearance-category",  # https://www.kmart.com.au/category/clearance/shop-all-clearance/
         }
 
         for i, url in enumerate(PUBLIC_URLS):
             print(f"Capturing public page: {url}")
             custom_name = screenshot_names.get(url)
 
-            # Add a small delay between requests
+            # Add longer delays between requests with randomization
             if i > 0:
-                await asyncio.sleep(2)
+                delay = 3 + (i * 2) + (hash(url) % 3)  # 3-8 seconds, varies by URL
+                print(f"Waiting {delay} seconds before next request...")
+                await asyncio.sleep(delay)
 
             try:
                 result = await take_screenshot(page, url, custom_name)
@@ -485,8 +499,8 @@ async def main():
                 print(f"Capturing authenticated page: {url}")
                 custom_name = screenshot_names.get(url)
 
-                # Add a small delay between requests
-                await asyncio.sleep(2)
+                # Add longer delays between requests
+                await asyncio.sleep(3 + (i * 2))
 
                 try:
                     result = await take_screenshot(page, url, custom_name)
