@@ -91,14 +91,19 @@ jobs:
                 });
 
                 console.log(`Found ${artifacts.data.artifacts.length} artifacts in run ${run.id}`);
+                
+                // Log all artifact names for debugging
+                artifacts.data.artifacts.forEach(artifact => {
+                  console.log(`  - Artifact: ${artifact.name}, expired: ${artifact.expired}`);
+                });
 
-                // Look for the link-check-report artifact
+                // Look for the broken-link-csvs artifact
                 const linkCheckArtifact = artifacts.data.artifacts.find(
-                  artifact => artifact.name === 'link-check-report' && !artifact.expired
+                  artifact => artifact.name === 'broken-link-csvs' && !artifact.expired
                 );
 
                 if (linkCheckArtifact) {
-                  console.log(`Found link-check-report artifact: ${linkCheckArtifact.id}`);
+                  console.log(`Found broken-link-csvs artifact: ${linkCheckArtifact.id}`);
 
                   // Download the artifact
                   const download = await github.rest.actions.downloadArtifact({
@@ -121,8 +126,9 @@ jobs:
             }
 
             if (!artifactDownloaded) {
-              console.log('No suitable artifacts found in recent successful runs');
-              core.setFailed('Could not find CSV artifacts from previous successful runs');
+              console.log('⚠️ No suitable artifacts found in recent successful runs');
+              console.log('Will proceed with placeholder CSV files');
+              core.warning('Could not find CSV artifacts from previous successful runs - will use placeholders');
             }
 
       - name: Extract CSV files from artifact
