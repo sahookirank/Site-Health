@@ -290,6 +290,7 @@ jobs:
         run: |
           echo "📁 Preparing deployment directory..."
           mkdir -p gh-pages-deploy
+          mkdir -p gh-pages-deploy/data
 
           # Validate and copy HTML report
           if [ -f "index.html" ]; then
@@ -333,6 +334,14 @@ jobs:
             fi
           done
 
+          # Persist broken_links.db for historical data access
+          if [ -f "broken_links.db" ]; then
+            cp broken_links.db gh-pages-deploy/data/
+            echo "✓ Copied broken_links.db to gh-pages-deploy/data/"
+          else
+            echo "⚠️ broken_links.db not found; skipping copy"
+          fi
+
           # Copy Optimizely report if present
           if [ -f "optimizely_enhanced_report.html" ]; then
             cp optimizely_enhanced_report.html gh-pages-deploy/
@@ -367,10 +376,11 @@ jobs:
               <p>Click the links below to download the CSV files:</p>
           EOF
 
-          for csv_file in gh-pages-deploy/*.csv; do
-            if [ -f "$csv_file" ]; then
-              filename=$(basename "$csv_file")
-              echo "<a href=\"$filename\" class=\"download-link\" download>📄 $filename</a>" >> gh-pages-deploy/downloads.html
+          for artifact_file in gh-pages-deploy/*.csv gh-pages-deploy/data/broken_links.db; do
+            if [ -f "$artifact_file" ]; then
+              filename=$(basename "$artifact_file")
+              href=$(echo "$artifact_file" | sed 's|gh-pages-deploy/||')
+              echo "<a href=\"$href\" class=\"download-link\" download>📄 $filename</a>" >> gh-pages-deploy/downloads.html
             fi
           done
 

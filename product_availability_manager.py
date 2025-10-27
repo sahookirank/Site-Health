@@ -48,6 +48,16 @@ class ProductAvailabilityManager:
             "x-user-agent": "apollo-client Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
         }
         
+        # Initialize session and attach cookie-based auth if provided
+        self.session = requests.Session()
+        raw_cookie = os.getenv("COMMERCETOOL_AUTH_TOKEN", "")
+        if raw_cookie:
+            # Use provided cookie string verbatim to preserve escape characters
+            self.session.headers.update({"Cookie": raw_cookie})
+            logger.info("COMMERCETOOL_AUTH_TOKEN loaded from environment and applied as Cookie header")
+        else:
+            logger.warning("COMMERCETOOL_AUTH_TOKEN environment variable not set; CommerceTool requests may fail")
+        
         self.init_database()
     
     def init_database(self):
@@ -166,7 +176,7 @@ class ProductAvailabilityManager:
         }
         
         try:
-            response = requests.post(
+            response = self.session.post(
                 self.search_endpoint,
                 headers=self.search_headers,
                 json=search_payload,
@@ -303,7 +313,7 @@ class ProductAvailabilityManager:
         }
         
         try:
-            response = requests.post(
+            response = self.session.post(
                 self.graphql_endpoint,
                 headers=self.graphql_headers,
                 json=payload,
