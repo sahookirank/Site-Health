@@ -51,11 +51,11 @@ jobs:
           fi
 
       - name: Run AU Link Checker
-        if: ${{ github.event_name == 'schedule' || github.event.inputs.skip_link_checks == false }}
+        if: ${{ github.event_name == 'schedule' || !github.event.inputs.skip_link_checks }}
         run: python au_link_checker.py
 
       - name: Run NZ Link Checker
-        if: ${{ github.event_name == 'schedule' || github.event.inputs.skip_link_checks == false }}
+        if: ${{ github.event_name == 'schedule' || !github.event.inputs.skip_link_checks }}
         run: python nz_link_checker.py
 
       - name: Download CSV artifacts from previous run
