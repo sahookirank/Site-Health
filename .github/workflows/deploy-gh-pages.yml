@@ -47,6 +47,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+          # Install additional dependencies for screenshot functionality
+          echo "📦 Installing Playwright for screenshot capture..."
+          pip install playwright==1.40.0
+          playwright install chromium
+          echo "✅ Playwright installed successfully"
+
       - name: Collect artifacts from multiple workflows
         id: collect-artifacts
         uses: actions/github-script@v7
@@ -194,14 +200,34 @@ jobs:
           # Clean up zip files
           rm -f *.zip
 
-      - name: Install Python dependencies for report_generator.py
+      - name: Generate website screenshots
+        env:
+          KMART_USERNAME: ${{ secrets.KMART_USERNAME }}
+          KMART_PASSWORD: ${{ secrets.KMART_PASSWORD }}
         run: |
-          echo "📦 Installing Python dependencies..."
-          pip3 install -r requirements.txt || {
-            echo "❌ Failed to install dependencies"
+          echo "📸 Generating website screenshots..."
+
+          # Run screenshot tool
+          python3 screenshot_tool.py
+
+          # Verify screenshots were created
+          if [ -d "screenshots" ]; then
+            echo "✅ Screenshots directory created"
+            echo "📊 Screenshot files:"
+            ls -la screenshots/
+          else
+            echo "❌ Screenshots directory not created"
             exit 1
-          }
-          echo "✅ Dependencies installed successfully"
+          fi
+
+          # Verify HTML report was generated
+          if [ -f "screenshots/screenshots.html" ]; then
+            echo "✅ Screenshots HTML report generated"
+            echo "📄 Report size: $(wc -c < screenshots/screenshots.html) bytes"
+          else
+            echo "❌ Screenshots HTML report not generated"
+            exit 1
+          fi
 
       - name: Generate New Relic Page Views Data
         env:
@@ -342,12 +368,22 @@ jobs:
             echo "⚠️ broken_links.db not found; skipping copy"
           fi
 
-          # Copy Optimizely report if present
-          if [ -f "optimizely_enhanced_report.html" ]; then
-            cp optimizely_enhanced_report.html gh-pages-deploy/
-            echo "✓ Copied optimizely_enhanced_report.html"
+          # Copy screenshots directory for dashboard integration
+          if [ -d "screenshots" ]; then
+            cp -r screenshots gh-pages-deploy/
+            echo "✓ Copied screenshots directory ($(du -h screenshots | cut -f1))"
           else
-            echo "⚠️ optimizely_enhanced_report.html not found; Optimizely tab iframe may not load"
+            echo "❌ Screenshots directory not found"
+            exit 1
+          fi
+
+          # Copy screenshot HTML report
+          if [ -f "screenshots/screenshots.html" ]; then
+            cp screenshots/screenshots.html gh-pages-deploy/
+            echo "✓ Copied screenshots.html ($(du -h screenshots/screenshots.html | cut -f1))"
+          else
+            echo "❌ Screenshots HTML report not found"
+            exit 1
           fi
 
           # Ensure Optimizely JSON is published for dashboard usage
@@ -481,4 +517,5 @@ jobs:
 
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**🌐 Live Report:** ${{ steps.deployment.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
-          echo "**📥 Downloads:** ${{ steps.deployment.outputs.page_url }}downloads.html" >> $GITHUB_STEP_SUMMARY
+          echo "**📸 Screenshots:** ${{ steps.deployment.outputs.page_url }}screenshots/" >> $GITHUB_STEP_SUMMARY
+          echo "**🖼️ Screenshots HTML:** ${{ steps.deployment.outputs.page_url }}screenshots/screenshots.html" >> $GITHUB_STEP_SUMMARY

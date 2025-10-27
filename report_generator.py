@@ -2953,6 +2953,7 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
                 <button class="tab-link" onclick="openTab(event, 'Changes')">Changes</button>
                 <button class="tab-link" onclick="openTab(event, 'Product_Availability')">Product Availability</button>
                 <button class="tab-link" onclick="openTab(event, 'Page_Views')">Page Views</button>
+                <button class="tab-link" onclick="openTab(event, 'Screenshots')">Screenshots</button>
                 <button class="tab-link" onclick="openTab(event, 'Optimizely')">Optimizely</button>
                 <!-- Categories tab disabled -->
             </div>
@@ -2989,6 +2990,25 @@ def generate_combined_html_report(au_csv_path, nz_csv_path, output_html_path='co
 
             <div id="Optimizely" class="tab-content">
                 {optimizely_html}
+            </div>
+
+            <div id="Screenshots" class="tab-content">
+                <div class="summary-container">
+                    <span class="summary-item">📸 Website Screenshots</span>
+                    <span class="summary-item">🔐 Includes login testing</span>
+                    <span class="summary-item">📊 Visual monitoring</span>
+                </div>
+                <div style="background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin: 20px 0;">
+                    <h3 style="margin: 0 0 16px 0; color: #1e293b;">🖼️ Website Screenshots</h3>
+                    <p style="margin: 0 0 16px 0; color: #64748b; font-size: 14px;">
+                        Visual monitoring of key Kmart website pages including public content, search functionality, and authenticated areas.
+                    </p>
+                    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px;">
+                        <iframe src="screenshots.html" width="100%" height="800px" style="border: none; border-radius: 6px;" title="Website Screenshots">
+                            <p>Your browser doesn't support iframes. <a href="screenshots.html" target="_blank">View screenshots directly</a></p>
+                        </iframe>
+                    </div>
+                </div>
             </div>
 
             <!-- Categories tab content disabled -->

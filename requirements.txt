@@ -13,3 +13,6 @@ numpy
 lxml
 html5lib
 python-dotenv
+playwright==1.40.0
+asyncio
+pathlib
