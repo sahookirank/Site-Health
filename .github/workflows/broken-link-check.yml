@@ -342,12 +342,12 @@ jobs:
 
       - name: Append new data to broken_links.db
         run: |
-          if [ -f broken_links.db ]; then
+          if [ -f scripts/fetch_and_merge_artifacts.py ]; then
             echo "Appending new data to broken_links.db..."
             python scripts/fetch_and_merge_artifacts.py
           else
-            echo "No baseline broken_links.db found; creating a new one."
-            python scripts/fetch_and_merge_artifacts.py
+            echo "Script not found; aborting."
+            exit 1
           fi
 
       - name: Upload updated broken_links.db to gh-pages
