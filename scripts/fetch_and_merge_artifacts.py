@@ -2,13 +2,14 @@ import os
 import sqlite3
 import pandas as pd
 from datetime import datetime, timedelta
+import argparse
 
 # SQLite database configuration
 DB_PATH = "broken_links.db"
 TEMP_DATA_DIR = "temp-data-links"
 
 # Function to load CSV files from a directory and merge into the database
-def load_csv_to_db(temp_data_dir, db_path):
+def load_csv_to_db(csv_files, db_path):
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
@@ -25,16 +26,11 @@ def load_csv_to_db(temp_data_dir, db_path):
         """
     )
 
-    # Iterate over directories and load CSV files
-    for folder in sorted(os.listdir(temp_data_dir)):
-        folder_path = os.path.join(temp_data_dir, folder)
-        if os.path.isdir(folder_path):
-            for csv_file in ["au_broken_links.csv", "nz_broken_links.csv"]:
-                csv_path = os.path.join(folder_path, csv_file)
-                if os.path.exists(csv_path):
-                    print(f"Loading {csv_path} into database...")
-                    df = pd.read_csv(csv_path)
-                    df.to_sql("broken_links", conn, if_exists="append", index=False)
+    # Load each CSV file into the database
+    for csv_file in csv_files:
+        print(f"Loading {csv_file} into database...")
+        df = pd.read_csv(csv_file)
+        df.to_sql("broken_links", conn, if_exists="append", index=False)
 
     conn.commit()
     conn.close()
