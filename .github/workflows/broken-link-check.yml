@@ -35,6 +35,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Retrieve existing DB from gh-pages
+        continue-on-error: true
         uses: actions/checkout@v3
         with:
           ref: gh-pages
@@ -43,8 +44,8 @@ jobs:
 
       - name: Restore DB if exists
         run: |
-          if [ -f gh-pages/broken_links.db ]; then
-            cp gh-pages/broken_links.db ./broken_links.db
+          if [ -f gh-pages/data/broken_links.db ]; then
+            cp gh-pages/data/broken_links.db ./broken_links.db
             echo "Restored existing broken_links.db"
           else
             echo "No existing DB found; starting fresh."
@@ -354,8 +355,18 @@ jobs:
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
-          git checkout gh-pages
+          if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
+            git checkout gh-pages
+          else
+            git checkout --orphan gh-pages
+            git rm -rf . >/dev/null 2>&1 || true
+          fi
+          mkdir -p data
           cp broken_links.db ./data/broken_links.db
           git add ./data/broken_links.db
-          git commit -m "Update broken_links.db with new data"
-          git push origin gh-pages
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update broken_links.db with new data"
+            git push origin gh-pages
+          fi
