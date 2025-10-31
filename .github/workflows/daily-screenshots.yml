@@ -92,9 +92,34 @@ jobs:
           KMART_PASSWORD: ${{ secrets.KMART_PASSWORD }}
         run: |
           echo "📸 Generating website screenshots for $(date -u -d '+10 hours' '+%Y-%m-%d') (AEST)..."
+          echo "🔍 Debugging environment:"
+          echo "Current working directory: $(pwd)"
+          echo "Python version: $(python3 --version)"
+          echo "Screenshots directory contents before:"
+          ls -la screenshots/ || echo "No screenshots directory"
+          echo "Database check before:"
+          sqlite3 screenshots.db "SELECT COUNT(*) as total_screenshots FROM screenshots;" 2>/dev/null || echo "No database found"
+          echo "Available dates before:"
+          sqlite3 screenshots.db "SELECT DISTINCT date FROM screenshots ORDER BY date DESC LIMIT 5;" 2>/dev/null || echo "No database found"
 
-          # Run screenshot tool
+          # Run screenshot tool with verbose output
           python3 screenshot_tool.py
+          screenshot_exit_code=$?
+
+          echo "Screenshot tool exit code: $screenshot_exit_code"
+
+          echo "🔍 Debugging after screenshot capture:"
+          echo "Screenshots directory contents after:"
+          ls -la screenshots/ || echo "No screenshots directory after"
+          echo "Database check after:"
+          sqlite3 screenshots.db "SELECT COUNT(*) as total_screenshots FROM screenshots;" 2>/dev/null || echo "No database found after"
+          echo "Screenshots for current date:"
+          sqlite3 screenshots.db "SELECT COUNT(*) FROM screenshots WHERE date = '$(date -u -d '+10 hours' '+%Y-%m-%d')';" 2>/dev/null || echo "No current date screenshots"
+
+          if [ $screenshot_exit_code -ne 0 ]; then
+            echo "❌ Screenshot tool failed"
+            exit 1
+          fi
 
           # Verify screenshots were created
           if [ -d "screenshots" ]; then

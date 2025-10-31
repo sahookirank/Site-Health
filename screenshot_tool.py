@@ -79,9 +79,14 @@ async def login_to_site(page, config):
     """Login to the website using the provided configuration."""
     if not config['enabled'] or not config['username'] or not config['password']:
         print("Login disabled or credentials not provided")
+        print(f"Login enabled: {config['enabled']}")
+        print(f"Username provided: {'Yes' if config['username'] else 'No'}")
+        print(f"Password provided: {'Yes' if config['password'] else 'No'}")
         return True
 
     print("Attempting to login...")
+    print(f"Login URL: {config['login_url']}")
+    print(f"Username: {config['username'][:3]}***")  # Show first 3 chars for debugging
 
     for attempt in range(config['max_login_attempts']):
         try:
@@ -233,14 +238,28 @@ async def capture_search_screenshot(page):
                 print(f"Search screenshot captured: {filename}")
                 # Save to database
                 screenshot_db = ScreenshotDatabase()
+                screenshot_date = datetime.now().strftime('%Y-%m-%d')
                 metadata = {
                     'original_url': 'search-overlay',
                     'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                     'success': True,
                     'file_size': os.path.getsize(filepath),
-                    'search_clicked': True
+                    'search_clicked': True,
+                    'timezone': 'Australia/Melbourne'
                 }
-                save_screenshot_to_db(screenshot_db, 'home-search', 'search-overlay', filename, filepath, metadata)
+
+                print(f"💾 Saving search screenshot to database:")
+                print(f"   Page name: home-search")
+                print(f"   URL: search-overlay")
+                print(f"   Filename: {filename}")
+                print(f"   Date: {screenshot_date}")
+                print(f"   File size: {metadata['file_size']} bytes")
+
+                try:
+                    save_screenshot_to_db(screenshot_db, 'home-search', 'search-overlay', filename, filepath, metadata)
+                    print(f"   ✅ Search screenshot saved to database")
+                except Exception as e:
+                    print(f"   ❌ Failed to save search screenshot: {str(e)}")
 
                 return {
                     'url': 'search-overlay',
@@ -361,12 +380,38 @@ async def take_screenshot(page, url, custom_name=None):
             'timezone': 'Australia/Melbourne'
         }
 
+        print(f"💾 Saving screenshot to database:")
+        print(f"   Page name: {page_name}")
+        print(f"   URL: {url}")
+        print(f"   Filename: {filename}")
+        print(f"   Date: {screenshot_date}")
+        print(f"   File size: {metadata['file_size']} bytes")
+
         # Save to database with explicit date
-        save_screenshot_to_db(screenshot_db, page_name, url, filename, filepath, metadata)
+        try:
+            save_screenshot_to_db(screenshot_db, page_name, url, filename, filepath, metadata)
+            print(f"   ✅ save_screenshot_to_db completed")
+        except Exception as e:
+            print(f"   ❌ save_screenshot_to_db failed: {str(e)}")
+            
         # Also store with explicit date to ensure consistency
-        screenshot_db.store_screenshot(page_name, url, filename, 
-                                      open(filepath, 'rb').read(), 
-                                      metadata, screenshot_date)
+        try:
+            with open(filepath, 'rb') as f:
+                image_data = f.read()
+            screenshot_db.store_screenshot(page_name, url, filename, image_data, metadata, screenshot_date)
+            print(f"   ✅ store_screenshot completed")
+        except Exception as e:
+            print(f"   ❌ store_screenshot failed: {str(e)}")
+        
+        # Verify the screenshot was actually saved
+        try:
+            saved_screenshot = screenshot_db.get_screenshot_by_name_and_date(page_name, screenshot_date)
+            if saved_screenshot:
+                print(f"   ✅ Verified screenshot saved in database")
+            else:
+                print(f"   ❌ Screenshot NOT found in database after save")
+        except Exception as e:
+            print(f"   ❌ Verification failed: {str(e)}")
 
         return {
             'url': url,

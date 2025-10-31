@@ -58,6 +58,11 @@ def generate_standalone_viewer(db_path='screenshots.db', output_path='screenshot
     all_pages = set(before_lookup.keys()) | set(after_lookup.keys())
     all_pages = sorted(all_pages)
 
+    # Prepare date options for select elements
+    before_date_options = "".join(f'<option value="{date}" {"selected" if date == before_date else ""}>{date}</option>' for date in available_dates)
+    after_date_options = "".join(f'<option value="{date}" {"selected" if date == after_date else ""}>{date}</option>' for date in available_dates)
+
+    # Start building HTML content
     html_content = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -262,7 +267,7 @@ def generate_standalone_viewer(db_path='screenshots.db', output_path='screenshot
             <div class="date-selector">
                 <label for="beforeDateSelect">Select Date:</label>
                 <select id="beforeDateSelect" onchange="updateComparison()">
-                    {"".join(f'<option value="{date}" {"selected" if date == before_date else ""}>{date}</option>' for date in available_dates)}
+                    {before_date_options}
                 </select>
             </div>"""
 
@@ -295,7 +300,7 @@ def generate_standalone_viewer(db_path='screenshots.db', output_path='screenshot
         html_content += '''
             </div>'''
 
-    html_content += '''
+    html_content += f'''
         </div>
 
         <!-- After Date Column -->
@@ -304,7 +309,7 @@ def generate_standalone_viewer(db_path='screenshots.db', output_path='screenshot
             <div class="date-selector">
                 <label for="afterDateSelect">Select Date:</label>
                 <select id="afterDateSelect" onchange="updateComparison()">
-                    {"".join(f'<option value="{date}" {"selected" if date == after_date else ""}>{date}</option>' for date in available_dates)}
+                    {after_date_options}
                 </select>
             </div>'''
 
@@ -337,12 +342,12 @@ def generate_standalone_viewer(db_path='screenshots.db', output_path='screenshot
         html_content += '''
             </div>'''
 
-    html_content += '''
+    html_content += f'''
         </div>
     </div>
 
     <script>
-        function updateComparison() {
+        function updateComparison() {{
             const beforeDate = document.getElementById('beforeDateSelect').value;
             const afterDate = document.getElementById('afterDateSelect').value;
 
@@ -351,29 +356,29 @@ def generate_standalone_viewer(db_path='screenshots.db', output_path='screenshot
             url.searchParams.set('before', beforeDate);
             url.searchParams.set('after', afterDate);
             window.location.href = url.toString();
-        }
+        }}
 
         // Auto-reload if URL parameters change (for bookmarking)
-        window.addEventListener('load', function() {
+        window.addEventListener('load', function() {{
             const urlParams = new URLSearchParams(window.location.search);
             const beforeParam = urlParams.get('before');
             const afterParam = urlParams.get('after');
 
-            if (beforeParam) {
+            if (beforeParam) {{
                 document.getElementById('beforeDateSelect').value = beforeParam;
-            }
-            if (afterParam) {
+            }}
+            if (afterParam) {{
                 document.getElementById('afterDateSelect').value = afterParam;
-            }
-        });
+            }}
+        }});
 
         // Add some interactivity
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function() {{
             console.log('Screenshot viewer loaded');
             console.log('Available dates:', {len(available_dates)});
             console.log('Before date:', '{before_date}');
             console.log('After date:', '{after_date}');
-        });
+        }});
     </script>
 </body>
 </html>'''
