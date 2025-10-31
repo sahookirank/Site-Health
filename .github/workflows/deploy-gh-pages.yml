@@ -200,12 +200,129 @@ jobs:
           # Clean up zip files
           rm -f *.zip
 
-      - name: Generate website screenshots
+      - name: Collect screenshots from daily workflow
+        id: collect-screenshots
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let screenshotsCollected = false;
+
+            console.log('Collecting screenshots from daily screenshot workflow...');
+
+            // Function to find recent successful screenshot runs
+            async function findRecentScreenshotRuns() {
+              const runs = await github.rest.actions.listWorkflowRuns({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                workflow_id: 'daily-screenshots.yml',
+                status: 'completed',
+                conclusion: 'success',
+                per_page: 5
+              });
+              return runs.data.workflow_runs;
+            }
+
+            // Function to download screenshots artifacts
+            async function downloadScreenshotsFromRun(runId) {
+              try {
+                const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  run_id: runId
+                });
+
+                // Download screenshots database
+                const dbArtifact = artifacts.data.artifacts.find(
+                  a => a.name === 'screenshots-db' && !a.expired
+                );
+
+                if (dbArtifact) {
+                  const dbDownload = await github.rest.actions.downloadArtifact({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    artifact_id: dbArtifact.id,
+                    archive_format: 'zip'
+                  });
+
+                  fs.writeFileSync('screenshots-db.zip', Buffer.from(dbDownload.data));
+                  console.log(`Downloaded screenshots database from run ${runId}`);
+
+                  // Download screenshots files
+                  const filesArtifact = artifacts.data.artifacts.find(
+                    a => a.name === 'screenshots-files' && !a.expired
+                  );
+
+                  if (filesArtifact) {
+                    const filesDownload = await github.rest.actions.downloadArtifact({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      artifact_id: filesArtifact.id,
+                      archive_format: 'zip'
+                    });
+
+                    fs.writeFileSync('screenshots-files.zip', Buffer.from(filesDownload.data));
+                    console.log(`Downloaded screenshots files from run ${runId}`);
+                    return true;
+                  }
+                }
+                return false;
+              } catch (error) {
+                console.log(`Error downloading screenshots from run ${runId}: ${error.message}`);
+                return false;
+              }
+            }
+
+            // Try to download from recent screenshot runs
+            const screenshotRuns = await findRecentScreenshotRuns();
+            for (const run of screenshotRuns) {
+              screenshotsCollected = await downloadScreenshotsFromRun(run.id);
+              if (screenshotsCollected) break;
+            }
+
+            core.setOutput('screenshots_collected', screenshotsCollected);
+
+      - name: Extract screenshots artifacts
+        if: steps.collect-screenshots.outputs.screenshots_collected == 'true'
+        run: |
+          echo "Extracting screenshots from artifacts..."
+
+          # Extract screenshots database
+          if [ -f "screenshots-db.zip" ]; then
+            unzip -o screenshots-db.zip
+            echo "✓ Extracted screenshots database"
+          else
+            echo "⚠️ No screenshots database artifact found"
+          fi
+
+          # Extract screenshots files
+          if [ -f "screenshots-files.zip" ]; then
+            mkdir -p screenshots
+            unzip -o screenshots-files.zip -d screenshots/
+            echo "✓ Extracted screenshots files"
+          else
+            echo "⚠️ No screenshots files artifact found"
+          fi
+
+          # Clean up zip files
+          rm -f *.zip
+
+          # Verify screenshots
+          if [ -d "screenshots" ]; then
+            echo "✅ Screenshots directory restored from artifacts"
+            echo "📊 Screenshot files:"
+            ls -la screenshots/
+          else
+            echo "ℹ️ No screenshots directory found"
+          fi
+
+      - name: Generate website screenshots (if no artifacts found)
+        if: steps.collect-screenshots.outputs.screenshots_collected != 'true'
         env:
           KMART_USERNAME: ${{ secrets.KMART_USERNAME }}
           KMART_PASSWORD: ${{ secrets.KMART_PASSWORD }}
         run: |
-          echo "📸 Generating website screenshots..."
+          echo "📸 No screenshot artifacts found, generating new screenshots..."
 
           # Run screenshot tool
           python3 screenshot_tool.py
@@ -366,6 +483,14 @@ jobs:
             echo "✓ Copied broken_links.db to gh-pages-deploy/data/"
           else
             echo "⚠️ broken_links.db not found; skipping copy"
+          fi
+
+          # Persist screenshots.db for historical data access
+          if [ -f "screenshots.db" ]; then
+            cp screenshots.db gh-pages-deploy/data/
+            echo "✓ Copied screenshots.db to gh-pages-deploy/data/"
+          else
+            echo "⚠️ screenshots.db not found; skipping copy"
           fi
 
           # Copy screenshots directory (excluding HTML file since it's copied separately)

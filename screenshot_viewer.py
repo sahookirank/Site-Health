@@ -6,7 +6,7 @@ View and compare screenshots from the database independently of the main dashboa
 
 import argparse
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from screenshot_database import ScreenshotDatabase, get_image_data_url
 
 def generate_standalone_viewer(db_path='screenshots.db', output_path='screenshot_viewer.html'):
@@ -19,12 +19,32 @@ def generate_standalone_viewer(db_path='screenshots.db', output_path='screenshot
     available_dates = db.get_available_dates()
     min_date, max_date = db.get_date_range()
 
-    # Default dates
-    today = datetime.now().strftime('%Y-%m-%d')
-    yesterday = (datetime.now().date() - timedelta(days=1)).strftime('%Y-%m-%d')
-
-    before_date = yesterday if yesterday in available_dates else (available_dates[-1] if available_dates else today)
-    after_date = today
+    # Fix timezone logic: Use latest available date as "After" and find previous date as "Before"
+    if available_dates:
+        # "After" should be the latest available date
+        after_date = available_dates[0]  # dates are already in DESC order
+        
+        # "Before" should be the date immediately before "After"
+        # First try the previous day
+        previous_day = (datetime.strptime(after_date, '%Y-%m-%d').date() - timedelta(days=1)).strftime('%Y-%m-%d')
+        
+        if previous_day in available_dates:
+            before_date = previous_day
+        else:
+            # If previous day doesn't have screenshots, find the next available date before "After"
+            before_date = None
+            for date in available_dates[1:]:  # Skip the first one (which is after_date)
+                before_date = date
+                break
+            
+            # If still no before_date (only one date available), use the same date as after
+            if before_date is None:
+                before_date = after_date
+    else:
+        # No dates available - use today
+        today = datetime.now().strftime('%Y-%m-%d')
+        before_date = today
+        after_date = today
 
     # Fetch screenshots for both dates
     before_screenshots = db.get_all_screenshots_for_date(before_date)

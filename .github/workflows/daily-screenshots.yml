@@ -1,0 +1,239 @@
+name: Daily Screenshots
+
+on:
+  schedule:
+    - cron: '0 18 * * *'  # 4AM AEST (UTC+10) = 5PM UTC, 1 hour after link checks
+  workflow_dispatch:
+    inputs:
+      force_capture:
+        description: 'Force screenshot capture even if recently captured'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  actions: write  # Required to trigger deployment workflow
+
+jobs:
+  capture-screenshots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30  # 30 minute timeout for screenshot capture
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+          # Install Playwright for screenshot functionality
+          echo "📦 Installing Playwright for screenshot capture..."
+          pip install playwright==1.40.0
+          playwright install chromium
+          echo "✅ Playwright installed successfully"
+
+      - name: Restore existing screenshots database
+        continue-on-error: true
+        uses: actions/checkout@v3
+        with:
+          ref: gh-pages
+          path: gh-pages
+          fetch-depth: 1
+
+      - name: Check if screenshots already captured today
+        id: check-capture
+        run: |
+          # Get current date in AEST (UTC+10)
+          CURRENT_DATE=$(date -u -d '+10 hours' '+%Y-%m-%d')
+          echo "Current date (AEST): $CURRENT_DATE"
+          
+          # Check if screenshots already exist for today
+          if [ -f "screenshots.db" ]; then
+            echo "Found existing screenshots.db"
+            
+            # Check if we have screenshots for today
+            TODAY_SCREENSHOTS=$(sqlite3 screenshots.db "SELECT COUNT(*) FROM screenshots WHERE date = '$CURRENT_DATE';" 2>/dev/null || echo "0")
+            echo "Screenshots for $CURRENT_DATE: $TODAY_SCREENSHOTS"
+            
+            if [ "$TODAY_SCREENSHOTS" -gt "0" ] && [ "${{ github.event.inputs.force_capture }}" != "true" ]; then
+              echo "Screenshots already captured for today, skipping..."
+              echo "skip_capture=true" >> $GITHUB_OUTPUT
+            else
+              echo "No screenshots for today or force capture enabled, proceeding..."
+              echo "skip_capture=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "No existing screenshots.db, will create new one"
+            echo "skip_capture=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Copy existing database if exists
+        if: steps.check-capture.outputs.skip_capture == 'false'
+        run: |
+          if [ -f "gh-pages/data/screenshots.db" ]; then
+            cp gh-pages/data/screenshots.db ./screenshots.db
+            echo "✅ Restored existing screenshots database"
+          else
+            echo "ℹ️ No existing screenshots database found, will create new one"
+          fi
+
+      - name: Generate website screenshots
+        if: steps.check-capture.outputs.skip_capture == 'false'
+        env:
+          KMART_USERNAME: ${{ secrets.KMART_USERNAME }}
+          KMART_PASSWORD: ${{ secrets.KMART_PASSWORD }}
+        run: |
+          echo "📸 Generating website screenshots for $(date -u -d '+10 hours' '+%Y-%m-%d') (AEST)..."
+
+          # Run screenshot tool
+          python3 screenshot_tool.py
+
+          # Verify screenshots were created
+          if [ -d "screenshots" ]; then
+            echo "✅ Screenshots directory created"
+            echo "📊 Screenshot files:"
+            ls -la screenshots/
+            
+            # Count screenshots created
+            SCREENSHOT_COUNT=$(find screenshots -name "*.jpg" -type f | wc -l)
+            echo "📸 Total screenshots captured: $SCREENSHOT_COUNT"
+          else
+            echo "❌ Screenshots directory not created"
+            exit 1
+          fi
+
+          # Verify HTML report was generated
+          if [ -f "screenshots/screenshots.html" ]; then
+            echo "✅ Screenshots HTML report generated"
+            echo "📄 Report size: $(wc -c < screenshots/screenshots.html) bytes"
+          else
+            echo "❌ Screenshots HTML report not generated"
+            exit 1
+          fi
+
+      - name: Verify database and screenshots
+        if: steps.check-capture.outputs.skip_capture == 'false'
+        run: |
+          # Get current date in AEST
+          CURRENT_DATE=$(date -u -d '+10 hours' '+%Y-%m-%d')
+          
+          if [ -f "screenshots.db" ]; then
+            # Check screenshots for today
+            TODAY_SCREENSHOTS=$(sqlite3 screenshots.db "SELECT COUNT(*) FROM screenshots WHERE date = '$CURRENT_DATE';")
+            echo "📊 Screenshots in database for $CURRENT_DATE: $TODAY_SCREENSHOTS"
+            
+            # Get available dates
+            AVAILABLE_DATES=$(sqlite3 screenshots.db "SELECT COUNT(DISTINCT date) FROM screenshots;")
+            echo "📅 Total dates with screenshots: $AVAILABLE_DATES"
+            
+            if [ "$TODAY_SCREENSHOTS" -eq "0" ]; then
+              echo "❌ No screenshots captured for today in database"
+              exit 1
+            else
+              echo "✅ Screenshots successfully stored in database"
+            fi
+          else
+            echo "❌ screenshots.db not found"
+            exit 1
+          fi
+
+      - name: Upload screenshots database artifact
+        if: steps.check-capture.outputs.skip_capture == 'false'
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots-db
+          path: screenshots.db
+          retention-days: 30
+
+      - name: Upload screenshots files artifact
+        if: steps.check-capture.outputs.skip_capture == 'false'
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots-files
+          path: screenshots/
+          retention-days: 30
+
+      - name: Trigger deployment with screenshots
+        if: steps.check-capture.outputs.skip_capture == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            try {
+              console.log('🚀 Triggering deployment workflow with screenshots...');
+              
+              const result = await github.rest.actions.createWorkflowDispatch({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                workflow_id: 'deploy-gh-pages.yml',
+                ref: 'main',
+                inputs: {
+                  'product_data_run_id': '',
+                  'broken_link_run_id': '',
+                  'trigger_source': 'daily-screenshots'
+                }
+              });
+
+              console.log('✅ Successfully triggered deployment workflow');
+              console.log(`Status: ${result.status}`);
+
+              // Add to step summary
+              core.summary.addHeading('📸 Daily Screenshots Summary');
+              core.summary.addRaw('✅ Successfully captured screenshots');
+              core.summary.addRaw('🚀 Triggered deployment workflow');
+              core.summary.addRaw(`📋 Run ID: ${context.runId}`);
+              await core.summary.write();
+
+            } catch (error) {
+              console.log('❌ Failed to trigger deployment workflow');
+              console.log(`Error: ${error.message}`);
+              
+              // Don't fail the entire workflow
+              core.warning('Failed to trigger deployment workflow, but screenshots are available as artifacts');
+            }
+
+      - name: Create summary
+        if: always()
+        run: |
+          echo "## 📸 Daily Screenshots Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Execution Details:**" >> $GITHUB_STEP_SUMMARY
+          echo "- Scheduled Time: $(date -u)" >> $GITHUB_STEP_SUMMARY
+          echo "- Local Time (AEST): $(date -u -d '+10 hours')" >> $GITHUB_STEP_SUMMARY
+          echo "- Force Capture: ${{ github.event.inputs.force_capture || 'false' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Skip Capture: ${{ steps.check-capture.outputs.skip_capture || 'false' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ steps.check-capture.outputs.skip_capture }}" == "true" ]; then
+            echo "⏭️ **Screenshots already captured today, skipped**" >> $GITHUB_STEP_SUMMARY
+          else
+            if [ -f "screenshots.db" ]; then
+              CURRENT_DATE=$(date -u -d '+10 hours' '+%Y-%m-%d')
+              TODAY_SCREENSHOTS=$(sqlite3 screenshots.db "SELECT COUNT(*) FROM screenshots WHERE date = '$CURRENT_DATE';")
+              AVAILABLE_DATES=$(sqlite3 screenshots.db "SELECT COUNT(DISTINCT date) FROM screenshots;")
+              
+              echo "**Screenshots Captured:**" >> $GITHUB_STEP_SUMMARY
+              echo "- Today's screenshots: $TODAY_SCREENSHOTS" >> $GITHUB_STEP_SUMMARY
+              echo "- Total dates in database: $AVAILABLE_DATES" >> $GITHUB_STEP_SUMMARY
+              
+              if [ -d "screenshots" ]; then
+                SCREENSHOT_FILES=$(find screenshots -name "*.jpg" -type f | wc -l)
+                echo "- Screenshot files created: $SCREENSHOT_FILES" >> $GITHUB_STEP_SUMMARY
+              fi
+              
+              if [ -f "screenshots/screenshots.html" ]; then
+                echo "- HTML report generated: ✅" >> $GITHUB_STEP_SUMMARY
+              else
+                echo "- HTML report generated: ❌" >> $GITHUB_STEP_SUMMARY
+              fi
+            else
+              echo "❌ **Failed to create screenshots database**" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi

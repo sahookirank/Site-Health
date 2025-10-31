@@ -351,15 +351,22 @@ async def take_screenshot(page, url, custom_name=None):
 
         # Save to database for persistence
         screenshot_db = ScreenshotDatabase()
+        # Use current date in local timezone for screenshot date
+        screenshot_date = datetime.now().strftime('%Y-%m-%d')
         metadata = {
             'original_url': url,
             'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             'success': True,
-            'file_size': os.path.getsize(filepath)
+            'file_size': os.path.getsize(filepath),
+            'timezone': 'Australia/Melbourne'
         }
 
-        # Save to database
+        # Save to database with explicit date
         save_screenshot_to_db(screenshot_db, page_name, url, filename, filepath, metadata)
+        # Also store with explicit date to ensure consistency
+        screenshot_db.store_screenshot(page_name, url, filename, 
+                                      open(filepath, 'rb').read(), 
+                                      metadata, screenshot_date)
 
         return {
             'url': url,
@@ -532,17 +539,36 @@ def generate_html(screenshots, screenshot_db=None, before_date=None, after_date=
     available_dates = screenshot_db.get_available_dates() if screenshot_db else []
     min_date, max_date = screenshot_db.get_date_range() if screenshot_db else (None, None)
 
-    # Default to today if no dates specified
-    if after_date is None:
-        after_date = datetime.now().strftime('%Y-%m-%d')
-
-    if before_date is None:
-        # Get yesterday if available, otherwise use today
-        yesterday = (datetime.now().date() - timedelta(days=1)).strftime('%Y-%m-%d')
-        before_date = yesterday if yesterday in available_dates else after_date
-
-    # Ensure after_date is always the current date
-    after_date = datetime.now().strftime('%Y-%m-%d')
+    # Fix timezone logic: Use latest available date as "After" and find previous date as "Before"
+    if available_dates:
+        # "After" should be the latest available date
+        if after_date is None:
+            after_date = available_dates[0]  # dates are already in DESC order
+        
+        # "Before" should be the date immediately before "After"
+        if before_date is None:
+            # First try the previous day
+            previous_day = (datetime.strptime(after_date, '%Y-%m-%d').date() - timedelta(days=1)).strftime('%Y-%m-%d')
+            
+            if previous_day in available_dates:
+                before_date = previous_day
+            else:
+                # If previous day doesn't have screenshots, find the next available date before "After"
+                before_date = None
+                for date in available_dates[1:]:  # Skip the first one (which is after_date)
+                    before_date = date
+                    break
+                
+                # If still no before_date (only one date available), use the same date as after
+                if before_date is None:
+                    before_date = after_date
+    else:
+        # No dates available - use today
+        today = datetime.now().strftime('%Y-%m-%d')
+        if before_date is None:
+            before_date = today
+        if after_date is None:
+            after_date = today
 
     # Fetch screenshots for both dates
     before_screenshots = screenshot_db.get_all_screenshots_for_date(before_date) if screenshot_db else []
